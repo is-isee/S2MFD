@@ -1,0 +1,35 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+
+d = np.load(file='data/geometry.npz')
+rr = d['rr']
+th = d['th']
+ixg = len(rr)
+jxg = len(th)
+
+RR, TH = np.meshgrid(rr, th, indexing='ij')
+X, Y = RR * np.cos(TH), RR * np.sin(TH)
+
+fig = plt.figure('dynamo',figsize=(10,10))
+
+n1 = 0
+if os.path.isdir('./data'):
+    # dataディレクトリ内の最も大きな番号を探る
+    # 特定のステップから始めたい場合は、そのステップを手で指定する
+    files = os.listdir('./data')
+    for file in files:
+        filel = file.split('.')
+        if filel[0] == 'data':
+            n1 = max(n1, int(filel[1]))
+
+n0 = 1
+Brrt = np.zeros((ixg,jxg,n1-n0))
+Btht = np.zeros((ixg,jxg,n1-n0))
+Bpht = np.zeros((ixg,jxg,n1-n0))
+for n  in range(n0,n1):
+    print(n)
+    d = np.load(file='data/data.'+str(n).zfill(6)+'.npz')
+    Brrt[:,:,n-n0] = d['Brr']
+    Btht[:,:,n-n0] = d['Bth']
+    Bpht[:,:,n-n0] = d['Bph']

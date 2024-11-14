@@ -2,11 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 import os, sys, glob
-from scipy.special import erf
-from tools import drr1, drr2, dth1, dth2
+from FLD_ISEE.tools import drr1, drr2, dth1, dth2
+import FLD_ISEE.config as cfg
 from dataclasses import dataclass, field
-import config as cfg
 import importlib
+from FLD_ISEE import grid_c, setup_c
 
 # configを強制的に再読み込み
 importlib.reload(cfg)
@@ -15,155 +15,17 @@ if not os.path.isfile(cfg.datadir+'data.000001.npz'):
    cfg.cont_flag = False
 
 os.makedirs(cfg.datadir,exist_ok=True)
-
-@dataclass
-class grid_c:
-   ix: int
-   jx: int
-   ixg: int = field(init=False)
-   jxg: int = field(init=False)
-   margin: int
-   rrmin: float
-   rrmax: float
-   thmin: float
-   thmax: float
-   drr: float = field(init=False)
-   dth: float = field(init=False)
-   rr: np.ndarray = field(init=False)
-   th: np.ndarray = field(init=False)
-   
-   RR: np.ndarray = field(init=False)
-   TH: np.ndarray = field(init=False)
-   RRm: np.ndarray = field(init=False) 
-   THm: np.ndarray = field(init=False)
-   sinTH: np.ndarray = field(init=False)
-   cosTH: np.ndarray = field(init=False)   
-   X: np.ndarray = field(init=False)
-   Y: np.ndarray = field(init=False)
-   
-   def __post_init__(self):
-      # dr,dθの設定
-      self.ixg = self.ix + 2*self.margin
-      self.jxg = self.jx + 2*self.margin
-      self.drr = (self.rrmax - self.rrmin)/self.ix
-      self.dth = (self.thmax - self.thmin)/self.jx
-
-      #座標rrの設定
-      self.rr = np.zeros(self.ixg)
-      self.rr[0] = self.rrmin + self.drr*(0.5 - self.margin)
-
-      for i in range(1, self.ixg):
-         self.rr[i] = self.rr[i - 1] + self.drr
-   
-      #座標thの設定    
-      self.th    = np.zeros(self.jxg)
-      self.th[0] = self.thmin + self.dth*(0.5 - self.margin)
-
-      for j in range(1,self.jxg):
-         self.th[j] = self.th[j - 1] + self.dth
-         
-      self.RR ,self.TH  = np.meshgrid(self.rr, self.th,indexing='ij')
-      self.RRm = np.zeros_like(self.RR)
-      self.THm = np.zeros_like(self.TH)
       
-      self.RRm[1:self.ixg,:] = 0.5*(self.RR[1:self.ixg,:] + self.RR[0:self.ixg-1,:])
-      self.THm[:,1:self.jxg] = 0.5*(self.TH[:,1:self.jxg] + self.TH[:,0:self.jxg-1])
-      
-      self.sinTH = np.sin(self.TH)
-      self.cosTH = np.cos(self.TH)
-      self.sinTHm = np.sin(self.THm)
-      
-      self.X, self.Y = self.RR * np.cos(self.TH), self.RR * np.sin(self.TH)
-   
-   def save(self, filename):
-      with open(filename, 'wb') as f:
-         pickle.dump(self, f)
-      print('grid_c instance saved to', filename)
-   
-   @classmethod
-   def load(cls, filename):
-      with open(filename, 'rb') as f:
-         return pickle.load(f)
-      
-@dataclass
-class setup_c:
-   from tools import drr1, drr2, dth1, dth2
-   urr: np.ndarray = field(init=False)
-   uth: np.ndarray = field(init=False)   
-   om: np.ndarray = field(init=False)   
-   omrr: np.ndarray = field(init=False)
-   omth: np.ndarray = field(init=False)
-   et: np.ndarray = field(init=False)
-   etrr: np.ndarray = field(init=False)
-   ibase: int = field(init=False)
-   
-   def __init__(self,cfg,grid):
-      import numpy as np
-      import config as cfg
-      # differential rotation
-      self.om = cfg.omc + 0.5*(1 + erf((grid.RR-cfg.rrc)/cfg.d))*(cfg.ome - cfg.omc - cfg.c2*grid.cosTH**2)
-
-      self.omrr = drr2(self.om, grid.drr)
-      self.omth = dth2(self.om, grid.dth)/grid.RR
-   
-      # diffusivity
-      self.et = cfg.etc + 0.5*(cfg.ett - cfg.etc)*(1 + erf((grid.RR-cfg.rrc)/cfg.d))
-      self.etrr = drr2(self.et, grid.drr)
-
-      #タコクラインのindex
-      self.ibase = np.argmin(abs(grid.rr - cfg.rrc))
-
-      # alpha effect
-      self.so = cfg.so0*0.5 \
-         *(1 + erf((grid.RR-cfg.r1)/cfg.d1))*(1 - erf(grid.RR-cfg.RSUN)/cfg.d1) \
-            *grid.cosTH*grid.sinTH
-
-      # Meridional flow (Jouve+2008 Model)
-      self.urr = -cfg.u0*2*(cfg.RSUN - cfg.rb)/np.pi/grid.RR \
-         *(grid.RR-cfg.rb)**2/(cfg.RSUN - cfg.rb)**2 \
-         *np.sin(np.pi*(grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb))*(3*grid.cosTH**2 - 1)
-         
-      self.uth = cfg.u0*((3*grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb) \
-            *np.sin(np.pi*(grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb)) \
-            + grid.RR*np.pi/(cfg.RSUN-cfg.rb)*(grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb) \
-               *np.cos(np.pi*(grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb))) \
-            *2*(cfg.RSUN-cfg.rb)/np.pi/grid.RR*(grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb) \
-               *grid.cosTH*grid.sinTH
-
-      self.urr[grid.RR < cfg.rb] = 0
-      self.uth[grid.RR < cfg.rb] = 0
-
-      #θ＝０(回転軸)(対称性)
-      # 境界の外で子午面流の設定
-      for i in range(0,grid.margin):
-         self.urr[i           ,:] = - self.urr[2*grid.margin-i-1       ,:] # upper
-         self.urr[grid.ixg-i-1,:] = - self.urr[grid.ixg-2*grid.margin+i,:] # lower
-
-      # latitudinal boundary
-      for j in range(0,grid.margin):
-         self.uth[:,j           ] = - self.uth[:,2*grid.margin - j - 1     ] # north pole
-         self.uth[:,grid.jxg-j-1] = - self.uth[:,grid.jxg-2*grid.margin + j] # south pole
-
-
-   def save(self, filename):
-      with open(filename, 'wb') as f:
-         pickle.dump(self, f)
-      print('grid_c instance saved to', filename)
-   
-   @classmethod
-   def load(cls, filename):
-      with open(filename, 'rb') as f:
-         return pickle.load(f)
-
 if cfg.cont_flag:
-   grid = grid_c.load(cfg.gridfile)
-   setup = setup_c.load(cfg.setupfile)
+   pass
+   #grid = grid_c.load(cfg.gridfile)
+   #setup = setup_c.load(cfg.setupfile)
 else:
    grid = grid_c(ix=cfg.ix,jx=cfg.jx,margin=cfg.margin
               ,rrmin=cfg.rrmin,rrmax=cfg.rrmax,thmin=cfg.thmin,thmax=cfg.thmax)
-   grid.save(cfg.gridfile)
+   #grid.save(cfg.gridfile)
    setup = setup_c(cfg,grid)
-   setup.save(cfg.setupfile)
+   #setup.save(cfg.setupfile)
 
 def time_marching(Bph, Aph, dt, grid, setup):
 

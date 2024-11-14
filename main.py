@@ -148,10 +148,10 @@ while time < cfg.tend:
    if(time//cfg.dtout != (time-dt)//cfg.dtout):
       nd += 1
       ax = fig.add_subplot(111,aspect='equal')
-      ax.pcolormesh(grid.Y,grid.X,Bph,vmax=1.e0,vmin=-1.e0,cmap='bwr',shading='auto')
-      ax.contour(grid.Y,grid.X,grid.RR/cfg.RSUN*grid.sinTH*Aph,colors='black',levels=np.linspace(-8.e12,8.e12,10))
-      ax.set_xlim(0,cfg.RSUN)
-      ax.set_ylim(-cfg.RSUN,cfg.RSUN)
+      ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,Bph,vmax=1.e0,vmin=-1.e0,cmap='bwr',shading='auto')
+      ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*Aph,colors='black',levels=np.linspace(-8.e12,8.e12,10))
+      ax.set_xlim(0,1)
+      ax.set_ylim(-1,1)
       plt.pause(0.01)
       print(time/86400,n,nd)
       Brr =  dth2(grid.sinTH*Aph,grid.dth)/grid.RR/grid.sinTH

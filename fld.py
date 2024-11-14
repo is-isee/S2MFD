@@ -92,7 +92,7 @@ else:
               ,rrmin=cfg.rrmin,rrmax=cfg.rrmax,thmin=cfg.thmin,thmax=cfg.thmax)
    grid.save(cfg.gridfile)
 
-def time_marching(Bph, Aph, dt,urr, uth,grid,et,so,omrr,omth,ibase):
+def time_marching(Bph, Aph, dt,urr, uth,grid,et,etrr,so,omrr,omth,ibase):
 
    # poloidal magnetic field
    Brr = + dth2(grid.sinTH*Aph,grid.dth)/grid.RR/grid.sinTH
@@ -112,6 +112,7 @@ def time_marching(Bph, Aph, dt,urr, uth,grid,et,so,omrr,omth,ibase):
    
    Bph_dfrr = et*drr1(grid.RRm**2*Bphrr,grid.drr,'dw')/grid.RR**2
    Bph_dfth = et*dth1(grid.sinTHm*Bphth,grid.dth,'dw')/grid.RR**2/grid.sinTH
+   Bph_dfrrg = etrr*drr1(grid.RR*Bph,grid.drr,'dw')/grid.RR
    Aph_dfrr = et*drr1(grid.RRm**2*Aphrr,grid.drr,'dw')/grid.RR**2
    Aph_dfth = et*dth1(grid.sinTHm*Aphth,grid.dth,'dw')/grid.RR**2/grid.sinTH
    
@@ -124,7 +125,7 @@ def time_marching(Bph, Aph, dt,urr, uth,grid,et,so,omrr,omth,ibase):
    Aph_sour = so*Bphso/(1 + (Bphso)**2)
 
    dBph = + (Bph_adrr + Bph_adth) \
-          + (Bph_dfrr + Bph_dfth - et*Bph/grid.RR**2/grid.sinTH**2) \
+          + (Bph_dfrr + Bph_dfth + Bph_dfrrg - et*Bph/grid.RR**2/grid.sinTH**2) \
           + (Bph_omrr + Bph_omth) 
           
    dAph = + (Aph_adrr + Aph_adth) \
@@ -134,7 +135,7 @@ def time_marching(Bph, Aph, dt,urr, uth,grid,et,so,omrr,omth,ibase):
    Bphm = Bph + dt*dBph
    Aphm = Aph + dt*dAph
    
-   return Bphm, Aphm, Bphso, Aph_sour
+   return Bphm, Aphm
 
 #
 def boundary_condition(Aph, Bph,margin,rr,th,ixg,jxg):
@@ -179,6 +180,8 @@ etc = 1.e9
 ett = 1.e11
 
 et = etc + 0.5*(ett - etc)*(1 + erf((grid.RR-rrc)/d))
+
+etrr = drr2(et, grid.drr)
 
 #タコクラインの要素番号
 ibase = np.argmin(abs(grid.rr - rrc))
@@ -264,8 +267,8 @@ np.savez(file='data/data.'+str(nd).zfill(6)+'.npz' \
 
 n = 0
 
-plt.close('all')
 plt.clf()
+plt.close('all')
 fig = plt.figure('dynamo',figsize=(5,10))
 
 while time < cfg.tend:
@@ -278,7 +281,7 @@ while time < cfg.tend:
       ax.contour(grid.Y,grid.X,grid.RR/cfg.RSUN*grid.sinTH*Aph,colors='black',levels=np.linspace(-8.e12,8.e12,10))
       ax.set_xlim(0,cfg.RSUN)
       ax.set_ylim(-cfg.RSUN,cfg.RSUN)
-      plt.pause(0.1)
+      plt.pause(0.01)
       print(time/86400,n,nd)
       Brr =  dth2(grid.sinTH*Aph,grid.dth)/grid.RR/grid.sinTH
       Bth = -drr2(   grid.RR*Aph,grid.drr)/grid.RR
@@ -286,11 +289,11 @@ while time < cfg.tend:
             ,Aph=Aph,Bph=Bph,Brr=Brr,Bth=Bth,time=time)
                 
    ####ダイナモ方程式                       
-   Bphm, Aphm, Bphso, Aph_sour = time_marching(Bph , Aph ,dt, urr, uth, grid, et, so, omrr, omth, ibase)
+   Bphm, Aphm = time_marching(Bph , Aph ,dt, urr, uth, grid, et, etrr, so, omrr, omth, ibase)
    
    Aphm, Bphm = boundary_condition(Aphm, Bphm, grid.margin, grid.rr, grid.th, grid.ixg, grid.jxg)
 
-   Bphn, Aphn, Bphso, Aph_sour = time_marching(Bphm, Aphm, dt, urr, uth, grid, et, so, omrr, omth, ibase)
+   Bphn, Aphn = time_marching(Bphm, Aphm, dt, urr, uth, grid, et, etrr, so, omrr, omth, ibase)
    Aphn, Bphn = boundary_condition(Aphn, Bphn,grid.margin,grid.rr,grid.th,grid.ixg,grid.jxg)
     
    Bph = 0.5*Bph + 0.5*Bphn

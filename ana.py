@@ -1,12 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pickle
 
-d = np.load(file='data/geometry.npz')
-rr = d['rr']
-th = d['th']
-ixg = len(rr)
-jxg = len(th)
+with open('data/grid.pkl', 'rb') as f:
+    grid = pickle.load(f)
+    rr = grid.rr
+    th = grid.th
+    ixg = grid.ixg
+    jxg = grid.jxg
 
 RR, TH = np.meshgrid(rr, th, indexing='ij')
 X, Y = RR * np.cos(TH), RR * np.sin(TH)

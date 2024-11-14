@@ -1,46 +1,121 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pickle
 import os, sys
 from scipy.special import erf
 from tools import drr1, drr2, dth1, dth2
+from dataclasses import dataclass, field
 
-def time_marching(Bph, Aph, dt,urr, uth,RR,RRm,sinTH,sinTHm,drr,dth,et,so,omrr,omth,ibase):
+@dataclass
+class grid_c:
+   ix: int
+   jx: int
+   ixg: int = field(init=False)
+   jxg: int = field(init=False)
+   margin: int
+   rrmin: float
+   rrmax: float
+   thmin: float
+   thmax: float
+   drr: float = field(init=False)
+   dth: float = field(init=False)
+   rr: np.ndarray = field(init=False)
+   th: np.ndarray = field(init=False)
+   
+   RR: np.ndarray = field(init=False)
+   TH: np.ndarray = field(init=False)
+   RRm: np.ndarray = field(init=False) 
+   THm: np.ndarray = field(init=False)
+   sinTH: np.ndarray = field(init=False)
+   cosTH: np.ndarray = field(init=False)   
+   X: np.ndarray = field(init=False)
+   Y: np.ndarray = field(init=False)
+   
+   def __post_init__(self):
+      # dr,dθの設定
+      self.ixg = self.ix + 2*self.margin
+      self.jxg = self.jx + 2*self.margin
+      self.drr = (self.rrmax - self.rrmin)/self.ix
+      self.dth = (self.thmax - self.thmin)/self.jx
+
+      #座標rrの設定
+      self.rr = np.zeros(self.ixg)
+      self.rr[0] = self.rrmin + self.drr*(0.5 - self.margin)
+
+      for i in range(1, self.ixg):
+         self.rr[i] = self.rr[i - 1] + self.drr
+   
+      #座標thの設定    
+      self.th    = np.zeros(self.jxg)
+      self.th[0] = self.thmin + self.dth*(0.5 - self.margin)
+
+      for j in range(1,self.jxg):
+         self.th[j] = self.th[j - 1] + self.dth
+         
+      self.RR ,self.TH  = np.meshgrid(self.rr, self.th,indexing='ij')
+      self.RRm = np.zeros_like(self.RR)
+      self.THm = np.zeros_like(self.TH)
+      
+      self.RRm[1:self.ixg,:] = 0.5*(self.RR[1:self.ixg,:] + self.RR[0:self.ixg-1,:])
+      self.THm[:,1:self.jxg] = 0.5*(self.TH[:,1:self.jxg] + self.TH[:,0:self.jxg-1])
+      
+      self.sinTH = np.sin(self.TH)
+      self.cosTH = np.cos(self.TH)
+      self.sinTHm = np.sin(self.THm)
+      
+      self.X, self.Y = self.RR * np.cos(self.TH), self.RR * np.sin(self.TH)
+   
+   def save(self, filename):
+      with open(filename, 'wb') as f:
+         pickle.dump(self, f)
+      print('grid-c instance saved to', filename)
+   
+   @classmethod
+   def load(cls, filename):
+      with open(filename, 'rb') as f:
+         return pickle.load(f)
+      
+rsun = 6.96e10
+grid = grid_c(ix=64,jx=128,margin=1,rrmin=0.65*rsun,rrmax=rsun,thmin=0,thmax=np.pi)
+grid.save('data/grid.pkl')
+
+def time_marching(Bph, Aph, dt,urr, uth,grid,et,so,omrr,omth,ibase):
 
    # poloidal magnetic field
-   Brr = + dth2(sinTH*Aph,dth)/RR/sinTH
-   Bth = - drr2(   RR*Aph,drr)/RR
+   Brr = + dth2(grid.sinTH*Aph,grid.dth)/grid.RR/grid.sinTH
+   Bth = - drr2(   grid.RR*Aph,grid.drr)/grid.RR
       
-   Bph_adrr = - drr2(RR*urr*Bph,drr)/RR #  動径方向の移流(Bph)
-   Bph_adth = - dth2(   uth*Bph,dth)/RR #  緯度方向の移流(Bph)
+   Bph_adrr = - drr2(grid.RR*urr*Bph,grid.drr)/grid.RR #  動径方向の移流(Bph)
+   Bph_adth = - dth2(        uth*Bph,grid.dth)/grid.RR #  緯度方向の移流(Bph)
    
-   Aph_adrr = - drr2(   RR*Aph,drr)*urr/RR       # 動径方向の移流(Aph)
-   Aph_adth = - dth2(sinTH*Aph,dth)*uth/RR/sinTH # 緯度方向の移流(Aph)
+   Aph_adrr = - drr2(   grid.RR*Aph,grid.drr)*urr/grid.RR            # 動径方向の移流(Aph)
+   Aph_adth = - dth2(grid.sinTH*Aph,grid.dth)*uth/grid.RR/grid.sinTH # 緯度方向の移流(Aph)
    
    # 磁場の微分(拡散量)
-   Bphrr = drr1(Bph,drr,'up')
-   Bphth = dth1(Bph,dth,'up')
-   Aphrr = drr1(Aph,drr,'up')
-   Aphth = dth1(Aph,dth,'up')
+   Bphrr = drr1(Bph,grid.drr,'up')
+   Bphth = dth1(Bph,grid.dth,'up')
+   Aphrr = drr1(Aph,grid.drr,'up')
+   Aphth = dth1(Aph,grid.dth,'up')
    
-   Bph_dfrr = et*drr1(RRm**2*Bphrr,drr,'dw')/RR**2
-   Bph_dfth = et*dth1(sinTHm*Bphth,dth,'dw')/RR**2/sinTH
-   Aph_dfrr = et*drr1(RRm**2*Aphrr,drr,'dw')/RR**2
-   Aph_dfth = et*dth1(sinTHm*Aphth,dth,'dw')/RR**2/sinTH
+   Bph_dfrr = et*drr1(grid.RRm**2*Bphrr,grid.drr,'dw')/grid.RR**2
+   Bph_dfth = et*dth1(grid.sinTHm*Bphth,grid.dth,'dw')/grid.RR**2/grid.sinTH
+   Aph_dfrr = et*drr1(grid.RRm**2*Aphrr,grid.drr,'dw')/grid.RR**2
+   Aph_dfth = et*dth1(grid.sinTHm*Aphth,grid.dth,'dw')/grid.RR**2/grid.sinTH
    
    # Omega effect
-   Bph_omrr = Brr*omrr*RR*sinTH
-   Bph_omth = Bth*omth*RR*sinTH
+   Bph_omrr = Brr*omrr*grid.RR*grid.sinTH
+   Bph_omth = Bth*omth*grid.RR*grid.sinTH
    
    # source term
-   tmp, Bphso = np.meshgrid(rr,Bph[ibase,:], indexing='ij')
+   tmp, Bphso = np.meshgrid(grid.rr,Bph[ibase,:], indexing='ij')
    Aph_sour = so*Bphso/(1 + (Bphso)**2)
 
    dBph = + (Bph_adrr + Bph_adth) \
-          + (Bph_dfrr + Bph_dfth - et*Bph/RR**2/sinTH**2) \
+          + (Bph_dfrr + Bph_dfth - et*Bph/grid.RR**2/grid.sinTH**2) \
           + (Bph_omrr + Bph_omth) 
           
    dAph = + (Aph_adrr + Aph_adth) \
-          + (Aph_dfrr + Aph_dfth - et*Aph/RR**2/sinTH**2) \
+          + (Aph_dfrr + Aph_dfth - et*Aph/grid.RR**2/grid.sinTH**2) \
           + Aph_sour
       
    Bphm = Bph + dt*dBph
@@ -75,68 +150,6 @@ os.makedirs('data',exist_ok=True)
 # 計算継続のフラグ
 cont_flag = True
 
-########################
-########################
-## setup prameters
-#年数
-year = 100
-
-#格子点数
-ix=64
-jx=128
-
-
-#マージンの数
-margin = 1
-
-# マージンを含む格子点数
-ixg = ix + 2*margin
-jxg = jx + 2*margin
-
-
-# 太陽定数
-rsun = 6.96e10
-
-########################
-########################
-# 計算領域の設定
-# 領域の定義
-rrmin, rrmax = 0.65*rsun, rsun
-thmin, thmax = 0, np.pi
-
-# dr,dθの設定
-drr = (rrmax - rrmin)/ix
-dth = (thmax - thmin)/jx
-
-#座標rrの設定
-rr    = np.zeros(ixg)
-rr[0] = rrmin + drr*(0.5 - margin)
-
-for i in range(1, ixg):
-   rr[i] = rr[i - 1] + drr
-   
-#座標thの設定    
-th    = np.zeros(jxg)
-th[0] = thmin + dth*(0.5 - margin)
-
-for j in range(1,jxg):
-   th[j] = th[j - 1] + dth
-
-np.savez('data/geometry.npz',rr=rr,th=th)
-
-#メッシュの作成
-RR ,TH  = np.meshgrid(rr, th,indexing='ij')
-RRm = np.zeros_like(RR)
-THm = np.zeros_like(TH)
-
-RRm[1:RR.shape[0],:] = 0.5*(RR[1:RR.shape[0],:] + RR[0:RR.shape[0]-1,:])
-THm[:,1:RR.shape[1]] = 0.5*(TH[:,1:RR.shape[1]] + TH[:,0:RR.shape[1]-1])
-
-sinTH = np.sin(TH)
-cosTH = np.cos(TH)
-sinTHm = np.sin(THm)
-X, Y = RR * np.cos(TH), RR * np.sin(TH)
-
 ##########################
 ##########################
 # differential rotation
@@ -146,136 +159,83 @@ rc = 0.7*rsun          # radiative zone boundary
 d  = 0.02*rsun         # width of tachocline
 c2 = 0.2*ome
 
-om = omc + 0.5*(1 + erf((RR-rc)/d))*(ome - omc - c2*cosTH**2)
+om = omc + 0.5*(1 + erf((grid.RR-rc)/d))*(ome - omc - c2*grid.cosTH**2)
 
-omrr = drr2(om, drr)
-omth = dth2(om, dth)/RR
-
+omrr = drr2(om, grid.drr)
+omth = dth2(om, grid.dth)/grid.RR
 
 # diffusivity
 etc = 1.e9
 ett = 1.e11
 
-et = etc + 0.5*(ett - etc)*(1 + erf((RR-rc)/d))
-
-#ソース関数の定数・パラメータ
-# B0  = 1.0 * 10 ** 5
-# s0  = 20
-# r2  = 0.95*rsun
-# r3  =  1.0*rsun
-# d2  = 0.01*rsun
-# d3  = 0.01*rsun
-# r_c =  0.7*rsun
+et = etc + 0.5*(ett - etc)*(1 + erf((grid.RR-rc)/d))
 
 #タコクラインの要素番号
-ibase = np.argmin(abs(rr - rc))
+ibase = np.argmin(abs(grid.rr - rc))
 
 cso = 35
 so0 = cso*ett/rsun
 r1 = 0.95*rsun
 d1 = 0.01*rsun
 
-so = so0*0.5*(1 + erf((RR-r1)/d1))*(1 - erf(RR-rsun)/d1)*cosTH*sinTH
-
-# source time time-independent part
-#s  = s0 / 2 * (1 + erf_2) * (1 - erf_3) * np.sin(TH) * np.cos(TH)
+so = so0*0.5*(1 + erf((grid.RR-r1)/d1))*(1 - erf(grid.RR-rsun)/d1)*grid.cosTH*grid.sinTH
 
 # 太陽表面の要素番号
-isurf = np.argmin(abs(rr - rsun)) - 1
+isurf = np.argmin(abs(grid.rr - rsun)) - 1
 
-
-# Omg_Eq =  460.7 * 2 * np.pi * 1.e-9
-# a2     = -62.69 * 2 * np.pi * 1.e-9
-# a4     = -67.13 * 2 * np.pi * 1.e-9
-# Omg_c  =  432.8 * 2 * np.pi * 1.e-9
-# Omg_s  =  Omg_Eq + a2 * np.cos(TH) ** 2 + a4 * np.cos(TH) ** 4
-
-# differential rotation
-#Omg = Omg_c + 0.5 * (1 + erf_1) * (Omg_s - Omg_c)
-
-
-# 子午面循環流の定数・パラメータ
-# u0  = 2000
-# m   = 0.5
-# p   = 0.25
-# q   = 0
-# xi  = rsun/RR  - 1
-# rr0 = 0.71*rsun # base of the meridional flow
-# xi0 = rsun/rr0 - 1
-# xi[RR > rsun] = 0
-# c1  = (2*m+1)*(m+p)/(m+1)/p * (xi0**(-m))
-# c2  = (2*m+p+1)*m/(m+1)/p * (xi0**(-(m+p)))
-
-# # 誤差関数
-# erf_1 = erf(2 * (RR - r_c)/d1)
-# erf_2 = erf(    (RR - r2 )/d2)
-# erf_3 = erf(    (RR - r3 )/d3)
-
-
-# # Meridional flow
-# # radial velocity
-# urr = u0*(rsun/RR) \
-#    *(-1/(m+1) + c1/(2*m + 1)*xi**m - c2/(2*m+p+1)*xi**(m+p)) \
-#    *xi*sinTH**q*( (q+2)*cosTH**2 - sinTH**2)
-# # colatitudinal velocity
-# uth = u0*((rsun/RR)**3) \
-#    *(-1+c1*xi**m-c2*xi**(m+p)) \
-#    *np.sin(TH)**(q+1)*np.cos(TH)
 
 u0 = 1000
 rb = 0.65*rsun
 
-urr = -u0*2*(rsun - rb)/np.pi/RR \
-     *(RR-rb)**2/(rsun - rb)**2 \
-     *np.sin(np.pi*(RR-rb)/(rsun-rb))*(3*cosTH**2 - 1)
+urr = -u0*2*(rsun - rb)/np.pi/grid.RR \
+     *(grid.RR-rb)**2/(rsun - rb)**2 \
+     *np.sin(np.pi*(grid.RR-rb)/(rsun-rb))*(3*grid.cosTH**2 - 1)
      
-uth = u0*((3*RR-rb)/(rsun-rb)*np.sin(np.pi*(RR-rb)/(rsun-rb)) \
-      + RR*np.pi/(rsun-rb)*(RR-rb)/(rsun-rb)*np.cos(np.pi*(RR-rb)/(rsun-rb))) \
-      *2*(rsun-rb)/np.pi/RR*(RR-rb)/(rsun-rb)*cosTH*sinTH
+uth = u0*((3*grid.RR-rb)/(rsun-rb)*np.sin(np.pi*(grid.RR-rb)/(rsun-rb)) \
+      + grid.RR*np.pi/(rsun-rb)*(grid.RR-rb)/(rsun-rb)*np.cos(np.pi*(grid.RR-rb)/(rsun-rb))) \
+      *2*(rsun-rb)/np.pi/grid.RR*(grid.RR-rb)/(rsun-rb)*grid.cosTH*grid.sinTH
 
+urr[grid.RR < rb] = 0
+uth[grid.RR < rb] = 0
 
-urr[RR < rb] = 0
-uth[RR < rb] = 0
 #θ＝０(回転軸)(対称性)
 # 境界の外で子午面流の設定
-for i in range(0,margin):
+for i in range(0,grid.margin):
    # upper
-   urr[i,:] = - urr[2*margin-i-1,:]
-   uth[i,:] = + uth[2*margin-i-1,:]
+   urr[i,:] = - urr[2*grid.margin-i-1,:]
+   uth[i,:] = + uth[2*grid.margin-i-1,:]
    
    # lower
-   urr[ixg-i-1,:] = - urr[ixg-2*margin+i,:]
-   uth[ixg-i-1,:] = + uth[ixg-2*margin+i,:]
-
+   urr[grid.ixg-i-1,:] = - urr[grid.ixg-2*grid.margin+i,:]
+   uth[grid.ixg-i-1,:] = + uth[grid.ixg-2*grid.margin+i,:]
 
 # latitudinal boundary
-for j in range(0,margin):
+for j in range(0,grid.margin):
    # pole
-   urr[:,j] = + urr[:,2*margin - j - 1] # symmetric
-   uth[:,j] = - uth[:,2*margin - j - 1] # antisymetric
+   urr[:,j] = + urr[:,2*grid.margin - j - 1] # symmetric
+   uth[:,j] = - uth[:,2*grid.margin - j - 1] # antisymetric
 
    # equator
-   urr[:,jxg-j-1] = + urr[:,jxg-2*margin + j] # symmetric
-   uth[:,jxg-j-1] = - uth[:,jxg-2*margin + j] # antisymmetric
+   urr[:,grid.jxg-j-1] = + urr[:,grid.jxg-2*grid.margin + j] # symmetric
+   uth[:,grid.jxg-j-1] = - uth[:,grid.jxg-2*grid.margin + j] # antisymmetric
 
 #CFL condition
 c_cfl=0.1
 dtmin = 1.e10
-for i in range(margin,ixg-margin):
-   for j in range(margin,jxg-margin):
-      dt_adv = c_cfl * np.min([drr, rr[i]*dth])/ np.sqrt(urr[i,j]**2 + uth[i,j]**2)
-      dt_dif = c_cfl * np.min([drr, rr[i]*dth])**2 /(2 * et[i,j])
+for i in range(grid.margin,grid.ixg-grid.margin):
+   for j in range(grid.margin,grid.jxg-grid.margin):
+      dt_adv = c_cfl * np.min([grid.drr, grid.rr[i]*grid.dth])/ np.sqrt(urr[i,j]**2 + uth[i,j]**2)
+      dt_dif = c_cfl * np.min([grid.drr, grid.rr[i]*grid.dth])**2 /(2 * et[i,j])
       dtmin = np.min([dtmin,dt_adv,dt_dif])
       
 dt  = dtmin
-print(dtmin)
 
 # 初期条件
-Aph = np.zeros((ixg, jxg))
-Bph = np.zeros((ixg, jxg))
-#Aph = np.zeros((ixg, jxg))
+Aph = np.zeros((grid.ixg, grid.jxg))
+Bph = np.zeros((grid.ixg, grid.jxg))
+#Aph = np.zeros((grid.ixg, grid.jxg))
 #Aph = sinTH/(RR/rsun)**2
-Bph = np.sin(2*TH)*0.1
+Bph = np.sin(2*grid.TH)*0.1
 Bph[0:ibase,:] = 0
 
 tend = 30000*86400 # total calculation duration
@@ -294,24 +254,24 @@ while time < tend:
    if(time//dtout != (time-dt)//dtout):
       nd += 1
       ax = fig.add_subplot(111,aspect='equal')
-      ax.pcolormesh(Y,X,Bph,vmax=1.e0,vmin=-1.e0,cmap='bwr')
-      ax.contour(Y,X,RR/rsun*sinTH*Aph,colors='black',levels=np.linspace(-8.e12,8.e12,10))
+      ax.pcolormesh(grid.Y,grid.X,Bph,vmax=1.e0,vmin=-1.e0,cmap='bwr')
+      ax.contour(grid.Y,grid.X,grid.RR/rsun*grid.sinTH*Aph,colors='black',levels=np.linspace(-8.e12,8.e12,10))
       ax.set_xlim(0,rsun)
       ax.set_ylim(-rsun,rsun)
       plt.pause(0.1)
       print(time/86400,n,nd)
-      Brr =  dth2(sinTH*Aph,dth)/RR/sinTH
-      Bth = -drr2(   RR*Aph,drr)/RR
+      Brr =  dth2(grid.sinTH*Aph,grid.dth)/grid.RR/grid.sinTH
+      Bth = -drr2(   grid.RR*Aph,grid.drr)/grid.RR
       np.savez(file='data/data.'+str(nd).zfill(6)+'.npz' \
             ,Aph=Aph,Bph=Bph,Brr=Brr,Bth=Bth,time=time)
                 
    ####ダイナモ方程式                       
-   Bphm, Aphm, Bphso, Aph_sour = time_marching(Bph , Aph ,dt, urr, uth, RR, RRm, sinTH, sinTHm, drr, dth, et, so, omrr, omth, ibase)
+   Bphm, Aphm, Bphso, Aph_sour = time_marching(Bph , Aph ,dt, urr, uth, grid, et, so, omrr, omth, ibase)
    
-   Aphm, Bphm = boundary_condition(Aphm, Bphm,margin,rr,th,ixg,jxg)
+   Aphm, Bphm = boundary_condition(Aphm, Bphm, grid.margin, grid.rr, grid.th, grid.ixg, grid.jxg)
 
-   Bphn, Aphn, Bphso, Aph_sour = time_marching(Bphm, Aphm, dt, urr, uth, RR, RRm, sinTH, sinTHm, drr, dth, et, so, omrr, omth, ibase)
-   Aphn, Bphn = boundary_condition(Aphn, Bphn,margin,rr,th,ixg,jxg)
+   Bphn, Aphn, Bphso, Aph_sour = time_marching(Bphm, Aphm, dt, urr, uth, grid, et, so, omrr, omth, ibase)
+   Aphn, Bphn = boundary_condition(Aphn, Bphn,grid.margin,grid.rr,grid.th,grid.ixg,grid.jxg)
     
    Bph = 0.5*Bph + 0.5*Bphn
    Aph = 0.5*Aph + 0.5*Aphn

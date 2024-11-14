@@ -1,10 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import pickle
-import os, sys, glob
+import os, glob
 from FLD_ISEE.tools import drr1, drr2, dth1, dth2
 import FLD_ISEE.config as cfg
-from dataclasses import dataclass, field
 import importlib
 from FLD_ISEE import grid_c, setup_c
 
@@ -18,14 +16,14 @@ os.makedirs(cfg.datadir,exist_ok=True)
       
 if cfg.cont_flag:
    pass
-   #grid = grid_c.load(cfg.gridfile)
-   #setup = setup_c.load(cfg.setupfile)
+   grid = grid_c.load(cfg.gridfile)
+   setup = setup_c.load(cfg.setupfile)
 else:
    grid = grid_c(ix=cfg.ix,jx=cfg.jx,margin=cfg.margin
               ,rrmin=cfg.rrmin,rrmax=cfg.rrmax,thmin=cfg.thmin,thmax=cfg.thmax)
-   #grid.save(cfg.gridfile)
+   grid.save(cfg.gridfile)
    setup = setup_c(cfg,grid)
-   #setup.save(cfg.setupfile)
+   setup.save(cfg.setupfile)
 
 def time_marching(Bph, Aph, dt, grid, setup):
 

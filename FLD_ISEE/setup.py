@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from .tools import drr1, drr2, dth1, dth2
+from FLD_ISEE.tools import drr2, dth2
 import FLD_ISEE.config as cfg
 import numpy as np
 import pickle

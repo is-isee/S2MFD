@@ -1,11 +1,20 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-import os, sys
+import os, sys, glob
 from scipy.special import erf
 from tools import drr1, drr2, dth1, dth2
 from dataclasses import dataclass, field
 import config as cfg
+import importlib
+
+# configを強制的に再読み込み
+importlib.reload(cfg)
+
+if not os.path.isfile(cfg.datadir+'data.000001.npz'):
+   cfg.cont_flag = False
+
+os.makedirs(cfg.datadir,exist_ok=True)
 
 @dataclass
 class grid_c:
@@ -76,9 +85,12 @@ class grid_c:
       with open(filename, 'rb') as f:
          return pickle.load(f)
       
-grid = grid_c(ix=cfg.ix,jx=cfg.jx,margin=cfg.margin
+if cfg.cont_flag:
+   grid = grid_c.load(cfg.gridfile)
+else:
+   grid = grid_c(ix=cfg.ix,jx=cfg.jx,margin=cfg.margin
               ,rrmin=cfg.rrmin,rrmax=cfg.rrmax,thmin=cfg.thmin,thmax=cfg.thmax)
-grid.save('data/grid.pkl')
+   grid.save(cfg.gridfile)
 
 def time_marching(Bph, Aph, dt,urr, uth,grid,et,so,omrr,omth,ibase):
 
@@ -147,9 +159,6 @@ def boundary_condition(Aph, Bph,margin,rr,th,ixg,jxg):
    return Aph, Bph
 # Prepare data directory
 os.makedirs('data',exist_ok=True)
-
-# 計算継続のフラグ
-cont_flag = True
 
 ##########################
 ##########################
@@ -229,18 +238,27 @@ for i in range(grid.margin,grid.ixg-grid.margin):
 dt  = dtmin
 
 # 初期条件
-Aph = np.zeros((grid.ixg, grid.jxg))
-Bph = np.zeros((grid.ixg, grid.jxg))
-#Aph = np.zeros((grid.ixg, grid.jxg))
-#Aph = sinTH/(RR/rsun)**2
-Bph = np.sin(2*grid.TH)*0.1
-Bph[0:ibase,:] = 0
+if cfg.cont_flag:
+   files = glob.glob('data/data.*.npz')
+   nd = max([int(f.split('.')[-2]) for f in files])
+   d = np.load(file='data/data.'+str(nd).zfill(6)+'.npz')
+   Aph = d['Aph']
+   Bph = d['Bph']
+   time = d['time']
+else:
+   nd = 0
+   Aph = np.zeros((grid.ixg, grid.jxg))
+   Bph = np.zeros((grid.ixg, grid.jxg))
+   #Aph = np.zeros((grid.ixg, grid.jxg))
+   #Aph = sinTH/(RR/rsun)**2
+   Bph = np.sin(2*grid.TH)*0.1
+   Bph[0:ibase,:] = 0
+
+   time = 0
 
 tend = 30000*86400 # total calculation duration
 dtout = 100*86400 # data output cadence
-time = 0
 n = 0
-nd = 0
 
 plt.close('all')
 plt.clf()

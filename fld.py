@@ -5,6 +5,7 @@ import os, sys
 from scipy.special import erf
 from tools import drr1, drr2, dth1, dth2
 from dataclasses import dataclass, field
+import config as cfg
 
 @dataclass
 class grid_c:
@@ -75,8 +76,8 @@ class grid_c:
       with open(filename, 'rb') as f:
          return pickle.load(f)
       
-rsun = 6.96e10
-grid = grid_c(ix=64,jx=128,margin=1,rrmin=0.65*rsun,rrmax=rsun,thmin=0,thmax=np.pi)
+grid = grid_c(ix=cfg.ix,jx=cfg.jx,margin=cfg.margin
+              ,rrmin=cfg.rrmin,rrmax=cfg.rrmax,thmin=cfg.thmin,thmax=cfg.thmax)
 grid.save('data/grid.pkl')
 
 def time_marching(Bph, Aph, dt,urr, uth,grid,et,so,omrr,omth,ibase):
@@ -155,8 +156,8 @@ cont_flag = True
 # differential rotation
 ome = 456.e-9*2*np.pi # rotation rate at equator
 omc = 0.92*ome         # rotation rate at radiative zone
-rrc = 0.7*rsun          # radiative zone boundary
-d  = 0.02*rsun         # width of tachocline
+rrc = 0.7*cfg.RSUN          # radiative zone boundary
+d  = 0.02*cfg.RSUN     # width of tachocline
 c2 = 0.2*ome
 
 om = omc + 0.5*(1 + erf((grid.RR-rrc)/d))*(ome - omc - c2*grid.cosTH**2)
@@ -174,26 +175,23 @@ et = etc + 0.5*(ett - etc)*(1 + erf((grid.RR-rrc)/d))
 ibase = np.argmin(abs(grid.rr - rrc))
 
 cso = 35
-so0 = cso*ett/rsun
-r1 = 0.95*rsun
-d1 = 0.01*rsun
+so0 = cso*ett/cfg.RSUN
+r1 = 0.95*cfg.RSUN
+d1 = 0.01*cfg.RSUN
 
-so = so0*0.5*(1 + erf((grid.RR-r1)/d1))*(1 - erf(grid.RR-rsun)/d1)*grid.cosTH*grid.sinTH
+so = so0*0.5*(1 + erf((grid.RR-r1)/d1))*(1 - erf(grid.RR-cfg.RSUN)/d1)*grid.cosTH*grid.sinTH
 
-# 太陽表面の要素番号
-isurf = np.argmin(abs(grid.rr - rsun)) - 1
-
-
+# Meridional flow
 u0 = 1000
-rb = 0.65*rsun
+rb = 0.65*cfg.RSUN
 
-urr = -u0*2*(rsun - rb)/np.pi/grid.RR \
-     *(grid.RR-rb)**2/(rsun - rb)**2 \
-     *np.sin(np.pi*(grid.RR-rb)/(rsun-rb))*(3*grid.cosTH**2 - 1)
+urr = -u0*2*(cfg.RSUN - rb)/np.pi/grid.RR \
+     *(grid.RR-rb)**2/(cfg.RSUN - rb)**2 \
+     *np.sin(np.pi*(grid.RR-rb)/(cfg.RSUN-rb))*(3*grid.cosTH**2 - 1)
      
-uth = u0*((3*grid.RR-rb)/(rsun-rb)*np.sin(np.pi*(grid.RR-rb)/(rsun-rb)) \
-      + grid.RR*np.pi/(rsun-rb)*(grid.RR-rb)/(rsun-rb)*np.cos(np.pi*(grid.RR-rb)/(rsun-rb))) \
-      *2*(rsun-rb)/np.pi/grid.RR*(grid.RR-rb)/(rsun-rb)*grid.cosTH*grid.sinTH
+uth = u0*((3*grid.RR-rb)/(cfg.RSUN-rb)*np.sin(np.pi*(grid.RR-rb)/(cfg.RSUN-rb)) \
+      + grid.RR*np.pi/(cfg.RSUN-rb)*(grid.RR-rb)/(cfg.RSUN-rb)*np.cos(np.pi*(grid.RR-rb)/(cfg.RSUN-rb))) \
+      *2*(cfg.RSUN-rb)/np.pi/grid.RR*(grid.RR-rb)/(cfg.RSUN-rb)*grid.cosTH*grid.sinTH
 
 urr[grid.RR < rb] = 0
 uth[grid.RR < rb] = 0
@@ -255,9 +253,9 @@ while time < tend:
       nd += 1
       ax = fig.add_subplot(111,aspect='equal')
       ax.pcolormesh(grid.Y,grid.X,Bph,vmax=1.e0,vmin=-1.e0,cmap='bwr')
-      ax.contour(grid.Y,grid.X,grid.RR/rsun*grid.sinTH*Aph,colors='black',levels=np.linspace(-8.e12,8.e12,10))
-      ax.set_xlim(0,rsun)
-      ax.set_ylim(-rsun,rsun)
+      ax.contour(grid.Y,grid.X,grid.RR/cfg.RSUN*grid.sinTH*Aph,colors='black',levels=np.linspace(-8.e12,8.e12,10))
+      ax.set_xlim(0,cfg.RSUN)
+      ax.set_ylim(-cfg.RSUN,cfg.RSUN)
       plt.pause(0.1)
       print(time/86400,n,nd)
       Brr =  dth2(grid.sinTH*Aph,grid.dth)/grid.RR/grid.sinTH

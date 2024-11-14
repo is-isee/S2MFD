@@ -3,6 +3,9 @@ import numpy as np
 margin = 1
 RSUN = 6.96e10
 
+# Flag for continuation
+cont_flag = True
+
 # geometry parameters
 ix = 64
 jx = 128
@@ -20,4 +23,6 @@ thmax = np.pi
 
 ## Meridional circulation
 
-
+# fixed parameters (modifications are not recommended)
+datadir = 'data/'
+gridfile = datadir+'grid.pkl'

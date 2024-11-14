@@ -5,6 +5,7 @@ from FLD_ISEE.tools import drr1, drr2, dth1, dth2
 import FLD_ISEE.config as cfg
 import importlib
 from FLD_ISEE import grid_c, setup_c
+from numba import njit
 
 # configを強制的に再読み込み
 importlib.reload(cfg)
@@ -74,25 +75,27 @@ def time_marching(Bph, Aph, dt, grid, setup):
    return Bphm, Aphm
 
 #
-def boundary_condition(Aph, Bph,margin,rr,th,ixg,jxg):
+def boundary_condition(Aph, Bph, grid):
    # 動径方向境界条件
-   for i in range(0, margin):
+   for i in range(0, grid.margin):
       #下部境界条件(完全導体)A=B=0
-      Bph[i,margin:jxg-margin] = + Bph[2*margin-i-1,margin:jxg-margin]/rr[i]*rr[2*margin-i-1]
-      Aph[i,margin:jxg-margin] = - Aph[2*margin-i-1,margin:jxg-margin]
+      Aph[i,grid.margin:grid.jxg-grid.margin] = - Aph[2*grid.margin-i-1,grid.margin:grid.jxg-grid.margin]
+      Bph[i,grid.margin:grid.jxg-grid.margin] = + Bph[2*grid.margin-i-1,grid.margin:grid.jxg-grid.margin] \
+         /grid.rr[i]*grid.rr[2*grid.margin-i-1]
 
       #上部境界条件B=0,dA/dr=0
-      Bph[ixg-i-1,margin:jxg-margin] = -Bph[ixg-2*margin+i,margin:jxg-margin]
-      Aph[ixg-i-1,margin:jxg-margin] = +Aph[ixg-2*margin+i,margin:jxg-margin]/rr[ixg-i-1]*rr[ixg-2*margin+i]
+      Bph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = -Bph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin]
+      Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = +Aph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin] \
+         /grid.rr[grid.ixg-i-1]*grid.rr[grid.ixg-2*grid.margin+i]
 
    # 緯度方向境界条件      
-   for j in range(0, margin):
+   for j in range(0, grid.margin):
       #極の境界条件A=B=0
-      Bph[margin:ixg-margin,j]  = -Bph[margin:ixg-margin,2*margin-j-1]
-      Aph[margin:ixg-margin,j]  = -Aph[margin:ixg-margin,2*margin-j-1]
+      Bph[grid.margin:grid.ixg-grid.margin,j]  = -Bph[grid.margin:grid.ixg-grid.margin,2*grid.margin-j-1]
+      Aph[grid.margin:grid.ixg-grid.margin,j]  = -Aph[grid.margin:grid.ixg-grid.margin,2*grid.margin-j-1]
       #赤道境界条件B=0(反対称),dA/dθ=0
-      Bph[margin:ixg-margin,jxg-j-1] = -Bph[margin:ixg-margin,jxg-2*margin+j]
-      Aph[margin:ixg-margin,jxg-j-1] = -Aph[margin:ixg-margin,jxg-2*margin+j]
+      Bph[grid.margin:grid.ixg-grid.margin,grid.jxg-j-1] = -Bph[grid.margin:grid.ixg-grid.margin,grid.jxg-2*grid.margin+j]
+      Aph[grid.margin:grid.ixg-grid.margin,grid.jxg-j-1] = -Aph[grid.margin:grid.ixg-grid.margin,grid.jxg-2*grid.margin+j]
    return Aph, Bph
 # Prepare data directory
 os.makedirs('data',exist_ok=True)
@@ -103,7 +106,7 @@ dtmin = 1.e10
 for i in range(grid.margin,grid.ixg-grid.margin):
    for j in range(grid.margin,grid.jxg-grid.margin):
       dt_adv = c_cfl * np.min([grid.drr, grid.rr[i]*grid.dth])/ np.sqrt(setup.urr[i,j]**2 + setup.uth[i,j]**2)
-      dt_dif = c_cfl * np.min([grid.drr, grid.rr[i]*grid.dth])**2 /(2 * setup.et[i,j])
+      dt_dif = c_cfl * np.min([grid.drr, grid.rr[i]*grid.dth])**2/(2 * setup.et[i,j])
       dtmin = np.min([dtmin,dt_adv,dt_dif])
       
 dt  = dtmin
@@ -159,10 +162,10 @@ while time < cfg.tend:
    ####ダイナモ方程式                       
    Bphm, Aphm = time_marching(Bph , Aph ,dt, grid, setup)
    
-   Aphm, Bphm = boundary_condition(Aphm, Bphm, grid.margin, grid.rr, grid.th, grid.ixg, grid.jxg)
+   Aphm, Bphm = boundary_condition(Aphm, Bphm, grid)
 
    Bphn, Aphn = time_marching(Bphm, Aphm, dt, grid, setup)
-   Aphn, Bphn = boundary_condition(Aphn, Bphn,grid.margin,grid.rr,grid.th,grid.ixg,grid.jxg)
+   Aphn, Bphn = boundary_condition(Aphn, Bphn, grid)
     
    Bph = 0.5*Bph + 0.5*Bphn
    Aph = 0.5*Aph + 0.5*Aphn

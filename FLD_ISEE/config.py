@@ -7,7 +7,7 @@ RSUN = 6.96e10
 cont_flag = True
 
 # geometry parameters
-ix = 64
+ix = 128
 jx = 128
 rrmin = 0.65*RSUN
 rrmax = RSUN

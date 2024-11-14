@@ -2,67 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os, sys
 from scipy.special import erf
+from tools import drr1, drr2, dth1, dth2
 
-
-#########
-# funcsions for spatial derivatives
-def drr1(qq,drr,dir):
-   '''
-   To calculate 1st order derivative in r direction
-   '''
-   
-   if dir == 'up':
-      i0, i1 = 1, qq.shape[0]
-   elif dir == 'dw':
-      i0, i1 = 0, qq.shape[0]-1
-   else:
-      print('Error: dir must be up or dw')
-      sys.exit()   
-   
-   dqq = np.zeros_like(qq)
-   dqq[i0:i1,:] = (qq[1:,:] - qq[:-1,:])/drr
-   
-   return dqq
-
-def drr2(qq,drr):
-   '''
-   To calculate 2nd order derivative in r direction
-   '''
-   
-   dqq = np.zeros_like(qq)
-   dqq[1:-1,:] = (qq[2:qq.shape[0],:] - qq[0:-2,:])/drr*0.5
-   
-   return dqq
-   
-def dth1(qq,dth,dir):
-   '''
-   To calculate 1st order derivative in theta direction
-   '''
-   
-   if dir == 'up':
-      j0, j1= 1,qq.shape[1]
-   elif dir == 'dw':
-      j0, j1 = 0, qq.shape[1]-1
-   else:
-      print('Error: dir must be up or dw')
-      sys.exit()   
-   
-   dqq = np.zeros_like(qq)
-   dqq[:,j0:j1] = (qq[:,1:] - qq[:,:-1])/dth
-   
-   return dqq
-
-def dth2(qq,dth):
-   '''
-   To calculate 2nd order derivative in r direction
-   '''
-   
-   dqq = np.zeros_like(qq)
-   dqq[:,1:-1] = (qq[:,2:qq.shape[1]] - qq[:,0:-2])/dth*0.5
-   
-   return dqq
-
-#########
 def time_marching(Bph, Aph, dt,urr, uth,RR,RRm,sinTH,sinTHm,drr,dth,et,so,omrr,omth,ibase):
 
    # poloidal magnetic field

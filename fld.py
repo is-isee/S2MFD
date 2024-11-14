@@ -155,11 +155,11 @@ cont_flag = True
 # differential rotation
 ome = 456.e-9*2*np.pi # rotation rate at equator
 omc = 0.92*ome         # rotation rate at radiative zone
-rc = 0.7*rsun          # radiative zone boundary
+rrc = 0.7*rsun          # radiative zone boundary
 d  = 0.02*rsun         # width of tachocline
 c2 = 0.2*ome
 
-om = omc + 0.5*(1 + erf((grid.RR-rc)/d))*(ome - omc - c2*grid.cosTH**2)
+om = omc + 0.5*(1 + erf((grid.RR-rrc)/d))*(ome - omc - c2*grid.cosTH**2)
 
 omrr = drr2(om, grid.drr)
 omth = dth2(om, grid.dth)/grid.RR
@@ -168,10 +168,10 @@ omth = dth2(om, grid.dth)/grid.RR
 etc = 1.e9
 ett = 1.e11
 
-et = etc + 0.5*(ett - etc)*(1 + erf((grid.RR-rc)/d))
+et = etc + 0.5*(ett - etc)*(1 + erf((grid.RR-rrc)/d))
 
 #タコクラインの要素番号
-ibase = np.argmin(abs(grid.rr - rc))
+ibase = np.argmin(abs(grid.rr - rrc))
 
 cso = 35
 so0 = cso*ett/rsun

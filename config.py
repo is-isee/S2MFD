@@ -14,6 +14,11 @@ rrmax = RSUN
 thmin = 0
 thmax = np.pi
 
+# time parameter
+d2s = 86400 # day to second
+tend = 30000*d2s
+dtout = 100*d2s
+
 # Setup parameters
 ## Differential rotation
 

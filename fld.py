@@ -256,18 +256,22 @@ else:
 
    time = 0
 
-tend = 30000*86400 # total calculation duration
-dtout = 100*86400 # data output cadence
+Brr = + dth2(grid.sinTH*Aph,grid.dth)/grid.RR/grid.sinTH
+Bth = - drr2(   grid.RR*Aph,grid.drr)/grid.RR
+
+np.savez(file='data/data.'+str(nd).zfill(6)+'.npz' \
+            ,Aph=Aph,Bph=Bph,Brr=Brr,Bth=Bth,time=time)
+
 n = 0
 
 plt.close('all')
 plt.clf()
 fig = plt.figure('dynamo',figsize=(5,10))
 
-while time < tend:
+while time < cfg.tend:
    time += dt
    n += 1
-   if(time//dtout != (time-dt)//dtout):
+   if(time//cfg.dtout != (time-dt)//cfg.dtout):
       nd += 1
       ax = fig.add_subplot(111,aspect='equal')
       ax.pcolormesh(grid.Y,grid.X,Bph,vmax=1.e0,vmin=-1.e0,cmap='bwr')

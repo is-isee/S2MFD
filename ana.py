@@ -25,7 +25,7 @@ if os.path.isdir('./data'):
         if filel[0] == 'data':
             n1 = max(n1, int(filel[1]))
 
-n0 = 1
+n0 = 0
 Brrt = np.zeros((ixg,jxg,n1-n0))
 Btht = np.zeros((ixg,jxg,n1-n0))
 Bpht = np.zeros((ixg,jxg,n1-n0))

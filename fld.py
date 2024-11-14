@@ -78,17 +78,16 @@ class grid_c:
    def save(self, filename):
       with open(filename, 'wb') as f:
          pickle.dump(self, f)
-      print('grid-c instance saved to', filename)
+      print('grid_c instance saved to', filename)
    
    @classmethod
    def load(cls, filename):
       with open(filename, 'rb') as f:
          return pickle.load(f)
       
-
+@dataclass
 class setup_c:
    from tools import drr1, drr2, dth1, dth2
-   import config as cfg
    urr: np.ndarray = field(init=False)
    uth: np.ndarray = field(init=False)   
    om: np.ndarray = field(init=False)   
@@ -98,83 +97,73 @@ class setup_c:
    etrr: np.ndarray = field(init=False)
    ibase: int = field(init=False)
    
-   def __init__(self,grid):
+   def __init__(self,cfg,grid):
       import numpy as np
+      import config as cfg
       # differential rotation
-      ome = 456.e-9*2*np.pi # rotation rate at equator
-      omc = 0.92*ome         # rotation rate at radiative zone
-      rrc = 0.7*cfg.RSUN          # radiative zone boundary
-      d  = 0.02*cfg.RSUN     # width of tachocline
-      c2 = 0.2*ome
+      self.om = cfg.omc + 0.5*(1 + erf((grid.RR-cfg.rrc)/cfg.d))*(cfg.ome - cfg.omc - cfg.c2*grid.cosTH**2)
 
-      self.om = omc + 0.5*(1 + erf((grid.RR-rrc)/d))*(ome - omc - c2*grid.cosTH**2)
-
-      self.omrr = drr2(om, grid.drr)
-      self.omth = dth2(om, grid.dth)/grid.RR
+      self.omrr = drr2(self.om, grid.drr)
+      self.omth = dth2(self.om, grid.dth)/grid.RR
    
       # diffusivity
-      etc = 1.e9
-      ett = 1.e11
-
-      self.et = etc + 0.5*(ett - etc)*(1 + erf((grid.RR-rrc)/d))
-
-      self.etrr = drr2(et, grid.drr)
+      self.et = cfg.etc + 0.5*(cfg.ett - cfg.etc)*(1 + erf((grid.RR-cfg.rrc)/cfg.d))
+      self.etrr = drr2(self.et, grid.drr)
 
       #タコクラインのindex
-      self.ibase = np.argmin(abs(grid.rr - rrc))
+      self.ibase = np.argmin(abs(grid.rr - cfg.rrc))
 
-      cso = 35
-      so0 = cso*ett/cfg.RSUN
-      r1 = 0.95*cfg.RSUN
-      d1 = 0.01*cfg.RSUN
+      # alpha effect
+      self.so = cfg.so0*0.5 \
+         *(1 + erf((grid.RR-cfg.r1)/cfg.d1))*(1 - erf(grid.RR-cfg.RSUN)/cfg.d1) \
+            *grid.cosTH*grid.sinTH
 
-      self.so = so0*0.5*(1 + erf((grid.RR-r1)/d1))*(1 - erf(grid.RR-cfg.RSUN)/d1)*grid.cosTH*grid.sinTH
-
-      # Meridional flow
-      u0 = 1000
-      rb = 0.65*cfg.RSUN
-
-      self.urr = -u0*2*(cfg.RSUN - rb)/np.pi/grid.RR \
-         *(grid.RR-rb)**2/(cfg.RSUN - rb)**2 \
-         *np.sin(np.pi*(grid.RR-rb)/(cfg.RSUN-rb))*(3*grid.cosTH**2 - 1)
+      # Meridional flow (Jouve+2008 Model)
+      self.urr = -cfg.u0*2*(cfg.RSUN - cfg.rb)/np.pi/grid.RR \
+         *(grid.RR-cfg.rb)**2/(cfg.RSUN - cfg.rb)**2 \
+         *np.sin(np.pi*(grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb))*(3*grid.cosTH**2 - 1)
          
-      self.uth = u0*((3*grid.RR-rb)/(cfg.RSUN-rb)*np.sin(np.pi*(grid.RR-rb)/(cfg.RSUN-rb)) \
-            + grid.RR*np.pi/(cfg.RSUN-rb)*(grid.RR-rb)/(cfg.RSUN-rb)*np.cos(np.pi*(grid.RR-rb)/(cfg.RSUN-rb))) \
-            *2*(cfg.RSUN-rb)/np.pi/grid.RR*(grid.RR-rb)/(cfg.RSUN-rb)*grid.cosTH*grid.sinTH
+      self.uth = cfg.u0*((3*grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb) \
+            *np.sin(np.pi*(grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb)) \
+            + grid.RR*np.pi/(cfg.RSUN-cfg.rb)*(grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb) \
+               *np.cos(np.pi*(grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb))) \
+            *2*(cfg.RSUN-cfg.rb)/np.pi/grid.RR*(grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb) \
+               *grid.cosTH*grid.sinTH
 
-      self.urr[grid.RR < rb] = 0
-      self.uth[grid.RR < rb] = 0
+      self.urr[grid.RR < cfg.rb] = 0
+      self.uth[grid.RR < cfg.rb] = 0
 
       #θ＝０(回転軸)(対称性)
       # 境界の外で子午面流の設定
       for i in range(0,grid.margin):
-         # upper
-         self.urr[i,:] = - self.urr[2*grid.margin-i-1,:]
-         self.uth[i,:] = + self.uth[2*grid.margin-i-1,:]
-         
-         # lower
-         self.urr[grid.ixg-i-1,:] = - self.urr[grid.ixg-2*grid.margin+i,:]
-         self.uth[grid.ixg-i-1,:] = + self.uth[grid.ixg-2*grid.margin+i,:]
+         self.urr[i           ,:] = - self.urr[2*grid.margin-i-1       ,:] # upper
+         self.urr[grid.ixg-i-1,:] = - self.urr[grid.ixg-2*grid.margin+i,:] # lower
 
       # latitudinal boundary
       for j in range(0,grid.margin):
-         # pole
-         self.urr[:,j] = + self.urr[:,2*grid.margin - j - 1] # symmetric
-         self.uth[:,j] = - self.uth[:,2*grid.margin - j - 1] # antisymetric
+         self.uth[:,j           ] = - self.uth[:,2*grid.margin - j - 1     ] # north pole
+         self.uth[:,grid.jxg-j-1] = - self.uth[:,grid.jxg-2*grid.margin + j] # south pole
 
-         # equator
-         self.urr[:,grid.jxg-j-1] = + self.urr[:,grid.jxg-2*grid.margin + j] # symmetric
-         self.uth[:,grid.jxg-j-1] = - self.uth[:,grid.jxg-2*grid.margin + j] # antisymmetric
 
+   def save(self, filename):
+      with open(filename, 'wb') as f:
+         pickle.dump(self, f)
+      print('grid_c instance saved to', filename)
+   
+   @classmethod
+   def load(cls, filename):
+      with open(filename, 'rb') as f:
+         return pickle.load(f)
 
 if cfg.cont_flag:
    grid = grid_c.load(cfg.gridfile)
+   setup = setup_c.load(cfg.setupfile)
 else:
    grid = grid_c(ix=cfg.ix,jx=cfg.jx,margin=cfg.margin
               ,rrmin=cfg.rrmin,rrmax=cfg.rrmax,thmin=cfg.thmin,thmax=cfg.thmax)
    grid.save(cfg.gridfile)
-
-setup = setup_c(grid)
+   setup = setup_c(cfg,grid)
+   setup.save(cfg.setupfile)
 
 def time_marching(Bph, Aph, dt, grid, setup):
 
@@ -196,16 +185,19 @@ def time_marching(Bph, Aph, dt, grid, setup):
    
    Bph_dfrr = setup.et*drr1(grid.RRm**2*Bphrr,grid.drr,'dw')/grid.RR**2
    Bph_dfth = setup.et*dth1(grid.sinTHm*Bphth,grid.dth,'dw')/grid.RR**2/grid.sinTH
-   Bph_dfrrg = setup.etrr*drr1(grid.RR*Bph,grid.drr,'dw')/grid.RR
+   
    Aph_dfrr = setup.et*drr1(grid.RRm**2*Aphrr,grid.drr,'dw')/grid.RR**2
    Aph_dfth = setup.et*dth1(grid.sinTHm*Aphth,grid.dth,'dw')/grid.RR**2/grid.sinTH
+   
+   # diffusivity gradient influence
+   Bph_dfrrg = setup.etrr*drr1(grid.RR*Bph,grid.drr,'dw')/grid.RR
    
    # Omega effect
    Bph_omrr = Brr*setup.omrr*grid.RR*grid.sinTH
    Bph_omth = Bth*setup.omth*grid.RR*grid.sinTH
    
    # source term
-   tmp, Bphso = np.meshgrid(grid.rr,Bph[ibase,:], indexing='ij')
+   tmp, Bphso = np.meshgrid(grid.rr,Bph[setup.ibase,:], indexing='ij')
    Aph_sour = setup.so*Bphso/(1 + (Bphso)**2)
 
    dBph = + (Bph_adrr + Bph_adth) \
@@ -293,7 +285,7 @@ while time < cfg.tend:
    if(time//cfg.dtout != (time-dt)//cfg.dtout):
       nd += 1
       ax = fig.add_subplot(111,aspect='equal')
-      ax.pcolormesh(grid.Y,grid.X,Bph,vmax=1.e0,vmin=-1.e0,cmap='bwr')
+      ax.pcolormesh(grid.Y,grid.X,Bph,vmax=1.e0,vmin=-1.e0,cmap='bwr',shading='auto')
       ax.contour(grid.Y,grid.X,grid.RR/cfg.RSUN*grid.sinTH*Aph,colors='black',levels=np.linspace(-8.e12,8.e12,10))
       ax.set_xlim(0,cfg.RSUN)
       ax.set_ylim(-cfg.RSUN,cfg.RSUN)

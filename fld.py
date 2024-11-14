@@ -85,6 +85,88 @@ class grid_c:
       with open(filename, 'rb') as f:
          return pickle.load(f)
       
+
+class setup_c:
+   from tools import drr1, drr2, dth1, dth2
+   import config as cfg
+   urr: np.ndarray = field(init=False)
+   uth: np.ndarray = field(init=False)   
+   om: np.ndarray = field(init=False)   
+   omrr: np.ndarray = field(init=False)
+   omth: np.ndarray = field(init=False)
+   et: np.ndarray = field(init=False)
+   etrr: np.ndarray = field(init=False)
+   ibase: int = field(init=False)
+   
+   def __init__(self,grid):
+      import numpy as np
+      # differential rotation
+      ome = 456.e-9*2*np.pi # rotation rate at equator
+      omc = 0.92*ome         # rotation rate at radiative zone
+      rrc = 0.7*cfg.RSUN          # radiative zone boundary
+      d  = 0.02*cfg.RSUN     # width of tachocline
+      c2 = 0.2*ome
+
+      self.om = omc + 0.5*(1 + erf((grid.RR-rrc)/d))*(ome - omc - c2*grid.cosTH**2)
+
+      self.omrr = drr2(om, grid.drr)
+      self.omth = dth2(om, grid.dth)/grid.RR
+   
+      # diffusivity
+      etc = 1.e9
+      ett = 1.e11
+
+      self.et = etc + 0.5*(ett - etc)*(1 + erf((grid.RR-rrc)/d))
+
+      self.etrr = drr2(et, grid.drr)
+
+      #タコクラインのindex
+      self.ibase = np.argmin(abs(grid.rr - rrc))
+
+      cso = 35
+      so0 = cso*ett/cfg.RSUN
+      r1 = 0.95*cfg.RSUN
+      d1 = 0.01*cfg.RSUN
+
+      self.so = so0*0.5*(1 + erf((grid.RR-r1)/d1))*(1 - erf(grid.RR-cfg.RSUN)/d1)*grid.cosTH*grid.sinTH
+
+      # Meridional flow
+      u0 = 1000
+      rb = 0.65*cfg.RSUN
+
+      self.urr = -u0*2*(cfg.RSUN - rb)/np.pi/grid.RR \
+         *(grid.RR-rb)**2/(cfg.RSUN - rb)**2 \
+         *np.sin(np.pi*(grid.RR-rb)/(cfg.RSUN-rb))*(3*grid.cosTH**2 - 1)
+         
+      self.uth = u0*((3*grid.RR-rb)/(cfg.RSUN-rb)*np.sin(np.pi*(grid.RR-rb)/(cfg.RSUN-rb)) \
+            + grid.RR*np.pi/(cfg.RSUN-rb)*(grid.RR-rb)/(cfg.RSUN-rb)*np.cos(np.pi*(grid.RR-rb)/(cfg.RSUN-rb))) \
+            *2*(cfg.RSUN-rb)/np.pi/grid.RR*(grid.RR-rb)/(cfg.RSUN-rb)*grid.cosTH*grid.sinTH
+
+      self.urr[grid.RR < rb] = 0
+      self.uth[grid.RR < rb] = 0
+
+      #θ＝０(回転軸)(対称性)
+      # 境界の外で子午面流の設定
+      for i in range(0,grid.margin):
+         # upper
+         self.urr[i,:] = - self.urr[2*grid.margin-i-1,:]
+         self.uth[i,:] = + self.uth[2*grid.margin-i-1,:]
+         
+         # lower
+         self.urr[grid.ixg-i-1,:] = - self.urr[grid.ixg-2*grid.margin+i,:]
+         self.uth[grid.ixg-i-1,:] = + self.uth[grid.ixg-2*grid.margin+i,:]
+
+      # latitudinal boundary
+      for j in range(0,grid.margin):
+         # pole
+         self.urr[:,j] = + self.urr[:,2*grid.margin - j - 1] # symmetric
+         self.uth[:,j] = - self.uth[:,2*grid.margin - j - 1] # antisymetric
+
+         # equator
+         self.urr[:,grid.jxg-j-1] = + self.urr[:,grid.jxg-2*grid.margin + j] # symmetric
+         self.uth[:,grid.jxg-j-1] = - self.uth[:,grid.jxg-2*grid.margin + j] # antisymmetric
+
+
 if cfg.cont_flag:
    grid = grid_c.load(cfg.gridfile)
 else:
@@ -92,17 +174,19 @@ else:
               ,rrmin=cfg.rrmin,rrmax=cfg.rrmax,thmin=cfg.thmin,thmax=cfg.thmax)
    grid.save(cfg.gridfile)
 
-def time_marching(Bph, Aph, dt,urr, uth,grid,et,etrr,so,omrr,omth,ibase):
+setup = setup_c(grid)
+
+def time_marching(Bph, Aph, dt, grid, setup):
 
    # poloidal magnetic field
    Brr = + dth2(grid.sinTH*Aph,grid.dth)/grid.RR/grid.sinTH
    Bth = - drr2(   grid.RR*Aph,grid.drr)/grid.RR
       
-   Bph_adrr = - drr2(grid.RR*urr*Bph,grid.drr)/grid.RR #  動径方向の移流(Bph)
-   Bph_adth = - dth2(        uth*Bph,grid.dth)/grid.RR #  緯度方向の移流(Bph)
+   Bph_adrr = - drr2(grid.RR*setup.urr*Bph,grid.drr)/grid.RR #  動径方向の移流(Bph)
+   Bph_adth = - dth2(        setup.uth*Bph,grid.dth)/grid.RR #  緯度方向の移流(Bph)
    
-   Aph_adrr = - drr2(   grid.RR*Aph,grid.drr)*urr/grid.RR            # 動径方向の移流(Aph)
-   Aph_adth = - dth2(grid.sinTH*Aph,grid.dth)*uth/grid.RR/grid.sinTH # 緯度方向の移流(Aph)
+   Aph_adrr = - drr2(   grid.RR*Aph,grid.drr)*setup.urr/grid.RR            # 動径方向の移流(Aph)
+   Aph_adth = - dth2(grid.sinTH*Aph,grid.dth)*setup.uth/grid.RR/grid.sinTH # 緯度方向の移流(Aph)
    
    # 磁場の微分(拡散量)
    Bphrr = drr1(Bph,grid.drr,'up')
@@ -110,26 +194,26 @@ def time_marching(Bph, Aph, dt,urr, uth,grid,et,etrr,so,omrr,omth,ibase):
    Aphrr = drr1(Aph,grid.drr,'up')
    Aphth = dth1(Aph,grid.dth,'up')
    
-   Bph_dfrr = et*drr1(grid.RRm**2*Bphrr,grid.drr,'dw')/grid.RR**2
-   Bph_dfth = et*dth1(grid.sinTHm*Bphth,grid.dth,'dw')/grid.RR**2/grid.sinTH
-   Bph_dfrrg = etrr*drr1(grid.RR*Bph,grid.drr,'dw')/grid.RR
-   Aph_dfrr = et*drr1(grid.RRm**2*Aphrr,grid.drr,'dw')/grid.RR**2
-   Aph_dfth = et*dth1(grid.sinTHm*Aphth,grid.dth,'dw')/grid.RR**2/grid.sinTH
+   Bph_dfrr = setup.et*drr1(grid.RRm**2*Bphrr,grid.drr,'dw')/grid.RR**2
+   Bph_dfth = setup.et*dth1(grid.sinTHm*Bphth,grid.dth,'dw')/grid.RR**2/grid.sinTH
+   Bph_dfrrg = setup.etrr*drr1(grid.RR*Bph,grid.drr,'dw')/grid.RR
+   Aph_dfrr = setup.et*drr1(grid.RRm**2*Aphrr,grid.drr,'dw')/grid.RR**2
+   Aph_dfth = setup.et*dth1(grid.sinTHm*Aphth,grid.dth,'dw')/grid.RR**2/grid.sinTH
    
    # Omega effect
-   Bph_omrr = Brr*omrr*grid.RR*grid.sinTH
-   Bph_omth = Bth*omth*grid.RR*grid.sinTH
+   Bph_omrr = Brr*setup.omrr*grid.RR*grid.sinTH
+   Bph_omth = Bth*setup.omth*grid.RR*grid.sinTH
    
    # source term
    tmp, Bphso = np.meshgrid(grid.rr,Bph[ibase,:], indexing='ij')
-   Aph_sour = so*Bphso/(1 + (Bphso)**2)
+   Aph_sour = setup.so*Bphso/(1 + (Bphso)**2)
 
    dBph = + (Bph_adrr + Bph_adth) \
-          + (Bph_dfrr + Bph_dfth + Bph_dfrrg - et*Bph/grid.RR**2/grid.sinTH**2) \
+          + (Bph_dfrr + Bph_dfth + Bph_dfrrg - setup.et*Bph/grid.RR**2/grid.sinTH**2) \
           + (Bph_omrr + Bph_omth) 
           
    dAph = + (Aph_adrr + Aph_adth) \
-          + (Aph_dfrr + Aph_dfth - et*Aph/grid.RR**2/grid.sinTH**2) \
+          + (Aph_dfrr + Aph_dfth - setup.et*Aph/grid.RR**2/grid.sinTH**2) \
           + Aph_sour
       
    Bphm = Bph + dt*dBph
@@ -161,81 +245,13 @@ def boundary_condition(Aph, Bph,margin,rr,th,ixg,jxg):
 # Prepare data directory
 os.makedirs('data',exist_ok=True)
 
-##########################
-##########################
-# differential rotation
-ome = 456.e-9*2*np.pi # rotation rate at equator
-omc = 0.92*ome         # rotation rate at radiative zone
-rrc = 0.7*cfg.RSUN          # radiative zone boundary
-d  = 0.02*cfg.RSUN     # width of tachocline
-c2 = 0.2*ome
-
-om = omc + 0.5*(1 + erf((grid.RR-rrc)/d))*(ome - omc - c2*grid.cosTH**2)
-
-omrr = drr2(om, grid.drr)
-omth = dth2(om, grid.dth)/grid.RR
-
-# diffusivity
-etc = 1.e9
-ett = 1.e11
-
-et = etc + 0.5*(ett - etc)*(1 + erf((grid.RR-rrc)/d))
-
-etrr = drr2(et, grid.drr)
-
-#タコクラインの要素番号
-ibase = np.argmin(abs(grid.rr - rrc))
-
-cso = 35
-so0 = cso*ett/cfg.RSUN
-r1 = 0.95*cfg.RSUN
-d1 = 0.01*cfg.RSUN
-
-so = so0*0.5*(1 + erf((grid.RR-r1)/d1))*(1 - erf(grid.RR-cfg.RSUN)/d1)*grid.cosTH*grid.sinTH
-
-# Meridional flow
-u0 = 1000
-rb = 0.65*cfg.RSUN
-
-urr = -u0*2*(cfg.RSUN - rb)/np.pi/grid.RR \
-     *(grid.RR-rb)**2/(cfg.RSUN - rb)**2 \
-     *np.sin(np.pi*(grid.RR-rb)/(cfg.RSUN-rb))*(3*grid.cosTH**2 - 1)
-     
-uth = u0*((3*grid.RR-rb)/(cfg.RSUN-rb)*np.sin(np.pi*(grid.RR-rb)/(cfg.RSUN-rb)) \
-      + grid.RR*np.pi/(cfg.RSUN-rb)*(grid.RR-rb)/(cfg.RSUN-rb)*np.cos(np.pi*(grid.RR-rb)/(cfg.RSUN-rb))) \
-      *2*(cfg.RSUN-rb)/np.pi/grid.RR*(grid.RR-rb)/(cfg.RSUN-rb)*grid.cosTH*grid.sinTH
-
-urr[grid.RR < rb] = 0
-uth[grid.RR < rb] = 0
-
-#θ＝０(回転軸)(対称性)
-# 境界の外で子午面流の設定
-for i in range(0,grid.margin):
-   # upper
-   urr[i,:] = - urr[2*grid.margin-i-1,:]
-   uth[i,:] = + uth[2*grid.margin-i-1,:]
-   
-   # lower
-   urr[grid.ixg-i-1,:] = - urr[grid.ixg-2*grid.margin+i,:]
-   uth[grid.ixg-i-1,:] = + uth[grid.ixg-2*grid.margin+i,:]
-
-# latitudinal boundary
-for j in range(0,grid.margin):
-   # pole
-   urr[:,j] = + urr[:,2*grid.margin - j - 1] # symmetric
-   uth[:,j] = - uth[:,2*grid.margin - j - 1] # antisymetric
-
-   # equator
-   urr[:,grid.jxg-j-1] = + urr[:,grid.jxg-2*grid.margin + j] # symmetric
-   uth[:,grid.jxg-j-1] = - uth[:,grid.jxg-2*grid.margin + j] # antisymmetric
-
 #CFL condition
 c_cfl=0.1
 dtmin = 1.e10
 for i in range(grid.margin,grid.ixg-grid.margin):
    for j in range(grid.margin,grid.jxg-grid.margin):
-      dt_adv = c_cfl * np.min([grid.drr, grid.rr[i]*grid.dth])/ np.sqrt(urr[i,j]**2 + uth[i,j]**2)
-      dt_dif = c_cfl * np.min([grid.drr, grid.rr[i]*grid.dth])**2 /(2 * et[i,j])
+      dt_adv = c_cfl * np.min([grid.drr, grid.rr[i]*grid.dth])/ np.sqrt(setup.urr[i,j]**2 + setup.uth[i,j]**2)
+      dt_dif = c_cfl * np.min([grid.drr, grid.rr[i]*grid.dth])**2 /(2 * setup.et[i,j])
       dtmin = np.min([dtmin,dt_adv,dt_dif])
       
 dt  = dtmin
@@ -255,7 +271,7 @@ else:
    #Aph = np.zeros((grid.ixg, grid.jxg))
    #Aph = sinTH/(RR/rsun)**2
    Bph = np.sin(2*grid.TH)*0.1
-   Bph[0:ibase,:] = 0
+   Bph[0:setup.ibase,:] = 0
 
    time = 0
 
@@ -289,11 +305,11 @@ while time < cfg.tend:
             ,Aph=Aph,Bph=Bph,Brr=Brr,Bth=Bth,time=time)
                 
    ####ダイナモ方程式                       
-   Bphm, Aphm = time_marching(Bph , Aph ,dt, urr, uth, grid, et, etrr, so, omrr, omth, ibase)
+   Bphm, Aphm = time_marching(Bph , Aph ,dt, grid, setup)
    
    Aphm, Bphm = boundary_condition(Aphm, Bphm, grid.margin, grid.rr, grid.th, grid.ixg, grid.jxg)
 
-   Bphn, Aphn = time_marching(Bphm, Aphm, dt, urr, uth, grid, et, etrr, so, omrr, omth, ibase)
+   Bphn, Aphn = time_marching(Bphm, Aphm, dt, grid, setup)
    Aphn, Bphn = boundary_condition(Aphn, Bphn,grid.margin,grid.rr,grid.th,grid.ixg,grid.jxg)
     
    Bph = 0.5*Bph + 0.5*Bphn

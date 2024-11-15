@@ -1,10 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import os, glob
-from S2MFD.tools import drr1, drr2, dth1, dth2
+import os, glob, importlib
 import S2MFD.config as cfg
-import importlib
-
 import S2MFD
 
 # configを強制的に再読み込み
@@ -58,9 +55,7 @@ else:
 
    time = 0
 
-Brr = + dth2(grid.sinTH*Aph,grid.dth)/grid.RR/grid.sinTH
-Bth = - drr2(   grid.RR*Aph,grid.drr)/grid.RR
-
+Brr, Bth = S2MFD.poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
 np.savez(file='data/data.'+str(nd).zfill(6)+'.npz' \
             ,Aph=Aph,Bph=Bph,Brr=Brr,Bth=Bth,time=time)
 
@@ -78,12 +73,12 @@ while time < cfg.tend:
       ax = fig.add_subplot(111,aspect='equal')
       ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,Bph,vmax=1.e0,vmin=-1.e0,cmap='bwr',shading='auto')
       ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*Aph,colors='black',levels=np.linspace(-8.e12,8.e12,10))
-      ax.set_xlim(0,1)
+      ax.set_xlim( 0,1)
       ax.set_ylim(-1,1)
       plt.pause(0.01)
-      print(time/86400,n,nd)
-      Brr =  dth2(grid.sinTH*Aph,grid.dth)/grid.RR/grid.sinTH
-      Bth = -drr2(   grid.RR*Aph,grid.drr)/grid.RR
+      #print(time/86400,n,nd)
+      print(f"{time/86400:7.1f} [day]; n={n:06d}; nd={nd:04d}")
+      Brr, Bth = S2MFD.poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
       np.savez(file='data/data.'+str(nd).zfill(6)+'.npz' \
             ,Aph=Aph,Bph=Bph,Brr=Brr,Bth=Bth,time=time)
                 

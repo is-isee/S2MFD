@@ -74,19 +74,19 @@ class setup_c:
             *grid.cosTH*grid.sinTH
 
       # Meridional flow (Jouve+2008 Model)
-      self.urr = -cfg.u0*2*(cfg.RSUN - cfg.rb)/np.pi/grid.RR \
-         *(grid.RR-cfg.rb)**2/(cfg.RSUN - cfg.rb)**2 \
-         *np.sin(np.pi*(grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb))*(3*grid.cosTH**2 - 1)
+      self.urr = -cfg.uu0*2*(cfg.RSUN - cfg.rrb)/np.pi/grid.RR \
+         *(grid.RR-cfg.rrb)**2/(cfg.RSUN - cfg.rrb)**2 \
+         *np.sin(np.pi*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb))*(3*grid.cosTH**2 - 1)
          
-      self.uth = cfg.u0*((3*grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb) \
-            *np.sin(np.pi*(grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb)) \
-            + grid.RR*np.pi/(cfg.RSUN-cfg.rb)*(grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb) \
-               *np.cos(np.pi*(grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb))) \
-            *2*(cfg.RSUN-cfg.rb)/np.pi/grid.RR*(grid.RR-cfg.rb)/(cfg.RSUN-cfg.rb) \
+      self.uth = cfg.uu0*((3*grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb) \
+            *np.sin(np.pi*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb)) \
+            + grid.RR*np.pi/(cfg.RSUN-cfg.rrb)*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb) \
+               *np.cos(np.pi*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb))) \
+            *2*(cfg.RSUN-cfg.rrb)/np.pi/grid.RR*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb) \
                *grid.cosTH*grid.sinTH
 
-      self.urr[grid.RR < cfg.rb] = 0
-      self.uth[grid.RR < cfg.rb] = 0
+      self.urr[grid.RR < cfg.rrb] = 0
+      self.uth[grid.RR < cfg.rrb] = 0
 
       #θ＝０(回転軸)(対称性)
       # 境界の外で子午面流の設定

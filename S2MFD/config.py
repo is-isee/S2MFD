@@ -3,6 +3,11 @@ import numpy as np
 margin = 1
 RSUN = 6.96e10
 
+# time parameter
+d2s = 86400 # day to second
+tend = 30000*d2s
+dtout = 100*d2s
+
 # geometry parameters
 ix = 128 # number of grid points in r-direction
 jx = 128 # number of grid points in theta-direction
@@ -10,11 +15,6 @@ rrmin = 0.65*RSUN
 rrmax = RSUN
 thmin = 0
 thmax = np.pi
-
-# time parameter
-d2s = 86400 # day to second
-tend = 30000*d2s
-dtout = 100*d2s
 
 # Setup parameters
 ## geometry parameters
@@ -37,8 +37,8 @@ r1  = 0.95*RSUN # bottom of alpha effect
 d1  = 0.05*RSUN # width of alpha effect
 
 ## Meridional circulation
-u0 = 1000 # flow amplitude
-rb = 0.65*RSUN # base of the meridional flow
+uu0 = 1000 # flow amplitude
+rrb = 0.65*RSUN # base of the meridional flow
 
 # Flag for continuation
 cont_flag = True

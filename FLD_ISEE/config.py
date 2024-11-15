@@ -3,9 +3,6 @@ import numpy as np
 margin = 1
 RSUN = 6.96e10
 
-# Flag for continuation
-cont_flag = True
-
 # geometry parameters
 ix = 128
 jx = 128
@@ -42,6 +39,9 @@ d1  = 0.05*RSUN # width of alpha effect
 ## Meridional circulation
 u0 = 1000 # flow amplitude
 rb = 0.65*RSUN # base of the meridional flow
+
+# Flag for continuation
+cont_flag = True
 
 # fixed parameters (modifications are not recommended)
 datadir = 'data/'

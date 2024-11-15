@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os, glob
-from FLD_ISEE.tools import drr1, drr2, dth1, dth2
-import FLD_ISEE.config as cfg
+from S2MFD.tools import drr1, drr2, dth1, dth2
+import S2MFD.config as cfg
 import importlib
 
-import FLD_ISEE
+import S2MFD
 
 # configを強制的に再読み込み
 importlib.reload(cfg)
@@ -16,13 +16,13 @@ if not os.path.isfile(cfg.datadir+'data.000000.npz'):
 os.makedirs(cfg.datadir,exist_ok=True)
       
 if cfg.cont_flag:
-   grid = FLD_ISEE.grid_c.load(cfg.gridfile)
-   setup = FLD_ISEE.setup_c.load(cfg.setupfile)
+   grid = S2MFD.grid_c.load(cfg.gridfile)
+   setup = S2MFD.setup_c.load(cfg.setupfile)
 else:
-   grid = FLD_ISEE.grid_c(ix=cfg.ix,jx=cfg.jx,margin=cfg.margin
+   grid = S2MFD.grid_c(ix=cfg.ix,jx=cfg.jx,margin=cfg.margin
               ,rrmin=cfg.rrmin,rrmax=cfg.rrmax,thmin=cfg.thmin,thmax=cfg.thmax)
    grid.save(cfg.gridfile)
-   setup = FLD_ISEE.setup_c(cfg,grid)
+   setup = S2MFD.setup_c(cfg,grid)
    setup.save(cfg.setupfile)
 
 # Prepare data directory
@@ -88,11 +88,11 @@ while time < cfg.tend:
             ,Aph=Aph,Bph=Bph,Brr=Brr,Bth=Bth,time=time)
                 
    #### dynamo equation                  
-   Bphm, Aphm = FLD_ISEE.time_marching(Bph , Aph ,dt, grid, setup)
-   Aphm, Bphm = FLD_ISEE.boundary_condition(Aphm, Bphm, grid)
+   Bphm, Aphm = S2MFD.time_marching(Bph , Aph ,dt, grid, setup)
+   Aphm, Bphm = S2MFD.boundary_condition(Aphm, Bphm, grid)
 
-   Bphn, Aphn = FLD_ISEE.time_marching(Bphm, Aphm, dt, grid, setup)
-   Aphn, Bphn = FLD_ISEE.boundary_condition(Aphn, Bphn, grid)
+   Bphn, Aphn = S2MFD.time_marching(Bphm, Aphm, dt, grid, setup)
+   Aphn, Bphn = S2MFD.boundary_condition(Aphn, Bphn, grid)
     
    Bph = 0.5*Bph + 0.5*Bphn
    Aph = 0.5*Aph + 0.5*Aphn

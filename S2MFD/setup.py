@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
-from FLD_ISEE.tools import drr2, dth2
-import FLD_ISEE.config as cfg
+from S2MFD.tools import drr2, dth2
+import S2MFD.config as cfg
 import numpy as np
 import pickle
 from scipy.special import erf

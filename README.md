@@ -1,2 +1,2 @@
-# FLD_ISEE
-Solar/Stellar Flux transport dynamo model 
+# S2MFD
+Solar/Stellar Mean Field Dynamo code

@@ -1,6 +1,6 @@
 
 import numpy as np
-from FLD_ISEE.tools import drr1, drr2, dth1, dth2
+from S2MFD.tools import drr1, drr2, dth1, dth2
 from numba import njit
 
 @njit

@@ -4,6 +4,39 @@ import pickle
 
 @dataclass
 class grid_c:
+   """
+    grid_c class represents a grid configuration for a simulation, defining the grid points in
+    both radial and angular coordinates, and computing associated trigonometric and Cartesian
+    transformations.
+
+    Attributes:
+        ix (int): Number of grid points in the radial direction.
+        jx (int): Number of grid points in the angular direction.
+        ixg (int): Total number of grid points in the radial direction including margins.
+        jxg (int): Total number of grid points in the angular direction including margins.
+        margin (int): Number of margin points on each side of the grid.
+        rrmin (float): Minimum value for the radial coordinate.
+        rrmax (float): Maximum value for the radial coordinate.
+        thmin (float): Minimum value for the angular coordinate.
+        thmax (float): Maximum value for the angular coordinate.
+        drr (float): Radial grid spacing.
+        dth (float): Angular grid spacing.
+        rr (np.ndarray): Array of radial grid points.
+        th (np.ndarray): Array of angular grid points.
+        RR (np.ndarray): Radial coordinate meshgrid array.
+        TH (np.ndarray): Angular coordinate meshgrid array.
+        RRm (np.ndarray): Radial coordinate meshgrid array for centered points.
+        THm (np.ndarray): Angular coordinate meshgrid array for centered points.
+        sinTH (np.ndarray): Sine of the angular coordinate meshgrid.
+        cosTH (np.ndarray): Cosine of the angular coordinate meshgrid.
+        X (np.ndarray): Cartesian x-coordinates based on radial and angular grids.
+        Y (np.ndarray): Cartesian y-coordinates based on radial and angular grids.
+
+    Methods:
+        __post_init__(): Initializes the grid coordinates and related arrays after object creation.
+        save(filename): Saves the grid_c instance to a file.
+        load(filename): Loads a grid_c instance from a file.
+    """
    ix: int
    jx: int
    ixg: int = field(init=False)

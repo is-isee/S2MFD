@@ -4,8 +4,8 @@ margin = 1
 RSUN = 6.96e10
 
 # geometry parameters
-ix = 128
-jx = 128
+ix = 128 # number of grid points in r-direction
+jx = 128 # number of grid points in theta-direction
 rrmin = 0.65*RSUN
 rrmax = RSUN
 thmin = 0

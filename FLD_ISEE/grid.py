@@ -11,26 +11,26 @@ class grid_c:
 
     Attributes:
         ix (int): Number of grid points in the radial direction.
-        jx (int): Number of grid points in the angular direction.
-        ixg (int): Total number of grid points in the radial direction including margins.
-        jxg (int): Total number of grid points in the angular direction including margins.
+        jx (int): Number of grid points in the colatitudinal direction.
+        ixg (int): ix + 2*margin.
+        jxg (int): jx + 2*margin.
         margin (int): Number of margin points on each side of the grid.
-        rrmin (float): Minimum value for the radial coordinate.
-        rrmax (float): Maximum value for the radial coordinate.
-        thmin (float): Minimum value for the angular coordinate.
-        thmax (float): Maximum value for the angular coordinate.
+        rrmin (float): Minimum value for the radial direction.
+        rrmax (float): Maximum value for the radial direction.
+        thmin (float): Minimum value for the colatitudinal direction.
+        thmax (float): Maximum value for the colatitudial direction.
         drr (float): Radial grid spacing.
         dth (float): Angular grid spacing.
         rr (np.ndarray): Array of radial grid points.
-        th (np.ndarray): Array of angular grid points.
-        RR (np.ndarray): Radial coordinate meshgrid array.
-        TH (np.ndarray): Angular coordinate meshgrid array.
+        th (np.ndarray): Array of colatitudinal grid points.
+        RR (np.ndarray): Radial coordinate np.meshgrid array.
+        TH (np.ndarray): Colatitudinal coordinate np.meshgrid array.
         RRm (np.ndarray): Radial coordinate meshgrid array for centered points.
-        THm (np.ndarray): Angular coordinate meshgrid array for centered points.
-        sinTH (np.ndarray): Sine of the angular coordinate meshgrid.
-        cosTH (np.ndarray): Cosine of the angular coordinate meshgrid.
-        X (np.ndarray): Cartesian x-coordinates based on radial and angular grids.
-        Y (np.ndarray): Cartesian y-coordinates based on radial and angular grids.
+        THm (np.ndarray): Colatitudinal coordinate meshgrid array for centered points.
+        sinTH (np.ndarray): np.sin(TH)
+        cosTH (np.ndarray): np.cos(TH)
+        X (np.ndarray): Cartesian x-coordinates based on radial and colatitudinal grids.
+        Y (np.ndarray): Cartesian y-coordinates based on radial and colatitudinal grids.
 
     Methods:
         __post_init__(): Initializes the grid coordinates and related arrays after object creation.

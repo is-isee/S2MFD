@@ -7,6 +7,44 @@ from scipy.special import erf
 
 @dataclass
 class setup_c:
+   """
+   A class to configure and initialize physical properties and flow patterns in a spherical 
+   coordinate grid for simulations. It supports the setup of differential rotation, 
+   diffusivity, alpha effect, and meridional flow based on input configurations and grid.
+
+   Attributes:
+      urr (np.ndarray): Radial component of the meridional flow velocity.
+      uth (np.ndarray): Latitudinal component of the meridional flow velocity.
+      om (np.ndarray): Angular velocity distribution based on the differential rotation profile.
+      omrr (np.ndarray): Radial derivative of angular velocity.
+      omth (np.ndarray): Latitudinal derivative of angular velocity.
+      et (np.ndarray): Magnetic diffusivity profile.
+      etrr (np.ndarray): Radial derivative of the magnetic diffusivity.
+      ibase (int): Index corresponding to the tachocline region in the radial direction.
+
+   Methods:
+      __init__(cfg, grid):
+         Initializes the setup using the provided configuration and grid properties.
+      
+      save(filename):
+         Saves the instance of the class to a file using pickle.
+
+      load(filename):
+         Loads a previously saved instance of the class from a file.
+
+   Initialization Details:
+      The class calculates various properties based on the input configuration (`cfg`) and 
+      grid (`grid`). Key processes include:
+      
+      - Differential rotation (`om`): Calculated using an error function-based profile to 
+         model the transition between regions of different angular velocities.
+      - Magnetic diffusivity (`et`): A radial profile with a smooth transition across 
+         specified regions.
+      - Meridional flow (`urr` and `uth`): Modeled based on analytical expressions with 
+         boundary corrections to ensure symmetry at the poles and within the computational margins.
+      - Alpha effect (`so`): Derived based on the cosine and sine of the colatitude (`cosTH` 
+         and `sinTH`) for dynamo modeling.
+   """
    urr: np.ndarray = field(init=False)
    uth: np.ndarray = field(init=False)   
    om: np.ndarray = field(init=False)   

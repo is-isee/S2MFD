@@ -1,5 +1,5 @@
 '''
-Tools for FLD_ISEE calculations
+Tools for S2MFD calculations
 
 '''
 import sys

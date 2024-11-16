@@ -8,7 +8,7 @@ import S2MFD
 importlib.reload(cfg)
 
 # make data directory
-if not os.path.isfile(cfg.datadir+'data.000000.npz'):
+if not os.path.isdir(cfg.datadir):
    cfg.cont_flag = False
 os.makedirs(cfg.datadir,exist_ok=True)
 

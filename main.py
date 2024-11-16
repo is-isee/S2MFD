@@ -48,10 +48,10 @@ else:
    nd = 0
    Aph = np.zeros((grid.ixg, grid.jxg))
    Bph = np.zeros((grid.ixg, grid.jxg))
-   #Aph = np.zeros((grid.ixg, grid.jxg))
-   #Aph = sinTH/(RR/rsun)**2
-   Bph = np.sin(2*grid.TH)*0.1
-   Bph[0:setup.ibase,:] = 0
+   Aph = grid.sinTH/(grid.RR/cfg.RSUN)**2
+   Aph[0:setup.ibase,:] = 0
+   #Bph = np.sin(2*grid.TH)*0.1
+   #Bph[0:setup.ibase,:] = 0
 
    time = 0
 

@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pickle
+import S2MFD.config as cfg
 
 with open('data/grid.pkl', 'rb') as f:
     grid = pickle.load(f)
@@ -26,12 +27,14 @@ if os.path.isdir('./data'):
             n1 = max(n1, int(filel[1]))
 
 n0 = 0
+time = np.zeros(n1-n0)
 Brrt = np.zeros((ixg,jxg,n1-n0))
 Btht = np.zeros((ixg,jxg,n1-n0))
 Bpht = np.zeros((ixg,jxg,n1-n0))
 for n  in range(n0,n1):
     print(n)
     d = np.load(file='data/data.'+str(n).zfill(6)+'.npz')
+    time[n-n0] = d['time']
     Brrt[:,:,n-n0] = d['Brr']
     Btht[:,:,n-n0] = d['Bth']
     Bpht[:,:,n-n0] = d['Bph']

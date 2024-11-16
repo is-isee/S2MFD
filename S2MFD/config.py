@@ -47,3 +47,4 @@ cont_flag = True
 datadir = 'data/'
 gridfile = datadir+'grid.npz'
 setupfile = datadir+'setup.npz'
+configfile = datadir+'config.json'

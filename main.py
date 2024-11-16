@@ -1,16 +1,26 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import os, glob, importlib
+import os, glob, importlib, json, sys
 import S2MFD.config as cfg
 import S2MFD
 
-# configを強制的に再読み込み
+# force reload config
 importlib.reload(cfg)
 
+# make data directory
 if not os.path.isfile(cfg.datadir+'data.000000.npz'):
    cfg.cont_flag = False
-
 os.makedirs(cfg.datadir,exist_ok=True)
+
+# save config parameters
+params = {
+    k: getattr(cfg, k) for k in dir(cfg)
+    if not k.startswith("__") and isinstance(getattr(cfg, k), (int, float, str, bool, list, dict))
+}
+
+with open(cfg.configfile, 'w') as f:
+    json.dump(params, f, indent=4)
+
       
 if cfg.cont_flag:
    grid = S2MFD.grid_c.load(cfg.gridfile)

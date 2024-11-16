@@ -101,11 +101,11 @@ class setup_c:
 
 
    def save(self, filename):
-      with open(filename, 'wb') as f:
-         pickle.dump(self, f)
-      print('grid_c instance saved to', filename)
+      np.savez(filename, **self.__dict__)
    
    @classmethod
    def load(cls, filename):
-      with open(filename, 'rb') as f:
-         return pickle.load(f)
+      data = np.load(filename,allow_pickle=True)
+      obj = cls.__new__(cls)
+      obj.__dict__.update({key: data[key] for key in data.files})
+      return obj

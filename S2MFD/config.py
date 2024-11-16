@@ -45,5 +45,5 @@ cont_flag = True
 
 # fixed parameters (modifications are not recommended)
 datadir = 'data/'
-gridfile = datadir+'grid.pkl'
-setupfile = datadir+'setup.pkl'
+gridfile = datadir+'grid.npz'
+setupfile = datadir+'setup.npz'

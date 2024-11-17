@@ -21,14 +21,17 @@ if os.path.isdir('./data'):
             n1 = max(n1, int(filel[1]))
 
 n0 = 0
-time = np.zeros(n1-n0)
-Brrt = np.zeros((ixg,jxg,n1-n0))
-Btht = np.zeros((ixg,jxg,n1-n0))
-Bpht = np.zeros((ixg,jxg,n1-n0))
+tau_diff = data.cfg.RSUN**2/data.cfg.ett
+timet = np.zeros(n1-n0)
+Brrt = np.zeros((grid.ixg,grid.jxg,n1-n0))
+Btht = np.zeros((grid.ixg,grid.jxg,n1-n0))
+Bpht = np.zeros((grid.ixg,grid.jxg,n1-n0))
 for n  in range(n0,n1):
     print(n)
+    data.data_load(n)
+    Brr, Bth = S2MFD.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
     d = np.load(file='data/data.'+str(n).zfill(6)+'.npz')
-    time[n-n0] = d['time']
-    Brrt[:,:,n-n0] = d['Brr']
-    Btht[:,:,n-n0] = d['Bth']
+    timet[n-n0] = d['time']
+    Brrt[:,:,n-n0] = Brr
+    Btht[:,:,n-n0] = Bth
     Bpht[:,:,n-n0] = d['Bph']

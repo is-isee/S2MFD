@@ -2,6 +2,15 @@ import numpy as np
 import S2MFD
 
 def initialize(cfg):
+   """
+   Initialize the simulation by setting up the grid and setup objects.
+
+   Parameters:
+   cfg (object): S2MFD.config_c object
+
+   Returns:
+   object: Initialized S2MFD.data object containing configuration, grid, and setup.
+   """   
    import os
    
    # make data directory
@@ -123,37 +132,3 @@ def run_simulation(cfg=None):
    cfl_condition(data)
    initial_condition(data)
    main_loop(data)
-   
-class S2MFD_data:
-   def __init__(self, cfg, grid, setup):
-      self.cfg = cfg
-      self.grid = grid
-      self.setup = setup
-
-      self.Bph = None
-      self.Aph = None
-      self.time = None
-      self.dt = None
-      self.n = None
-      self.nd = None      
-   
-   @classmethod
-   def initial_load(cls,datadir):
-      cfg = S2MFD.config_c.load(datadir+'config.json')
-      grid = S2MFD.grid_c.load(cfg.gridfile)
-      setup = S2MFD.setup_c.load(cfg.setupfile)
-      
-      return cls(cfg,grid,setup)
-   
-   def get_data_file_path(self, nd):
-        """Generate the file path for a specific step."""
-        return self.cfg.datadir+'data.'+str(nd).zfill(6)+'.npz'
-   
-   def data_load(self,nd):
-      filename = self.get_data_file_path(nd)
-      d = np.load(file=filename)
-      self.Bph = d['Bph']
-      self.Aph = d['Aph']
-      self.time = d['time']
-      self.n = d['n']
-      self.nd = nd

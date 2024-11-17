@@ -1,50 +1,68 @@
 import numpy as np
-# fixed parameters (modifications are not recommended)
-margin = 1
-RSUN = 6.96e10
+import json
 
-# time parameter
-d2s = 86400 # day to second
-tend = 30000*d2s
-dtout = 100*d2s
+class config_c:
+    def __init__(self):
+        # fixed parameters (modifications are not recommended)
+        self.margin = 1
+        self.RSUN = 6.96e10
 
-# geometry parameters
-ix = 128 # number of grid points in r-direction
-jx = 128 # number of grid points in theta-direction
-rrmin = 0.65*RSUN
-rrmax = RSUN
-thmin = 0
-thmax = np.pi
+        # time parameter
+        d2s = 86400 # day to second
+        self.tend = 30000*d2s
+        self.dtout = 100*d2s
 
-# Setup parameters
-## geometry parameters
-rrc = 0.7*RSUN  # base of the convection zone
-d   = 0.02*RSUN # width of the tachocline
+        # geometry parameters
+        self.ix = 128 # number of grid points in r-direction
+        self.jx = 128 # number of grid points in theta-direction
+        self.rrmin = 0.65*self.RSUN
+        self.rrmax = self.RSUN
+        self.thmin = 0
+        self.thmax = np.pi
 
-## Differential rotation
-ome = 456.e-9*2*np.pi # rotation rate at equator
-omc = 0.92*ome        # rotation rate at radiative zone
-c2 = 0.2*ome          # latitudinal gradient of differential rotation
+        # Setup parameters
+        ## geometry parameters
+        self.rrc = 0.7*self.RSUN  # base of the convection zone
+        self.d   = 0.02*self.RSUN # width of the tachocline
 
-## Diffusivity
-etc = 1.e9
-ett = 1.e11
+        ## Differential rotation
+        self.ome = 456.e-9*2*np.pi # rotation rate at equator
+        self.omc = 0.92*self.ome        # rotation rate at radiative zone
+        self.c2 = 0.2*self.ome          # latitudinal gradient of differential rotation
 
-## Alpha effect
-cso = 35 # alpha non-dimensional parameter
-so0 = cso*ett/RSUN # alpha effect amplitude
-r1  = 0.95*RSUN # bottom of alpha effect
-d1  = 0.05*RSUN # width of alpha effect
+        ## Diffusivity
+        self.etc = 1.e9
+        self.ett = 1.e11
 
-## Meridional circulation
-uu0 = 1000 # flow amplitude
-rrb = 0.65*RSUN # base of the meridional flow
+        ## Alpha effect
+        self.cso = 35 # alpha non-dimensional parameter
+        self.so0 = self.cso*self.ett/self.RSUN # alpha effect amplitude
+        self.r1  = 0.95*self.RSUN # bottom of alpha effect
+        self.d1  = 0.05*self.RSUN # width of alpha effect
 
-# Flag for continuation
-cont_flag = True
+        ## Meridional circulation
+        self.uu0 = 1000 # flow amplitude
+        self.rrb = 0.65*self.RSUN # base of the meridional flow
 
-# fixed parameters (modifications are not recommended)
-datadir = 'data/'
-gridfile = datadir+'grid.npz'
-setupfile = datadir+'setup.npz'
-configfile = datadir+'config.json'
+        # Flag for continuation
+        self.cont_flag = True
+
+        # fixed parameters (modifications are not recommended)
+        self.datadir = 'data/'
+        self.gridfile = self.datadir+'grid.npz'
+        self.setupfile = self.datadir+'setup.npz'
+        self.configfile = self.datadir+'config.json'
+        
+    def save(self):
+        """Save configuration to a JSON file."""
+        params = {k: getattr(self, k) for k in dir(self)
+                    if not k.startswith("__") and not callable(getattr(self, k))}
+        with open(self.configfile, 'w') as f:
+            json.dump(params, f, indent=4)
+
+    def load(self):
+        """Load configuration from a JSON file."""
+        with open(self.configfile, 'r') as f:
+            params = json.load(f)
+        for k, v in params.items():
+            setattr(self, k, v)        

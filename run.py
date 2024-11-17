@@ -1,6 +1,5 @@
-import S2MFD.config as cfg
 import S2MFD
-import importlib
+import sys
 
-importlib.reload(cfg)
+cfg = S2MFD.config_c()
 S2MFD.run_simulation(cfg)

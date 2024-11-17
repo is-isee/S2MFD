@@ -1,5 +1,5 @@
 #
-def boundary_condition(Aph, Bph, grid):
+def boundary_condition(Bph, Aph, grid):
    # 動径方向境界条件
    for i in range(0, grid.margin):
       #下部境界条件(完全導体)A=B=0
@@ -20,4 +20,4 @@ def boundary_condition(Aph, Bph, grid):
       #赤道境界条件B=0(反対称),dA/dθ=0
       Bph[grid.margin:grid.ixg-grid.margin,grid.jxg-j-1] = -Bph[grid.margin:grid.ixg-grid.margin,grid.jxg-2*grid.margin+j]
       Aph[grid.margin:grid.ixg-grid.margin,grid.jxg-j-1] = -Aph[grid.margin:grid.ixg-grid.margin,grid.jxg-2*grid.margin+j]
-   return Aph, Bph
+   return Bph, Aph

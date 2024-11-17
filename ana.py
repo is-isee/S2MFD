@@ -1,18 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import pickle
-import S2MFD.config as cfg
 import S2MFD
 
-grid = S2MFD.grid_c.load(cfg.gridfile)
-rr = grid.rr
-th = grid.th
-ixg = grid.ixg
-jxg = grid.jxg
+datadir = 'data/'
+data = S2MFD.S2MFD_data.initial_load(datadir)
 
-RR, TH = np.meshgrid(rr, th, indexing='ij')
-X, Y = RR * np.cos(TH), RR * np.sin(TH)
+grid = data.grid
 
 fig = plt.figure('dynamo',figsize=(10,10))
 

@@ -7,7 +7,7 @@ class config_c:
         self.margin = 1
         self.RSUN = 6.96e10
 
-        # time parameter
+        # time parameters
         d2s = 86400 # day to second
         self.tend = 30000*d2s
         self.dtout = 100*d2s
@@ -60,9 +60,13 @@ class config_c:
         with open(self.configfile, 'w') as f:
             json.dump(params, f, indent=4)
 
-    def load(self):
+    @classmethod
+    def load(cls, filename):
         """Load configuration from a JSON file."""
-        with open(self.configfile, 'r') as f:
+        obj = cls.__new__(cls)
+        with open(filename, 'r') as f:
             params = json.load(f)
         for k, v in params.items():
-            setattr(self, k, v)        
+            setattr(obj, k, v)
+            
+        return obj

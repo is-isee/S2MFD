@@ -9,7 +9,7 @@ RSUN = 6.96e10
 
 # time parameters
 d2s = 86400 # day to second
-tend = 30000*d2s
+tend = 100000*d2s
 dtout = 100*d2s
 
 # geometry parameters
@@ -25,23 +25,29 @@ thmax = np.pi
 rrc = 0.7*RSUN  # base of the convection zone
 d   = 0.02*RSUN # width of the tachocline
 
-## Differential rotation
-ome = 456.e-9*2*np.pi # rotation rate at equator
-omc = 0.92*ome        # rotation rate at radiative zone
-c2 = 0.2*ome          # latitudinal gradient of differential rotation
-
 ## Diffusivity
 etc = 1.e9
 ett = 1.e11
 
+## Differential rotation
+com = 1.4e5
+#ome = 456.e-9*2*np.pi # rotation rate at equator
+ome = com/RSUN**2*ett
+omc = 0.92*ome        # rotation rate at radiative zone
+c2 = 0.2*ome          # latitudinal gradient of differential rotation
+
+
 ## Alpha effect
+alpha_type = 'BL'
 cso = 35 # alpha non-dimensional parameter
 so0 = cso*ett/RSUN # alpha effect amplitude
 r1  = 0.95*RSUN # bottom of alpha effect
-d1  = 0.05*RSUN # width of alpha effect
+d1  = 0.01*RSUN # width of alpha effect
 
 ## Meridional circulation
-uu0 = 1000 # flow amplitude
+rey = 700
+#uu0 = 1000 # flow amplitude
+uu0 = rey*ett/RSUN
 rrb = 0.65*RSUN # base of the meridional flow
 
 # Flag for continuation

@@ -1,3 +1,6 @@
+import S2MFD
+import numpy as np
+
 class S2MFD_data:
     """
     Class to handle S2MFD data including configuration, grid, and setup.

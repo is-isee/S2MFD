@@ -43,11 +43,15 @@ def cfl_condition(data):
    dtmin = 1.e10
    for i in range(grid.margin,grid.ixg-grid.margin):
       for j in range(grid.margin,grid.jxg-grid.margin):
-         dt_adv = c_cfl * np.min([grid.drr, grid.rr[i]*grid.dth])/ np.sqrt(setup.urr[i,j]**2 + setup.uth[i,j]**2)
-         dt_dif = c_cfl * np.min([grid.drr, grid.rr[i]*grid.dth])**2/(2 * setup.et[i,j])
+         dt_adv = c_cfl * np.min([grid.drr, grid.rr[i]*grid.dth])/ np.sqrt(setup.urr[i,j]**2 + setup.uth[i,j]**2 + 1.e-20)
+         dt_dif = c_cfl * np.min([grid.drr, grid.rr[i]*grid.dth])**2/(2 * setup.et[i,j] + 1.e-20)
          dtmin = np.min([dtmin,dt_adv,dt_dif])
          
    data.dt  = dtmin
+   
+   # cfg = data.cfg
+   # data.dt = 5.e-6*cfg.RSUN**2/cfg.ett
+   # print(data.dt)
    return data
 
 def io(data):
@@ -74,23 +78,24 @@ def initial_condition(data):
       data.time = 0.0
       data.Aph = np.zeros((grid.ixg, grid.jxg))
       data.Bph = np.zeros((grid.ixg, grid.jxg))
-      # data.Aph = grid.sinTH/(grid.RR/cfg.RSUN)**2
-      # data.Aph[0:setup.ibase,:] = 0
-      data.Bph = np.sin(2*grid.TH)*0.1
-      data.Bph[0:setup.ibase,:] = 0
+      data.Aph = grid.sinTH/(grid.RR/cfg.RSUN)**2*cfg.RSUN/100
+      data.Aph[0:setup.ibase,:] = 0
+      # data.Bph = np.sin(2*grid.TH)*0.4
+      # data.Bph[0:setup.ibase,:] = 0
       
    io(data)
    
    return data
 
 def tvd_runge_kutta(data):
+   cfg = data.cfg
    grid = data.grid
    setup = data.setup
    #### dynamo equation               
-   Bphm, Aphm = S2MFD.time_marching(data.Bph , data.Aph ,data.dt, grid, setup)
+   Bphm, Aphm = S2MFD.time_marching(data.Bph , data.Aph ,data.dt, cfg, grid, setup)
    Bphm, Aphm = S2MFD.boundary_condition(Bphm, Aphm, grid)
 
-   Bphn, Aphn = S2MFD.time_marching(Bphm, Aphm, data.dt, grid, setup)
+   Bphn, Aphn = S2MFD.time_marching(Bphm, Aphm, data.dt, cfg, grid, setup)
    Bphn, Aphn = S2MFD.boundary_condition(Bphn, Aphn, grid)
    
    data.Bph = 0.5*data.Bph + 0.5*Bphn
@@ -107,26 +112,30 @@ def main_loop(data):
    plt.clf()
    plt.close('all')
    fig = plt.figure('dynamo',figsize=(5,10))   
+   ax = fig.add_subplot(111,aspect='equal')
    
    while data.time < cfg.tend:
       data.time += data.dt
       data.n += 1
       if(data.time//cfg.dtout != (data.time-data.dt)//cfg.dtout):
          data.nd += 1
-         ax = fig.add_subplot(111,aspect='equal')
+         ax.clear()
          ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,data.Bph,vmax=5.e0,vmin=-5.e0,cmap='bwr',shading='auto')
-         ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*data.Aph,colors='black',levels=np.linspace(-8.e10,8.e10,10))
+         ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*data.Aph/cfg.RSUN,colors='black',levels=np.linspace(-0.01,0.01,20))
          ax.set_xlim( 0,1)
          ax.set_ylim(-1,1)
          plt.pause(0.01)
-         
+                  
          io(data)
 
       data = tvd_runge_kutta(data)
                               
-def run_simulation(cfg=None):
+def run_simulation(cfg=None, parameter_file=None):
    if cfg is None:
-      cfg = S2MFD.config_c()
+      if parameter_file is None:
+         cfg = S2MFD.config_c()
+      else:
+         cfg = S2MFD.config_c(parameter_file)
    
    data = initialize(cfg)
    cfl_condition(data)

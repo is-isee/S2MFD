@@ -69,10 +69,15 @@ class setup_c:
       self.ibase = np.argmin(abs(grid.rr - cfg.rrc))
 
       # alpha effect
-      self.so = cfg.so0*0.5 \
-         *(1 + erf((grid.RR-cfg.r1)/cfg.d1))*(1 - erf(grid.RR-cfg.RSUN)/cfg.d1) \
-            *grid.cosTH*grid.sinTH
-
+      if cfg.alpha_type == 'BL':
+         self.so = cfg.so0*0.5 \
+            *(1 + erf((grid.RR-cfg.r1)/cfg.d1))*(1 - erf((grid.RR-cfg.RSUN)/cfg.d1)) \
+               *grid.cosTH*grid.sinTH
+      elif cfg.alpha_type == 'normal':
+         self.so = cfg.so0*3*np.sqrt(3)/4 \
+            *(1 + erf((grid.RR-cfg.rrc)/cfg.d)) \
+               *grid.sinTH**2*grid.cosTH
+                              
       # Meridional flow (Jouve+2008 Model)
       self.urr = -cfg.uu0*2*(cfg.RSUN - cfg.rrb)/np.pi/grid.RR \
          *(grid.RR-cfg.rrb)**2/(cfg.RSUN - cfg.rrb)**2 \

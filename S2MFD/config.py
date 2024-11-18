@@ -25,8 +25,13 @@ class config_c:
         
     def save(self):
         """Save configuration to a JSON file."""
-        params = {k: getattr(self, k) for k in dir(self)
-                    if not k.startswith("__") and not callable(getattr(self, k))}
+        params = {}
+        for k in dir(self):
+            if not k.startswith("__") and not callable(getattr(self, k)):
+                value = getattr(self, k)
+                # JSONシリアライズ可能なデータ型のみ追加
+                if isinstance(value, (int, float, str, bool, list, dict, type(None))):
+                    params[k] = value
         with open(self.configfile, 'w') as f:
             json.dump(params, f, indent=4)
 

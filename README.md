@@ -1,6 +1,16 @@
 # S2MFD
 Solar/Stellar Mean Field Dynamo code
 
+## Parameter setting
+
+Default free parameters for the simulation is shown in `S2MFD/parameters/defaults.py`.
+
+There are two ways to modify the parameters.
+
+### To Edit `S2MFD/parameters/*.py`
+
+### To Edit `S2MFD_data.config_c.*` after load
+
 ## Project Structure
 ```shell
 .

@@ -4,9 +4,9 @@ import os, sys
 sys.path.append('../')
 import S2MFD
 
-datadir = '../data_flux_transport/'
-datadir = '../data_alpha_omega/'
 datadir = '../data_alpha_omega_etaconst/'
+datadir = '../data_alpha_omega/'
+datadir = '../data_flux_transport/'
 data = S2MFD.S2MFD_data.initial_load(datadir)
 
 cfg = data.cfg

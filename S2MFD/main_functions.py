@@ -69,7 +69,7 @@ def initial_condition(data):
    import glob
    # 初期条件
    if cfg.cont_flag:
-      files = glob.glob('data/data.*.npz')
+      files = glob.glob(cfg.datadir+'data.*.npz')
       data.nd = max([int(f.split('.')[-2]) for f in files])
       data.data_load(data.nd)
    else:

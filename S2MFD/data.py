@@ -48,8 +48,9 @@ class S2MFD_data:
         S2MFD_data: An instance of the S2MFD_data class.
         """        
         cfg = S2MFD.config_c.load(datadir+'config.json')
-        grid = S2MFD.grid_c.load(cfg.gridfile)
-        setup = S2MFD.setup_c.load(cfg.setupfile)
+        cfg.datadir = datadir
+        grid = S2MFD.grid_c.load(datadir+cfg.gridfile)
+        setup = S2MFD.setup_c.load(datadir+cfg.setupfile)
         
         return cls(cfg,grid,setup)
     

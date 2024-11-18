@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import os
+import os, sys
+sys.path.append('../')
 import S2MFD
 
-datadir = 'data/'
+datadir = '../data/'
 data = S2MFD.S2MFD_data.initial_load(datadir)
 
 cfg = data.cfg
@@ -13,10 +14,10 @@ setup = data.setup
 fig = plt.figure('dynamo',figsize=(10,10))
 
 n1 = 0
-if os.path.isdir('./data'):
+if os.path.isdir(datadir):
     # dataディレクトリ内の最も大きな番号を探る
     # 特定のステップから始めたい場合は、そのステップを手で指定する
-    files = os.listdir('./data')
+    files = os.listdir(datadir)
     for file in files:
         filel = file.split('.')
         if filel[0] == 'data':
@@ -32,7 +33,7 @@ for n  in range(n0,n1):
     print(n)
     data.data_load(n)
     Brr, Bth = S2MFD.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
-    d = np.load(file='data/data.'+str(n).zfill(6)+'.npz')
+    d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')
     timet[n-n0] = d['time']
     Brrt[:,:,n-n0] = Brr
     Btht[:,:,n-n0] = Bth

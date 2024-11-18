@@ -32,7 +32,7 @@ class config_c:
                 # JSONシリアライズ可能なデータ型のみ追加
                 if isinstance(value, (int, float, str, bool, list, dict, type(None))):
                     params[k] = value
-        with open(self.configfile, 'w') as f:
+        with open(self.datadir+self.configfile, 'w') as f:
             json.dump(params, f, indent=4)
 
     @classmethod

@@ -27,9 +27,9 @@ def initialize(cfg):
    else:
       grid = S2MFD.grid_c(ix=cfg.ix,jx=cfg.jx,margin=cfg.margin
                ,rrmin=cfg.rrmin,rrmax=cfg.rrmax,thmin=cfg.thmin,thmax=cfg.thmax)
-      grid.save(cfg.gridfile)
+      grid.save(cfg.datadir+cfg.gridfile)
       setup = S2MFD.setup_c(cfg,grid)
-      setup.save(cfg.setupfile)
+      setup.save(cfg.datadir+cfg.setupfile)
       
    data = S2MFD.S2MFD_data(cfg,grid,setup)
       

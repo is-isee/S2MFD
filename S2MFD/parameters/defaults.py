@@ -55,6 +55,6 @@ cont_flag = True
 
 # fixed parameters (modifications are not recommended)
 datadir = 'data/'
-gridfile = datadir+'grid.npz'
-setupfile = datadir+'setup.npz'
-configfile = datadir+'config.json'
+gridfile = 'grid.npz'
+setupfile = 'setup.npz'
+configfile = 'config.json'

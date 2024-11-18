@@ -22,8 +22,8 @@ def initialize(cfg):
 
    # create grid and setup
    if cfg.cont_flag:
-      grid = S2MFD.grid_c.load(cfg.gridfile)
-      setup = S2MFD.setup_c.load(cfg.setupfile)
+      grid = S2MFD.grid_c.load(cfg.datadir+cfg.gridfile)
+      setup = S2MFD.setup_c.load(cfg.datadir+cfg.setupfile)
    else:
       grid = S2MFD.grid_c(ix=cfg.ix,jx=cfg.jx,margin=cfg.margin
                ,rrmin=cfg.rrmin,rrmax=cfg.rrmax,thmin=cfg.thmin,thmax=cfg.thmax)
@@ -111,26 +111,26 @@ def main_loop(data):
    cfg = data.cfg
    grid = data.grid
       
-   plt.clf()
-   plt.close('all')
-   fig = plt.figure('dynamo',figsize=(5,10))   
-   ax = fig.add_subplot(111,aspect='equal')
+   # plt.clf()
+   # plt.close('all')
+   # fig = plt.figure('dynamo',figsize=(5,10))   
+   # ax = fig.add_subplot(111,aspect='equal')
    
    while data.time < cfg.tend:
       data.time += data.dt
       data.n += 1
       if(data.time//cfg.dtout != (data.time-data.dt)//cfg.dtout):
          data.nd += 1
-         ax.clear()
-         ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,data.Bph,vmax=5.e0,vmin=-5.e0,cmap='bwr',shading='auto')
-         ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*data.Aph/cfg.RSUN,colors='black',levels=np.linspace(-0.02,0.02,16))
-         radius = grid.rrmax/cfg.RSUN
-         ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4)
-         radius = grid.rrmin/cfg.RSUN         
-         ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4)
-         ax.set_xlim( 0,1)
-         ax.set_ylim(-1,1)
-         plt.pause(0.01)
+         # ax.clear()
+         # ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,data.Bph,vmax=5.e0,vmin=-5.e0,cmap='bwr',shading='auto')
+         # ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*data.Aph/cfg.RSUN,colors='black',levels=np.linspace(-0.02,0.02,16))
+         # radius = grid.rrmax/cfg.RSUN
+         # ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4)
+         # radius = grid.rrmin/cfg.RSUN         
+         # ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4)
+         # ax.set_xlim( 0,1)
+         # ax.set_ylim(-1,1)
+         # plt.pause(0.01)
                   
          io(data)
 

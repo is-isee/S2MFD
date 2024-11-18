@@ -103,6 +103,8 @@ def tvd_runge_kutta(data):
    
    return data
 
+
+
 def main_loop(data):
    import matplotlib.pyplot as plt
    
@@ -121,7 +123,11 @@ def main_loop(data):
          data.nd += 1
          ax.clear()
          ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,data.Bph,vmax=5.e0,vmin=-5.e0,cmap='bwr',shading='auto')
-         ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*data.Aph/cfg.RSUN,colors='black',levels=np.linspace(-0.01,0.01,20))
+         ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*data.Aph/cfg.RSUN,colors='black',levels=np.linspace(-0.02,0.02,16))
+         radius = grid.rrmax/cfg.RSUN
+         ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4)
+         radius = grid.rrmin/cfg.RSUN         
+         ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4)
          ax.set_xlim( 0,1)
          ax.set_ylim(-1,1)
          plt.pause(0.01)

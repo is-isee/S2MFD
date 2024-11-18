@@ -5,9 +5,7 @@ def boundary_condition(Bph, Aph, grid):
       # bottom boundary condition
       # perfect conductor
       # Aph = 0, d(r*Bph)/dr = 0
-      Aph[i,grid.margin:grid.jxg-grid.margin] = - Aph[2*grid.margin-i-1,grid.margin:grid.jxg-grid.margin] \
-         /grid.rr[i]*grid.rr[2*grid.margin-i-1]
-         
+      Aph[i,grid.margin:grid.jxg-grid.margin] = - Aph[2*grid.margin-i-1,grid.margin:grid.jxg-grid.margin]
       Bph[i,grid.margin:grid.jxg-grid.margin] = + Bph[2*grid.margin-i-1,grid.margin:grid.jxg-grid.margin] \
          /grid.rr[i]*grid.rr[2*grid.margin-i-1]
 
@@ -15,9 +13,7 @@ def boundary_condition(Bph, Aph, grid):
       # radial condition 
       # Bph = 0, d(r*Aph)/dr = 0
       
-      Bph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = -Bph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin] #\
-         #/grid.rr[grid.ixg-i-1]*grid.rr[grid.ixg-2*grid.margin+i]
-         
+      Bph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = -Bph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin]
       Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = +Aph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin] \
          /grid.rr[grid.ixg-i-1]*grid.rr[grid.ixg-2*grid.margin+i]
 

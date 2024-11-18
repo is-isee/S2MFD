@@ -10,7 +10,7 @@ RSUN = 6.96e10
 # time parameters
 d2s = 86400 # day to second
 tend = 100000*d2s
-dtout = 100*d2s
+dtout = 30*d2s
 
 # geometry parameters
 ix = 128 # number of grid points in r-direction

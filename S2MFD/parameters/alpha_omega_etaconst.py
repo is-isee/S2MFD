@@ -8,6 +8,3 @@ rey = 0
 uu0 = 0
 
 etc = ett
-
-tend = 300000*d2s
-dtout = 100*d2s

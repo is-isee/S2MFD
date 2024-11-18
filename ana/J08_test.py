@@ -4,7 +4,9 @@ import os, sys
 sys.path.append('../')
 import S2MFD
 
-datadir = '../data/'
+datadir = '../data_flux_transport/'
+datadir = '../data_alpha_omega/'
+datadir = '../data_alpha_omega_etaconst/'
 data = S2MFD.S2MFD_data.initial_load(datadir)
 
 cfg = data.cfg
@@ -47,13 +49,10 @@ ns = np.where(Bpht0_sign_diff == +2)[0][-2]
 ne = np.where(Bpht0_sign_diff == +2)[0][-1]
 
 plt.clf()
-fig = plt.figure('J08_test',figsize=(15,10))
-ax1 = fig.add_subplot(2,3,1)
-ax2 = fig.add_subplot(2,3,2)
-ax3 = fig.add_subplot(2,3,3)
-ax4 = fig.add_subplot(2,3,4)
-ax5 = fig.add_subplot(2,3,5)
-ax6 = fig.add_subplot(2,3,6)
+plt.close('all')
+fig = plt.figure('J08_test',figsize=(6,10))
+ax1 = fig.add_subplot(2,1,1)
+ax2 = fig.add_subplot(2,1,2)
 
 timeu = (timet[ns:ne]-timet[ns])/tau_diff
 Bpht0u = Bpht0[ns:ne]
@@ -62,10 +61,17 @@ nw = ne - ns
 nm = np.argmax(Bpht0u)
 
 ax1.plot(timeu,Bpht0u)
-ax2.plot(timeu[nm-nw//20:nm+nw//20],Bpht0u[nm-nw//20:nm+nw//20])
-ax3.plot(timeu[nw-nw//10:nw],Bpht0u[nw-nw//10:nw])
+ax2.plot(timeu,Brrt0u)
 
-ax4.plot(timeu,Brrt0u)
+ax1.set_ylabel(r'$B_\phi$: $r=0.7R_\odot$, $\theta=30^\circ$')
+ax2.set_ylabel(r'$B_r$: $r=R_\odot$, $\theta=60^\circ$')
+
+ax2.set_xlabel(r't/$\tau_\mathrm{diff}$')
+
+fig.tight_layout()
+
+print('Cycle time = ',timeu[-1])
+print('Max(Bph) =',np.max(Bpht0u))
 
     
-
+    

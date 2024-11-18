@@ -8,6 +8,7 @@ class config_c:
         base_dir = os.path.dirname(os.path.abspath(__file__))
         parameter_file = base_dir+'/'+parameter_file
                 
+        self.parameter_file=parameter_file
         # Load the parameter file
         self.load_parameters(parameter_file)
         

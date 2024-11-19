@@ -1,9 +1,40 @@
 # S2MFD
 Solar/Stellar Mean Field Dynamo code
 
+
+---
+
+## Table of Contents
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+
+## Installation
+
+### Prerequisites
+- **Operating System**: macOS, Windows, or Linux
+- **Python**: Version 3.8 or above
+   - see `requirements.txt`
+
+### Steps
+```bash
+git clone https://github.com/is-isee/S2MFD.git
+cd S2MFD
+```
+
+## Documentation
+
+Under construction
+
 ## Parameter setting
 
 Default free parameters for the simulation is shown in `S2MFD/parameters/defaults.py`.
+
 
 There are two ways to modify the parameters.
 

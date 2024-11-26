@@ -7,14 +7,7 @@ import numpy as np
 from numba import njit, float64
 from numba.types import Array, Tuple, unicode_type
 
-#TODO: completed
-@njit(Array(float64, 2, 'C', False, aligned=True)
-      (
-      Array(float64, 2, 'C', False, aligned=True), 
-      Array(float64, 0, 'C', False, aligned=True), 
-      unicode_type  
-      ), 
-      cache=True)
+@njit
 def drr1(qq,drr,dir):
     '''
     To calculate 1st order accuracy derivative in r direction
@@ -50,13 +43,7 @@ def drr1(qq,drr,dir):
    
     return dqq
 
-#TODO: completed
-@njit(Array(float64, 2, 'C', False, aligned=True)
-      (
-      Array(float64, 2, 'C', False, aligned=True), 
-      Array(float64, 0, 'C', False, aligned=True), 
-      ), 
-      cache=True)
+@njit
 def drr2(qq,drr):
     '''
     To calculate 2nd order accuracy derivative in r direction
@@ -82,14 +69,7 @@ def drr2(qq,drr):
    
     return dqq
 
-#TODO: completed
-@njit(Array(float64, 2, 'C', False, aligned=True)
-      (
-      Array(float64, 2, 'C', False, aligned=True), 
-      Array(float64, 0, 'C', False, aligned=True), 
-      unicode_type  
-      ), 
-      cache=True) 
+@njit
 def dth1(qq,dth,dir):
     '''
     To calculate 1st order accuracy derivative in theta direction
@@ -124,13 +104,7 @@ def dth1(qq,dth,dir):
         
     return dqq
 
-#TODO: completed
-@njit(Array(float64, 2, 'C', False, aligned=True)
-      (
-      Array(float64, 2, 'C', False, aligned=True),  
-      Array(float64, 0, 'C', False, aligned=True)    
-      ), 
-      cache=True)
+@njit
 def dth2(qq,dth):
     '''
     To calculate 2nd order accuracy derivative in theta direction

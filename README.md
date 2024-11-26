@@ -16,7 +16,7 @@ Solar/Stellar Mean Field Dynamo code
 
 ## Installation
 
-TEST
+TEST, TEST
 
 ### Prerequisites
 - **Operating System**: macOS, Windows, or Linux

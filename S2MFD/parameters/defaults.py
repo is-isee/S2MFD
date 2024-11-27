@@ -45,10 +45,24 @@ r1  = 0.95*RSUN # bottom of alpha effect
 d1  = 0.01*RSUN # width of alpha effect
 
 ## Meridional circulation
+"""
+## Jouve_2008
+meridional_circulation_type = 'Jv'
 rey = 700
 #uu0 = 1000 # flow amplitude
 uu0 = rey*ett/RSUN
 rrb = 0.65*RSUN # base of the meridional flow
+"""
+## Dikpati_1999
+meridional_circulation_type = 'Dk'
+uu0 = 2000
+m   = 0.5
+p   = 0.25
+q   = 0
+rr0 = 0.71*RSUN # base of the meridional flow
+xi0 = RSUN/rr0 - 1
+c1d  = (2*m+1)*(m+p)/(m+1)/p * (xi0**(-m))
+c2d  = (2*m+p+1)*m/(m+1)/p * (xi0**(-(m+p)))
 
 # Flag for continuation
 cont_flag = True

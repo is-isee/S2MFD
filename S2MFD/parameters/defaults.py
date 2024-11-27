@@ -55,7 +55,7 @@ rrb = 0.65*RSUN # base of the meridional flow
 """
 ## Dikpati_1999
 meridional_circulation_type = 'Dk'
-uu0 = 2000
+uu0 = 1000
 m   = 0.5
 p   = 0.25
 q   = 0

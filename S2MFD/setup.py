@@ -4,6 +4,8 @@ import S2MFD.config as cfg
 import numpy as np
 import pickle
 from scipy.special import erf
+# TODO 子午面流などの式を定義
+# TODO 使い方： setup = S2MFD.setup_c(cfg,grid)
 
 @dataclass
 class setup_c:

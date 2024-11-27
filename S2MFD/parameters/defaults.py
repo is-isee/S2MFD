@@ -1,6 +1,7 @@
 # This is the default parameter set.
 # Modifications are not recommended.
-
+# TODO デフォルトのパラメタ設定を行うファイル。
+# TODO Jouve＋2008と照らし合わせて確認。
 import numpy as np
 
 # fixed parameters (modifications are not recommended)
@@ -36,7 +37,8 @@ ome = com/RSUN**2*ett
 omc = 0.92*ome        # rotation rate at radiative zone
 c2 = 0.2*ome          # latitudinal gradient of differential rotation
 
-
+# TODO ここのcso=35でsample.pyとかのcso=3.5なのはOKか。
+# TODO こことα効果の設定をしているファイルが連携していると思うが、どのように連携しているのか。
 ## Alpha effect
 alpha_type = 'BL'
 cso = 35 # alpha non-dimensional parameter

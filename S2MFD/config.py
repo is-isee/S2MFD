@@ -1,6 +1,8 @@
 import numpy as np
 import json, os, sys
 import importlib
+# TODO defaultのパラメタを読み込む.
+
 
 class config_c:
     def __init__(self,parameter_file='parameters/defaults.py'):

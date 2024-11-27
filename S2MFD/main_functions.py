@@ -1,6 +1,6 @@
 import numpy as np
 import S2MFD
-
+# TODO ここでは、grid,setup,cfl,TVDRK2,main_loop,実行を行う。
 def initialize(cfg):
    """
    Initialize the simulation by setting up the grid and setup objects.
@@ -19,7 +19,8 @@ def initialize(cfg):
       os.makedirs(cfg.datadir,exist_ok=True)
 
    cfg.save()
-
+   # TODO cfg（←defaultからinput）の呼び出し、gridを生成
+   # TODO setupの呼び出し、子午面流などの式を定義。
    # create grid and setup
    if cfg.cont_flag:
       grid = S2MFD.grid_c.load(cfg.datadir+cfg.gridfile)

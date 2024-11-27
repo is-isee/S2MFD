@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 import numpy as np
 import pickle
-
+# TODO gridの生成、configで読み込んできたものを用いる。
+# TODO 使い方：grid = S2MFD.grid_c(ix=cfg.ix,jx=cfg.jx,margin=cfg.margin,rrmin=cfg.rrmin,rrmax=cfg.rrmax,thmin=cfg.thmin,thmax=cfg.thmax)
 @dataclass
 class grid_c:
    """

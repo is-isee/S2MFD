@@ -90,6 +90,8 @@ class setup_c:
                   *np.cos(np.pi*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb))) \
                *2*(cfg.RSUN-cfg.rrb)/np.pi/grid.RR*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb) \
                   *grid.cosTH*grid.sinTH
+         self.urr[grid.RR < cfg.rrb] = 0
+         self.uth[grid.RR < cfg.rrb] = 0
       # Meridional flow (Dikpati+1999 Model)
       elif cfg.meridional_circulation_type == 'Dk':
          xi  = cfg.RSUN/grid.RR  - 1
@@ -101,10 +103,8 @@ class setup_c:
          self.uth = cfg.uu0*((cfg.RSUN/grid.RR)**3) \
             *(-1+cfg.c1d*xi**cfg.m-cfg.c2d*xi**(cfg.m+cfg.p)) \
             *grid.sinTH**(cfg.q+1)*grid.cosTH
-
-
-      self.urr[grid.RR < cfg.rrb] = 0
-      self.uth[grid.RR < cfg.rrb] = 0
+         self.urr[grid.RR < cfg.rr0] = 0
+         self.uth[grid.RR < cfg.rr0] = 0
 
       #θ＝０(回転軸)(対称性)
       # 境界の外で子午面流の設定

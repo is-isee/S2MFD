@@ -92,7 +92,7 @@ class setup_c:
                   *grid.cosTH*grid.sinTH
       # Meridional flow (Dikpati+1999 Model)
       elif cfg.meridional_circulation_type == 'Dk':
-         xi  = RSUN/grid.RR  - 1
+         xi  = cfg.RSUN/grid.RR  - 1
          xi[grid.RR > cfg.RSUN] = 0 
          self.urr = cfg.uu0*((cfg.RSUN/grid.RR)**2) \
             *(-1/(cfg.m+1) + cfg.c1d/(2*cfg.m + 1)*xi**cfg.m - cfg.c2d/(2*cfg.m+cfg.p+1)*xi**(cfg.m+cfg.p)) \

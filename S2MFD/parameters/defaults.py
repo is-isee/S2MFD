@@ -45,6 +45,7 @@ r1  = 0.95*RSUN # bottom of alpha effect
 d1  = 0.01*RSUN # width of alpha effect
 
 ## Meridional circulation
+meridional_circulation_type = 'J08'
 rey = 700
 #uu0 = 1000 # flow amplitude
 uu0 = rey*ett/RSUN

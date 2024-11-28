@@ -77,19 +77,34 @@ class setup_c:
          self.so = cfg.so0*3*np.sqrt(3)/4 \
             *(1 + erf((grid.RR-cfg.rrc)/cfg.d)) \
                *grid.sinTH**2*grid.cosTH
-                              
+      # Meridional flow
       # Meridional flow (Jouve+2008 Model)
-      self.urr = -cfg.uu0*2*(cfg.RSUN - cfg.rrb)/np.pi/grid.RR \
-         *(grid.RR-cfg.rrb)**2/(cfg.RSUN - cfg.rrb)**2 \
-         *np.sin(np.pi*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb))*(3*grid.cosTH**2 - 1)
-         
-      self.uth = cfg.uu0*((3*grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb) \
-            *np.sin(np.pi*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb)) \
-            + grid.RR*np.pi/(cfg.RSUN-cfg.rrb)*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb) \
-               *np.cos(np.pi*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb))) \
-            *2*(cfg.RSUN-cfg.rrb)/np.pi/grid.RR*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb) \
-               *grid.cosTH*grid.sinTH
+      if cfg.meridional_circulation_type == 'J08':
+         self.urr = -cfg.uu0*2*(cfg.RSUN - cfg.rrb)/np.pi/grid.RR \
+            *(grid.RR-cfg.rrb)**2/(cfg.RSUN - cfg.rrb)**2 \
+            *np.sin(np.pi*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb))*(3*grid.cosTH**2 - 1)
+            
+         self.uth = cfg.uu0*((3*grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb) \
+               *np.sin(np.pi*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb)) \
+               + grid.RR*np.pi/(cfg.RSUN-cfg.rrb)*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb) \
+                  *np.cos(np.pi*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb))) \
+               *2*(cfg.RSUN-cfg.rrb)/np.pi/grid.RR*(grid.RR-cfg.rrb)/(cfg.RSUN-cfg.rrb) \
+                  *grid.cosTH*grid.sinTH
+      # Meridional flow (Dikpati+1999 Model)
+      elif cfg.meridional_circulation_type == 'D99':
+         xi0 = cfg.RSUN/cfg.rrb - 1
+         c1d  = (2*cfg.m+1)*(cfg.m+cfg.p)/(cfg.m+1)/cfg.p * (xi0**(-cfg.m))
+         c2d  = (2*cfg.m+cfg.p+1)*cfg.m/(cfg.m+1)/cfg.p * (xi0**(-(cfg.m+cfg.p)))
+         xi  = cfg.RSUN/grid.RR  - 1
+         xi[grid.RR > cfg.RSUN] = 0 
+         self.urr = cfg.uu0*((cfg.RSUN/grid.RR)**2) \
+            *(-1/(cfg.m+1) + c1d/(2*cfg.m + 1)*xi**cfg.m - c2d/(2*cfg.m+cfg.p+1)*xi**(cfg.m+cfg.p)) \
+            *xi*grid.sinTH**cfg.q*( (cfg.q+2)*grid.cosTH**2 - grid.sinTH**2)
 
+         self.uth = cfg.uu0*((cfg.RSUN/grid.RR)**3) \
+            *(-1+c1d*xi**cfg.m - c2d*xi**(cfg.m+cfg.p)) \
+            *grid.sinTH**(cfg.q+1)*grid.cosTH
+            
       self.urr[grid.RR < cfg.rrb] = 0
       self.uth[grid.RR < cfg.rrb] = 0
 

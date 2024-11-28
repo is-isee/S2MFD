@@ -92,14 +92,17 @@ class setup_c:
                   *grid.cosTH*grid.sinTH
       # Meridional flow (Dikpati+1999 Model)
       elif cfg.meridional_circulation_type == 'D99':
+         xi0 = cfg.RSUN/cfg.rrb - 1
+         c1d  = (2*cfg.m+1)*(cfg.m+cfg.p)/(cfg.m+1)/cfg.p * (xi0**(-cfg.m))
+         c2d  = (2*cfg.m+cfg.p+1)*cfg.m/(cfg.m+1)/cfg.p * (xi0**(-(cfg.m+cfg.p)))
          xi  = cfg.RSUN/grid.RR  - 1
          xi[grid.RR > cfg.RSUN] = 0 
          self.urr = cfg.uu0*((cfg.RSUN/grid.RR)**2) \
-            *(-1/(cfg.m+1) + cfg.c1d/(2*cfg.m + 1)*xi**cfg.m - cfg.c2d/(2*cfg.m+cfg.p+1)*xi**(cfg.m+cfg.p)) \
+            *(-1/(cfg.m+1) + c1d/(2*cfg.m + 1)*xi**cfg.m - c2d/(2*cfg.m+cfg.p+1)*xi**(cfg.m+cfg.p)) \
             *xi*grid.sinTH**cfg.q*( (cfg.q+2)*grid.cosTH**2 - grid.sinTH**2)
 
          self.uth = cfg.uu0*((cfg.RSUN/grid.RR)**3) \
-            *(-1+cfg.c1d*xi**cfg.m-cfg.c2d*xi**(cfg.m+cfg.p)) \
+            *(-1+c1d*xi**cfg.m - c2d*xi**(cfg.m+cfg.p)) \
             *grid.sinTH**(cfg.q+1)*grid.cosTH
             
       self.urr[grid.RR < cfg.rrb] = 0

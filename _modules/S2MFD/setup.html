@@ -1,0 +1,232 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ja" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>S2MFD.setup &mdash; S2MFD 2024.11.28 ドキュメント</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=10cab14f"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/translations.js?v=4755f45a"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="索引" href="../../genindex.html" />
+    <link rel="search" title="検索" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            S2MFD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_reference.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">S2MFD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">モジュールコード</a></li>
+      <li class="breadcrumb-item active">S2MFD.setup</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>S2MFD.setup のソースコード</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span> <span class="nn">S2MFD.tools</span> <span class="kn">import</span> <span class="n">drr2</span><span class="p">,</span> <span class="n">dth2</span>
+<span class="kn">import</span> <span class="nn">S2MFD.config</span> <span class="k">as</span> <span class="nn">cfg</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">erf</span>
+
+<div class="viewcode-block" id="setup_c">
+<a class="viewcode-back" href="../../api_reference.html#S2MFD.setup_c">[ドキュメント]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">setup_c</span><span class="p">:</span>
+<span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">   A class to configure and initialize physical properties and flow patterns in a spherical </span>
+<span class="sd">   coordinate grid for simulations. It supports the setup of differential rotation, </span>
+<span class="sd">   diffusivity, alpha effect, and meridional flow based on input configurations and grid.</span>
+
+<span class="sd">   Attributes:</span>
+<span class="sd">      urr (np.ndarray): Radial component of the meridional flow velocity.</span>
+<span class="sd">      uth (np.ndarray): Latitudinal component of the meridional flow velocity.</span>
+<span class="sd">      om (np.ndarray): Angular velocity distribution based on the differential rotation profile.</span>
+<span class="sd">      omrr (np.ndarray): Radial derivative of angular velocity.</span>
+<span class="sd">      omth (np.ndarray): Latitudinal derivative of angular velocity.</span>
+<span class="sd">      et (np.ndarray): Magnetic diffusivity profile.</span>
+<span class="sd">      etrr (np.ndarray): Radial derivative of the magnetic diffusivity.</span>
+<span class="sd">      ibase (int): Index corresponding to the tachocline region in the radial direction.</span>
+
+<span class="sd">   Methods:</span>
+<span class="sd">      __init__(cfg, grid):</span>
+<span class="sd">         Initializes the setup using the provided configuration and grid properties.</span>
+<span class="sd">      </span>
+<span class="sd">      save(filename):</span>
+<span class="sd">         Saves the instance of the class to a file using pickle.</span>
+
+<span class="sd">      load(filename):</span>
+<span class="sd">         Loads a previously saved instance of the class from a file.</span>
+
+<span class="sd">   Initialization Details:</span>
+<span class="sd">      The class calculates various properties based on the input configuration (`cfg`) and </span>
+<span class="sd">      grid (`grid`). Key processes include:</span>
+<span class="sd">      </span>
+<span class="sd">      - Differential rotation (`om`): Calculated using an error function-based profile to </span>
+<span class="sd">         model the transition between regions of different angular velocities.</span>
+<span class="sd">      - Magnetic diffusivity (`et`): A radial profile with a smooth transition across </span>
+<span class="sd">         specified regions.</span>
+<span class="sd">      - Meridional flow (`urr` and `uth`): Modeled based on analytical expressions with </span>
+<span class="sd">         boundary corrections to ensure symmetry at the poles and within the computational margins.</span>
+<span class="sd">      - Alpha effect (`so`): Derived based on the cosine and sine of the colatitude (`cosTH` </span>
+<span class="sd">         and `sinTH`) for dynamo modeling.</span>
+<span class="sd">   &quot;&quot;&quot;</span>
+   <span class="n">urr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+   <span class="n">uth</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>   
+   <span class="n">om</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>   
+   <span class="n">omrr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+   <span class="n">omth</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+   <span class="n">et</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+   <span class="n">etrr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+   <span class="n">ibase</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+   
+<div class="viewcode-block" id="setup_c.__init__">
+<a class="viewcode-back" href="../../api_reference.html#S2MFD.setup_c.__init__">[ドキュメント]</a>
+   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">cfg</span><span class="p">,</span><span class="n">grid</span><span class="p">):</span>
+      <span class="c1"># differential rotation</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">om</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">omc</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">erf</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrc</span><span class="p">)</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">d</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">ome</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">omc</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">c2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">cosTH</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">omrr</span> <span class="o">=</span> <span class="n">drr2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">om</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">omth</span> <span class="o">=</span> <span class="n">dth2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">om</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">dth</span><span class="p">)</span><span class="o">/</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span>
+   
+      <span class="c1"># diffusivity</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">et</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">etc</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">ett</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">etc</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">erf</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrc</span><span class="p">)</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">d</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">etrr</span> <span class="o">=</span> <span class="n">drr2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">et</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">)</span>
+
+      <span class="c1">#タコクラインのindex</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">ibase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">rrc</span><span class="p">))</span>
+
+      <span class="c1"># alpha effect</span>
+      <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">alpha_type</span> <span class="o">==</span> <span class="s1">&#39;BL&#39;</span><span class="p">:</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">so</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">so0</span><span class="o">*</span><span class="mf">0.5</span> \
+            <span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">erf</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">r1</span><span class="p">)</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">d1</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">erf</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="p">)</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">d1</span><span class="p">))</span> \
+               <span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">cosTH</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">sinTH</span>
+      <span class="k">elif</span> <span class="n">cfg</span><span class="o">.</span><span class="n">alpha_type</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span><span class="p">:</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">so</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">so0</span><span class="o">*</span><span class="mi">3</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="mi">4</span> \
+            <span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">erf</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrc</span><span class="p">)</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">d</span><span class="p">))</span> \
+               <span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">sinTH</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">cosTH</span>
+                              
+      <span class="c1"># Meridional flow (Jouve+2008 Model)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">urr</span> <span class="o">=</span> <span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">uu0</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span> \
+         <span class="o">*</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> \
+         <span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">cosTH</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+         
+      <span class="bp">self</span><span class="o">.</span><span class="n">uth</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">uu0</span><span class="o">*</span><span class="p">((</span><span class="mi">3</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">)</span> \
+            <span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">))</span> \
+            <span class="o">+</span> <span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">)</span> \
+               <span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">)))</span> \
+            <span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">*</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">)</span> \
+               <span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">cosTH</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">sinTH</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">urr</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span> <span class="o">&lt;</span> <span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">uth</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span> <span class="o">&lt;</span> <span class="n">cfg</span><span class="o">.</span><span class="n">rrb</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+      <span class="c1">#θ＝０(回転軸)(対称性)</span>
+      <span class="c1"># 境界の外で子午面流の設定</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">):</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">urr</span><span class="p">[</span><span class="n">i</span>           <span class="p">,:]</span> <span class="o">=</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">urr</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span>       <span class="p">,:]</span> <span class="c1"># upper</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">urr</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,:]</span> <span class="o">=</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">urr</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">+</span><span class="n">i</span><span class="p">,:]</span> <span class="c1"># lower</span>
+
+      <span class="c1"># latitudinal boundary</span>
+      <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">):</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">uth</span><span class="p">[:,</span><span class="n">j</span>           <span class="p">]</span> <span class="o">=</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">uth</span><span class="p">[:,</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span> <span class="o">-</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">1</span>     <span class="p">]</span> <span class="c1"># north pole</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">uth</span><span class="p">[:,</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">uth</span><span class="p">[:,</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="c1"># south pole</span></div>
+
+
+
+<div class="viewcode-block" id="setup_c.save">
+<a class="viewcode-back" href="../../api_reference.html#S2MFD.setup_c.save">[ドキュメント]</a>
+   <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">savez</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span></div>
+
+   
+<div class="viewcode-block" id="setup_c.load">
+<a class="viewcode-back" href="../../api_reference.html#S2MFD.setup_c.load">[ドキュメント]</a>
+   <span class="nd">@classmethod</span>
+   <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+      <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">obj</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+      <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">files</span><span class="p">})</span>
+      <span class="k">return</span> <span class="n">obj</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, S2MFD project.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

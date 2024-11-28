@@ -4,7 +4,18 @@ import importlib
 
 class config_c:
     def __init__(self,parameter_file='parameters/defaults.py'):
-        # Resolve the absolute path of the parameter file
+        '''
+        Test
+        
+        Parameters
+        ----------
+            parameter_file : str
+                DESCRIPTION. The default is 'parameters/defaults.py'.
+            
+        Returns
+        -------
+            None.
+        '''
         base_dir = os.path.dirname(os.path.abspath(__file__))
         parameter_file = base_dir+'/'+parameter_file
                 
@@ -13,7 +24,18 @@ class config_c:
         self.load_parameters(parameter_file)
         
     def load_parameters(self, parameter_file):
-        """Load parameters from an external Python file."""
+        '''
+        Load parameters from an external Python file.
+        
+        Parameters
+        ----------
+            parameter_file : str
+                DESCRIPTION.
+                            
+        Returns
+        -------
+            None.
+        '''
         # Load the parameter_file as a module
         spec = importlib.util.spec_from_file_location("parameters", parameter_file)
         module = importlib.util.module_from_spec(spec)

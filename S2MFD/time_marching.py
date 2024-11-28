@@ -42,8 +42,11 @@ def advection(Bph, Aph, RR, sinTH, urr,uth,drr,dth):
    tuple: Bph_adrr (Radial advection of Bph), Bph_adth (Colatitudinal advection of Bph), Aph_adrr (Radial advection of Aph), Aph_adth (Colatitudinal advection of Aph)
    """
    # 磁場の微分(移流量)
-   Bph_adrr = - drr2(Bph/RR   ,drr)*urr*RR #  動径方向の移流(Bph)
-   Bph_adth = - dth2(Bph/sinTH,dth)*uth*sinTH/RR #  緯度方向の移流(Bph)
+   # Bph_adrr = - drr2(Bph/RR   ,drr)*urr*RR #  動径方向の移流(Bph)
+   # Bph_adth = - dth2(Bph/sinTH,dth)*uth*sinTH/RR #  緯度方向の移流(Bph)
+
+   Bph_adrr = - drr2(Bph*urr*RR,drr)/RR #  動径方向の移流(Bph)
+   Bph_adth = - dth2(Bph*uth   ,dth)/RR #  緯度方向の移流(Bph)
    
    Aph_adrr = - drr2(Aph*RR   ,drr)*urr/RR       # 動径方向の移流(Aph)
    Aph_adth = - dth2(Aph*sinTH,dth)*uth/sinTH/RR # 緯度方向の移流(Aph)

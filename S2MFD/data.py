@@ -4,26 +4,44 @@ import numpy as np
 class S2MFD_data:
     """
     Class to handle S2MFD data including configuration, grid, and setup.
-
-    Attributes:
-    cfg (object): S2MFD.config_c object.
-    grid (object): S2MFD.grid_c object.
-    setup (object): S2MFD.setup_c object.
-    Bph (ndarray): Longitudinal magnetic field.
-    Aph (ndarray): Longitudinal vector potential.
-    time (float): simulation time
-    dt (float): Time spacing
-    n (int): Time step
-    nd (int): Data output step 
+    
+    Attributes
+    ----------
+    cfg : S2MFD.config_c
+        Configuration object.
+    grid : S2MFD.grid_c
+        Grid object.
+    setup : S2MFD.setup_c
+        Setup object.
+    Bph : numpy.ndarray
+        Longitudinal magnetic field.
+    Aph : numpy.ndarray
+        Longitudinal vector potential.
+    time : float
+        Simulation time.
+    dt : float
+        Time spacing.
+    n : int
+        Time step.
+    nd : int
+        Data output step.    
     """
     def __init__(self, cfg, grid, setup):
         """
         Initialize the S2MFD_data object.
-
-        Parameters:
-        cfg (object): S2MFD.config_c object.
-        grid (object): S2MFD.grid_c object.
-        setup (object): S2MFD.setup_c object.
+        
+        Parameters
+        ----------
+        cfg : S2MFD.config_c
+            Configuration object.
+        grid : S2MFD.grid_c
+            Grid object.
+        setup : S2MFD.setup_c
+            Setup object.
+            
+        Returns
+        -------
+        None     
         """
         self.cfg = cfg
         self.grid = grid
@@ -41,11 +59,15 @@ class S2MFD_data:
         """ 
         Load initial configuration, grid, and setup from the specified directory.
 
-        Parameters:
-        datadir (str): Directory containing the configuration, grid, and setup files.
+        Parameters
+        ----------
+        datadir : str
+            Directory containing the configuration, grid, and setup files.
 
-        Returns:
-        S2MFD_data: An instance of the S2MFD_data class.
+        Returns
+        -------
+        S2MFD.S2MFD_data
+            An instance of the S2MFD_data class.
         """        
         cfg = S2MFD.config_c.load(datadir+'config.json')
         cfg.datadir = datadir
@@ -58,20 +80,26 @@ class S2MFD_data:
         """
         Generate the file path for a specific step.
 
-        Parameters:
-        nd (int): Data output step 
+        Parameters
+        ----------
+        nd : int
+            Data output step 
 
-        Returns:
-        str: File path for the specified data step.
+        Returns
+        -------
+        str
+            File path for the specified data step.
         """        
         return self.cfg.datadir+'data.'+str(nd).zfill(6)+'.npz'
     
     def data_load(self,nd):
         """
-        Load data from a file for a specific step.
+        Load data for `Bph`, `Aph`, `time`, `n` and `nd`, from a file for a specific step.
 
-        Parameters:
-        nd (int): Data output step 
+        Parameters
+        ----------
+        nd : int
+            Data output step 
         """        
         filename = self.get_data_file_path(nd)
         d = np.load(file=filename)

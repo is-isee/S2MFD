@@ -1,129 +1,342 @@
 
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="ja" data-content_root="../../">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.data &mdash; S2MFD 2024.11.28 ドキュメント</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>S2MFD.data &#8212; S2MFD 2024.11.28 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!-- 
+    this give us a css class that will be invisible only if js is disabled 
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=26a4bc78f4c0ddb94549" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=26a4bc78f4c0ddb94549" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=a3416100" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=26a4bc78f4c0ddb94549"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=26a4bc78f4c0ddb94549" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=26a4bc78f4c0ddb94549" />
+
+    <script src="../../_static/documentation_options.js?v=b0676831"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/S2MFD/data';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
 
   
-      <script src="../../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=10cab14f"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
-      <script src="../../_static/translations.js?v=4755f45a"></script>
-    <script src="../../_static/js/theme.js"></script>
-    <link rel="index" title="索引" href="../../genindex.html" />
-    <link rel="search" title="検索" href="../../search.html" /> 
-</head>
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
 
-<body class="wy-body-for-nav"> 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
 
-          
-          
-          <a href="../../index.html" class="icon icon-home">
-            S2MFD
-          </a>
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">S2MFD 2024.11.28 documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../api_reference.html">API reference</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api_reference.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.advection.html">advection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.alpha_effect.html">alpha_effect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.boundary_condition.html">boundary_condition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.cfl_condition.html">cfl_condition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.diffusion.html">diffusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.drr1.html">drr1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.drr2.html">drr2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.dth1.html">dth1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.dth2.html">dth2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.initial_condition.html">initial_condition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.initialize.html">initialize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.io.html">io</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.main_loop.html">main_loop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.omega_effect.html">omega_effect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.poloidal_mag.html">poloidal_mag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.run_simulation.html">run_simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.time_marching.html">time_marching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.tvd_runge_kutta.html">tvd_runge_kutta</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.S2MFD_data.html">S2MFD_data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.config_c.html">config_c</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.grid_c.html">grid_c</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.setup_c.html">setup_c</a></li>
+</ul>
+</details></li>
 </ul>
 
-        </div>
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
       </div>
-    </nav>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">S2MFD</a>
-      </nav>
+<div class="sbt-scroll-pixel-helper"></div>
 
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
-  <ul class="wy-breadcrumbs">
-      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="../index.html">モジュールコード</a></li>
-      <li class="breadcrumb-item active">S2MFD.data</li>
-      <li class="wy-breadcrumbs-aside">
-      </li>
-  </ul>
-  <hr/>
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button>
+
+
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+</button>
+
+</div></div>
+      
+    </div>
+  
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-             
-  <h1>S2MFD.data のソースコード</h1><div class="highlight"><pre>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1></h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for S2MFD.data</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">S2MFD</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <div class="viewcode-block" id="S2MFD_data">
-<a class="viewcode-back" href="../../api_reference.html#S2MFD.S2MFD_data">[ドキュメント]</a>
+<a class="viewcode-back" href="../../api/S2MFD.S2MFD_data.html#S2MFD.S2MFD_data">[docs]</a>
 <span class="k">class</span> <span class="nc">S2MFD_data</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Class to handle S2MFD data including configuration, grid, and setup.</span>
+<span class="sd">    Class for managing the whole simulation data.</span>
 
-<span class="sd">    Attributes:</span>
-<span class="sd">    cfg (object): S2MFD.config_c object.</span>
-<span class="sd">    grid (object): S2MFD.grid_c object.</span>
-<span class="sd">    setup (object): S2MFD.setup_c object.</span>
-<span class="sd">    Bph (ndarray): Longitudinal magnetic field.</span>
-<span class="sd">    Aph (ndarray): Longitudinal vector potential.</span>
-<span class="sd">    time (float): simulation time</span>
-<span class="sd">    dt (float): Time spacing</span>
-<span class="sd">    n (int): Time step</span>
-<span class="sd">    nd (int): Data output step </span>
+<span class="sd">    Attributes</span>
+<span class="sd">    --------------</span>
+<span class="sd">    cfg : S2MFD.config_c</span>
+<span class="sd">      Configuration object.</span>
+<span class="sd">    grid : S2MFD.grid_c</span>
+<span class="sd">      Grid object.</span>
+<span class="sd">    setup : S2MFD.setup_c</span>
+<span class="sd">      Setup object.</span>
+<span class="sd">    Bph : numpy.ndarray</span>
+<span class="sd">      Longitudinal magnetic field.</span>
+<span class="sd">    Aph : numpy.ndarray</span>
+<span class="sd">      Longitudinal vector potential.</span>
+<span class="sd">    time : float</span>
+<span class="sd">      Simulation time.</span>
+<span class="sd">    dt : float</span>
+<span class="sd">      Time spacing.</span>
+<span class="sd">    n : int</span>
+<span class="sd">      Time step.</span>
+<span class="sd">    nd : int</span>
+<span class="sd">      Data output step.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="S2MFD_data.__init__">
+<a class="viewcode-back" href="../../api/S2MFD.S2MFD_data.html#S2MFD.S2MFD_data.__init__">[docs]</a>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">setup</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize the S2MFD_data object.</span>
-
-<span class="sd">        Parameters:</span>
-<span class="sd">        cfg (object): S2MFD.config_c object.</span>
-<span class="sd">        grid (object): S2MFD.grid_c object.</span>
-<span class="sd">        setup (object): S2MFD.setup_c object.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        cfg : S2MFD.config_c</span>
+<span class="sd">            Configuration object.</span>
+<span class="sd">        grid : S2MFD.grid_c</span>
+<span class="sd">            Grid object.</span>
+<span class="sd">        setup : S2MFD.setup_c</span>
+<span class="sd">            Setup object.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None     </span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span> <span class="o">=</span> <span class="n">cfg</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">grid</span> <span class="o">=</span> <span class="n">grid</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">setup</span> <span class="o">=</span> <span class="n">setup</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">Bph</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">Aph</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">nd</span> <span class="o">=</span> <span class="kc">None</span>      
+        <span class="bp">self</span><span class="o">.</span><span class="n">nd</span> <span class="o">=</span> <span class="kc">None</span>      </div>
+
     
 <div class="viewcode-block" id="S2MFD_data.initial_load">
-<a class="viewcode-back" href="../../api_reference.html#S2MFD.S2MFD_data.initial_load">[ドキュメント]</a>
+<a class="viewcode-back" href="../../api/S2MFD.S2MFD_data.html#S2MFD.S2MFD_data.initial_load">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">initial_load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span><span class="n">datadir</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; </span>
 <span class="sd">        Load initial configuration, grid, and setup from the specified directory.</span>
 
-<span class="sd">        Parameters:</span>
-<span class="sd">        datadir (str): Directory containing the configuration, grid, and setup files.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        datadir : str</span>
+<span class="sd">            Directory containing the configuration, grid, and setup files.</span>
 
-<span class="sd">        Returns:</span>
-<span class="sd">        S2MFD_data: An instance of the S2MFD_data class.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        S2MFD.S2MFD_data</span>
+<span class="sd">            An instance of the S2MFD_data class.</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
         <span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">config_c</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">datadir</span><span class="o">+</span><span class="s1">&#39;config.json&#39;</span><span class="p">)</span>
         <span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span> <span class="o">=</span> <span class="n">datadir</span>
@@ -134,28 +347,34 @@
 
     
 <div class="viewcode-block" id="S2MFD_data.get_data_file_path">
-<a class="viewcode-back" href="../../api_reference.html#S2MFD.S2MFD_data.get_data_file_path">[ドキュメント]</a>
+<a class="viewcode-back" href="../../api/S2MFD.S2MFD_data.html#S2MFD.S2MFD_data.get_data_file_path">[docs]</a>
     <span class="k">def</span> <span class="nf">get_data_file_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nd</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Generate the file path for a specific step.</span>
 
-<span class="sd">        Parameters:</span>
-<span class="sd">        nd (int): Data output step </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        nd : int</span>
+<span class="sd">            Data output step </span>
 
-<span class="sd">        Returns:</span>
-<span class="sd">        str: File path for the specified data step.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            File path for the specified data step.</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="o">+</span><span class="s1">&#39;data.&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">nd</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;.npz&#39;</span></div>
 
     
 <div class="viewcode-block" id="S2MFD_data.data_load">
-<a class="viewcode-back" href="../../api_reference.html#S2MFD.S2MFD_data.data_load">[ドキュメント]</a>
+<a class="viewcode-back" href="../../api/S2MFD.S2MFD_data.html#S2MFD.S2MFD_data.data_load">[docs]</a>
     <span class="k">def</span> <span class="nf">data_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">nd</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Load data from a file for a specific step.</span>
+<span class="sd">        Load data for `Bph`, `Aph`, `time`, `n` and `nd`, from a file for a specific step.</span>
 
-<span class="sd">        Parameters:</span>
-<span class="sd">        nd (int): Data output step </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        nd : int</span>
+<span class="sd">            Data output step </span>
 <span class="sd">        &quot;&quot;&quot;</span>        
         <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data_file_path</span><span class="p">(</span><span class="n">nd</span><span class="p">)</span>
         <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span>
@@ -168,31 +387,70 @@
 
 </pre></div>
 
-           </div>
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
           </div>
-          <footer>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Hideyuki Hotta
+</p>
 
-  <hr/>
-
-  <div role="contentinfo">
-    <p>&#169; Copyright 2024, S2MFD project.</p>
   </div>
+  
+  <div class="footer-item">
+    
 
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
+  <p class="copyright">
+    
+      © Copyright 2024, S2MFD project.
+      <br/>
+    
+  </p>
 
-</footer>
-        </div>
-      </div>
-    </section>
   </div>
-  <script>
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script> 
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
 
-</body>
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=26a4bc78f4c0ddb94549"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=26a4bc78f4c0ddb94549"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
 </html>

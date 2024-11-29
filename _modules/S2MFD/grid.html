@@ -1,117 +1,321 @@
 
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="ja" data-content_root="../../">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.grid &mdash; S2MFD 2024.11.28 ドキュメント</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>S2MFD.grid &#8212; S2MFD 2024.11.28 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!-- 
+    this give us a css class that will be invisible only if js is disabled 
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=26a4bc78f4c0ddb94549" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=26a4bc78f4c0ddb94549" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=a3416100" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=26a4bc78f4c0ddb94549"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=26a4bc78f4c0ddb94549" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=26a4bc78f4c0ddb94549" />
+
+    <script src="../../_static/documentation_options.js?v=b0676831"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/S2MFD/grid';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
 
   
-      <script src="../../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=10cab14f"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
-      <script src="../../_static/translations.js?v=4755f45a"></script>
-    <script src="../../_static/js/theme.js"></script>
-    <link rel="index" title="索引" href="../../genindex.html" />
-    <link rel="search" title="検索" href="../../search.html" /> 
-</head>
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
 
-<body class="wy-body-for-nav"> 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
 
-          
-          
-          <a href="../../index.html" class="icon icon-home">
-            S2MFD
-          </a>
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">S2MFD 2024.11.28 documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../api_reference.html">API reference</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api_reference.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.advection.html">advection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.alpha_effect.html">alpha_effect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.boundary_condition.html">boundary_condition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.cfl_condition.html">cfl_condition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.diffusion.html">diffusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.drr1.html">drr1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.drr2.html">drr2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.dth1.html">dth1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.dth2.html">dth2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.initial_condition.html">initial_condition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.initialize.html">initialize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.io.html">io</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.main_loop.html">main_loop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.omega_effect.html">omega_effect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.poloidal_mag.html">poloidal_mag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.run_simulation.html">run_simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.time_marching.html">time_marching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.tvd_runge_kutta.html">tvd_runge_kutta</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.S2MFD_data.html">S2MFD_data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.config_c.html">config_c</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.grid_c.html">grid_c</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.setup_c.html">setup_c</a></li>
+</ul>
+</details></li>
 </ul>
 
-        </div>
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
       </div>
-    </nav>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">S2MFD</a>
-      </nav>
+<div class="sbt-scroll-pixel-helper"></div>
 
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
-  <ul class="wy-breadcrumbs">
-      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="../index.html">モジュールコード</a></li>
-      <li class="breadcrumb-item active">S2MFD.grid</li>
-      <li class="wy-breadcrumbs-aside">
-      </li>
-  </ul>
-  <hr/>
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button>
+
+
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+</button>
+
+</div></div>
+      
+    </div>
+  
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-             
-  <h1>S2MFD.grid のソースコード</h1><div class="highlight"><pre>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1></h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for S2MFD.grid</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">pickle</span>
 
 <div class="viewcode-block" id="grid_c">
-<a class="viewcode-back" href="../../api_reference.html#S2MFD.grid_c">[ドキュメント]</a>
+<a class="viewcode-back" href="../../api/S2MFD.grid_c.html#S2MFD.grid_c">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">grid_c</span><span class="p">:</span>
 <span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    grid_c class represents a grid configuration for a simulation, defining the grid points in</span>
-<span class="sd">    both radial and angular coordinates, and computing associated trigonometric and Cartesian</span>
-<span class="sd">    transformations.</span>
+<span class="sd">   Class for managing the grid data.</span>
 
-<span class="sd">    Attributes:</span>
-<span class="sd">        ix (int): Number of grid points in the radial direction.</span>
-<span class="sd">        jx (int): Number of grid points in the colatitudinal direction.</span>
-<span class="sd">        ixg (int): ix + 2*margin.</span>
-<span class="sd">        jxg (int): jx + 2*margin.</span>
-<span class="sd">        margin (int): Number of margin points on each side of the grid.</span>
-<span class="sd">        rrmin (float): Minimum value for the radial direction.</span>
-<span class="sd">        rrmax (float): Maximum value for the radial direction.</span>
-<span class="sd">        thmin (float): Minimum value for the colatitudinal direction.</span>
-<span class="sd">        thmax (float): Maximum value for the colatitudial direction.</span>
-<span class="sd">        drr (float): Radial grid spacing.</span>
-<span class="sd">        dth (float): Angular grid spacing.</span>
-<span class="sd">        rr (np.ndarray): Array of radial grid points.</span>
-<span class="sd">        th (np.ndarray): Array of colatitudinal grid points.</span>
-<span class="sd">        RR (np.ndarray): Radial coordinate np.meshgrid array.</span>
-<span class="sd">        TH (np.ndarray): Colatitudinal coordinate np.meshgrid array.</span>
-<span class="sd">        RRm (np.ndarray): Radial coordinate meshgrid array for centered points.</span>
-<span class="sd">        THm (np.ndarray): Colatitudinal coordinate meshgrid array for centered points.</span>
-<span class="sd">        sinTH (np.ndarray): np.sin(TH)</span>
-<span class="sd">        cosTH (np.ndarray): np.cos(TH)</span>
-<span class="sd">        X (np.ndarray): Cartesian x-coordinates based on radial and colatitudinal grids.</span>
-<span class="sd">        Y (np.ndarray): Cartesian y-coordinates based on radial and colatitudinal grids.</span>
-
-<span class="sd">    Methods:</span>
-<span class="sd">        __post_init__(): Initializes the grid coordinates and related arrays after object creation.</span>
-<span class="sd">        save(filename): Saves the grid_c instance to a file.</span>
-<span class="sd">        load(filename): Loads a grid_c instance from a file.</span>
+<span class="sd">   Attributes</span>
+<span class="sd">   ----------</span>
+<span class="sd">   ix : int</span>
+<span class="sd">      Number of grid points in the radial direction.</span>
+<span class="sd">   jx : int</span>
+<span class="sd">      Number of grid points in the colatitudinal direction.</span>
+<span class="sd">   margin : int</span>
+<span class="sd">      Number of margin points on each side of the grid.</span>
+<span class="sd">   ixg : int</span>
+<span class="sd">      ix + 2*margin.</span>
+<span class="sd">   jxg : int</span>
+<span class="sd">      jx + 2*margin.</span>
+<span class="sd">   rrmin : float</span>
+<span class="sd">      Minimum value for the radial direction.</span>
+<span class="sd">   rrmax : float</span>
+<span class="sd">      Maximum value for the radial direction.</span>
+<span class="sd">   thmin : float</span>
+<span class="sd">      Minimum value for the colatitudinal direction.</span>
+<span class="sd">   thmax : float</span>
+<span class="sd">      Maximum value for the colatitudial direction.</span>
+<span class="sd">   drr : float</span>
+<span class="sd">      Radial grid spacing.</span>
+<span class="sd">   dth : float</span>
+<span class="sd">      Colatitudinal grid spacing.</span>
+<span class="sd">   rr : numpy.ndarray</span>
+<span class="sd">      Array of radial grid points.</span>
+<span class="sd">   th : numpyp.ndarray</span>
+<span class="sd">      Array of colatitudinal grid points.</span>
+<span class="sd">   RR : numpy.ndarray: </span>
+<span class="sd">      Radial coordinate np.meshgrid array.</span>
+<span class="sd">   TH : numpy.ndarray</span>
+<span class="sd">      Colatitudinal coordinate np.meshgrid array.</span>
+<span class="sd">   RRm : numpy.ndarray</span>
+<span class="sd">      Radial coordinate meshgrid array for centered points.</span>
+<span class="sd">   THm : numpy.ndarray</span>
+<span class="sd">      Colatitudinal coordinate meshgrid array for centered points.</span>
+<span class="sd">   sinTH : numpy.ndarray</span>
+<span class="sd">      numpy.sin(TH)</span>
+<span class="sd">   cosTH : numpy.ndarray</span>
+<span class="sd">      numpy.cos(TH)</span>
+<span class="sd">   X : numpy.ndarray</span>
+<span class="sd">      Cartesian x-coordinates based on radial and colatitudinal grids.</span>
+<span class="sd">   Y : numpy.ndarray</span>
+<span class="sd">      Cartesian y-coordinates based on radial and colatitudinal grids.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
    <span class="n">ix</span><span class="p">:</span> <span class="nb">int</span>
    <span class="n">jx</span><span class="p">:</span> <span class="nb">int</span>
@@ -136,8 +340,6 @@
    <span class="n">X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
    <span class="n">Y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
    
-<div class="viewcode-block" id="grid_c.__post_init__">
-<a class="viewcode-back" href="../../api_reference.html#S2MFD.grid_c.__post_init__">[ドキュメント]</a>
    <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
       <span class="c1"># dr,dθの設定</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">ixg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ix</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">margin</span>
@@ -170,22 +372,35 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">cosTH</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TH</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">sinTHm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">THm</span><span class="p">)</span>
       
-      <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RR</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TH</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">RR</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TH</span><span class="p">)</span></div>
-
+      <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RR</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TH</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">RR</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TH</span><span class="p">)</span>
    
-   <span class="c1"># def to_dict(self):</span>
-   <span class="c1">#    return self.__dict__</span>
-   
+      
 <div class="viewcode-block" id="grid_c.save">
-<a class="viewcode-back" href="../../api_reference.html#S2MFD.grid_c.save">[ドキュメント]</a>
+<a class="viewcode-back" href="../../api/S2MFD.grid_c.html#S2MFD.grid_c.save">[docs]</a>
    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+<span class="w">      </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">      Save the grid data to a file.</span>
+<span class="sd">      </span>
+<span class="sd">      Parameters</span>
+<span class="sd">      ----------</span>
+<span class="sd">      filename : str</span>
+<span class="sd">         File name to save the grid data.</span>
+<span class="sd">      &quot;&quot;&quot;</span>
       <span class="n">np</span><span class="o">.</span><span class="n">savez</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span></div>
 
    
 <div class="viewcode-block" id="grid_c.load">
-<a class="viewcode-back" href="../../api_reference.html#S2MFD.grid_c.load">[ドキュメント]</a>
+<a class="viewcode-back" href="../../api/S2MFD.grid_c.html#S2MFD.grid_c.load">[docs]</a>
    <span class="nd">@classmethod</span>
    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+<span class="w">      </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">      Load the grid data from a file.</span>
+<span class="sd">      </span>
+<span class="sd">      Parameters</span>
+<span class="sd">      ----------</span>
+<span class="sd">      filename : str</span>
+<span class="sd">         File name to load the grid data.</span>
+<span class="sd">      &quot;&quot;&quot;</span>
       <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="n">obj</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
       <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">files</span><span class="p">})</span>
@@ -194,31 +409,70 @@
 
 </pre></div>
 
-           </div>
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
           </div>
-          <footer>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Hideyuki Hotta
+</p>
 
-  <hr/>
-
-  <div role="contentinfo">
-    <p>&#169; Copyright 2024, S2MFD project.</p>
   </div>
+  
+  <div class="footer-item">
+    
 
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
+  <p class="copyright">
+    
+      © Copyright 2024, S2MFD project.
+      <br/>
+    
+  </p>
 
-</footer>
-        </div>
-      </div>
-    </section>
   </div>
-  <script>
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script> 
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
 
-</body>
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=26a4bc78f4c0ddb94549"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=26a4bc78f4c0ddb94549"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
 </html>

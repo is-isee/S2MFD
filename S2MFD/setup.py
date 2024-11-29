@@ -8,42 +8,27 @@ from scipy.special import erf
 @dataclass
 class setup_c:
    """
-   A class to configure and initialize physical properties and flow patterns in a spherical 
-   coordinate grid for simulations. It supports the setup of differential rotation, 
-   diffusivity, alpha effect, and meridional flow based on input configurations and grid.
+   Class to configure and initialize physical properties used in simulations.
 
-   Attributes:
-      urr (np.ndarray): Radial component of the meridional flow velocity.
-      uth (np.ndarray): Latitudinal component of the meridional flow velocity.
-      om (np.ndarray): Angular velocity distribution based on the differential rotation profile.
-      omrr (np.ndarray): Radial derivative of angular velocity.
-      omth (np.ndarray): Latitudinal derivative of angular velocity.
-      et (np.ndarray): Magnetic diffusivity profile.
-      etrr (np.ndarray): Radial derivative of the magnetic diffusivity.
-      ibase (int): Index corresponding to the tachocline region in the radial direction.
+   Attributes
+   ----------
+   urr : numpy.ndarray
+      Radial component of the meridional flow velocity.
+   uth : numpy.ndarray
+      Latitudinal component of the meridional flow velocity.
+   om : numpy.ndarray
+      Angular velocity distribution based on the differential rotation profile.
+   omrr : numpy.ndarray
+      Radial derivative of angular velocity.
+   omth : numpy.ndarray
+      Latitudinal derivative of angular velocity.
+   et : numpy.ndarray
+      Magnetic diffusivity profile.
+   etrr : numpy.ndarray
+      Radial derivative of the magnetic diffusivity.
+   ibase : int
+      Index corresponding to the tachocline region in the radial direction.
 
-   Methods:
-      __init__(cfg, grid):
-         Initializes the setup using the provided configuration and grid properties.
-      
-      save(filename):
-         Saves the instance of the class to a file using pickle.
-
-      load(filename):
-         Loads a previously saved instance of the class from a file.
-
-   Initialization Details:
-      The class calculates various properties based on the input configuration (`cfg`) and 
-      grid (`grid`). Key processes include:
-      
-      - Differential rotation (`om`): Calculated using an error function-based profile to 
-         model the transition between regions of different angular velocities.
-      - Magnetic diffusivity (`et`): A radial profile with a smooth transition across 
-         specified regions.
-      - Meridional flow (`urr` and `uth`): Modeled based on analytical expressions with 
-         boundary corrections to ensure symmetry at the poles and within the computational margins.
-      - Alpha effect (`so`): Derived based on the cosine and sine of the colatitude (`cosTH` 
-         and `sinTH`) for dynamo modeling.
    """
    urr: np.ndarray = field(init=False)
    uth: np.ndarray = field(init=False)   
@@ -55,6 +40,17 @@ class setup_c:
    ibase: int = field(init=False)
    
    def __init__(self,cfg,grid):
+      """
+      Initialize the setup object.
+      
+      Parameters
+      ----------
+      cfg : S2MFD.config_c
+         Configuration object.
+         
+      grid : S2MFD.grid_c
+         Grid object.
+      """
       # differential rotation
       self.om = cfg.omc + 0.5*(1 + erf((grid.RR-cfg.rrc)/cfg.d))*(cfg.ome - cfg.omc - cfg.c2*grid.cosTH**2)
 
@@ -121,10 +117,26 @@ class setup_c:
 
 
    def save(self, filename):
+      """
+      Save the setup data to a file.
+      
+      Parameters
+      ----------
+      filename : str
+         File path to save the setup data.
+      """
       np.savez(filename, **self.__dict__)
    
    @classmethod
    def load(cls, filename):
+      """
+      Load the setup data from a file.
+      
+      Parameters
+      ----------
+      filename : str
+         File path to load the setup data.
+      """
       data = np.load(filename,allow_pickle=True)
       obj = cls.__new__(cls)
       obj.__dict__.update({key: data[key] for key in data.files})

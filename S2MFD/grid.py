@@ -5,37 +5,52 @@ import pickle
 @dataclass
 class grid_c:
    """
-    grid_c class represents a grid configuration for a simulation, defining the grid points in
-    both radial and angular coordinates, and computing associated trigonometric and Cartesian
-    transformations.
+   Class for managing the grid data.
 
-    Attributes:
-        ix (int): Number of grid points in the radial direction.
-        jx (int): Number of grid points in the colatitudinal direction.
-        ixg (int): ix + 2*margin.
-        jxg (int): jx + 2*margin.
-        margin (int): Number of margin points on each side of the grid.
-        rrmin (float): Minimum value for the radial direction.
-        rrmax (float): Maximum value for the radial direction.
-        thmin (float): Minimum value for the colatitudinal direction.
-        thmax (float): Maximum value for the colatitudial direction.
-        drr (float): Radial grid spacing.
-        dth (float): Angular grid spacing.
-        rr (np.ndarray): Array of radial grid points.
-        th (np.ndarray): Array of colatitudinal grid points.
-        RR (np.ndarray): Radial coordinate np.meshgrid array.
-        TH (np.ndarray): Colatitudinal coordinate np.meshgrid array.
-        RRm (np.ndarray): Radial coordinate meshgrid array for centered points.
-        THm (np.ndarray): Colatitudinal coordinate meshgrid array for centered points.
-        sinTH (np.ndarray): np.sin(TH)
-        cosTH (np.ndarray): np.cos(TH)
-        X (np.ndarray): Cartesian x-coordinates based on radial and colatitudinal grids.
-        Y (np.ndarray): Cartesian y-coordinates based on radial and colatitudinal grids.
-
-    Methods:
-        __post_init__(): Initializes the grid coordinates and related arrays after object creation.
-        save(filename): Saves the grid_c instance to a file.
-        load(filename): Loads a grid_c instance from a file.
+   Attributes
+   ----------
+   ix : int
+      Number of grid points in the radial direction.
+   jx : int
+      Number of grid points in the colatitudinal direction.
+   margin : int
+      Number of margin points on each side of the grid.
+   ixg : int
+      ix + 2*margin.
+   jxg : int
+      jx + 2*margin.
+   rrmin : float
+      Minimum value for the radial direction.
+   rrmax : float
+      Maximum value for the radial direction.
+   thmin : float
+      Minimum value for the colatitudinal direction.
+   thmax : float
+      Maximum value for the colatitudial direction.
+   drr : float
+      Radial grid spacing.
+   dth : float
+      Colatitudinal grid spacing.
+   rr : numpy.ndarray
+      Array of radial grid points.
+   th : numpyp.ndarray
+      Array of colatitudinal grid points.
+   RR : numpy.ndarray: 
+      Radial coordinate np.meshgrid array.
+   TH : numpy.ndarray
+      Colatitudinal coordinate np.meshgrid array.
+   RRm : numpy.ndarray
+      Radial coordinate meshgrid array for centered points.
+   THm : numpy.ndarray
+      Colatitudinal coordinate meshgrid array for centered points.
+   sinTH : numpy.ndarray
+      numpy.sin(TH)
+   cosTH : numpy.ndarray
+      numpy.cos(TH)
+   X : numpy.ndarray
+      Cartesian x-coordinates based on radial and colatitudinal grids.
+   Y : numpy.ndarray
+      Cartesian y-coordinates based on radial and colatitudinal grids.
     """
    ix: int
    jx: int
@@ -94,14 +109,28 @@ class grid_c:
       
       self.X, self.Y = self.RR * np.cos(self.TH), self.RR * np.sin(self.TH)
    
-   # def to_dict(self):
-   #    return self.__dict__
-   
+      
    def save(self, filename):
+      """
+      Save the grid data to a file.
+      
+      Parameters
+      ----------
+      filename : str
+         File name to save the grid data.
+      """
       np.savez(filename, **self.__dict__)
    
    @classmethod
    def load(cls, filename):
+      """
+      Load the grid data from a file.
+      
+      Parameters
+      ----------
+      filename : str
+         File name to load the grid data.
+      """
       data = np.load(filename,allow_pickle=True)
       obj = cls.__new__(cls)
       obj.__dict__.update({key: data[key] for key in data.files})

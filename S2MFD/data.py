@@ -3,28 +3,28 @@ import numpy as np
 
 class S2MFD_data:
     """
-    Class to handle S2MFD data including configuration, grid, and setup.
-    
+    Class for managing the whole simulation data.
+
     Attributes
-    ----------
+    --------------
     cfg : S2MFD.config_c
-        Configuration object.
+      Configuration object.
     grid : S2MFD.grid_c
-        Grid object.
+      Grid object.
     setup : S2MFD.setup_c
-        Setup object.
+      Setup object.
     Bph : numpy.ndarray
-        Longitudinal magnetic field.
+      Longitudinal magnetic field.
     Aph : numpy.ndarray
-        Longitudinal vector potential.
+      Longitudinal vector potential.
     time : float
-        Simulation time.
+      Simulation time.
     dt : float
-        Time spacing.
+      Time spacing.
     n : int
-        Time step.
+      Time step.
     nd : int
-        Data output step.    
+      Data output step.
     """
     def __init__(self, cfg, grid, setup):
         """
@@ -47,7 +47,6 @@ class S2MFD_data:
         self.grid = grid
         self.setup = setup
 
-        self.Bph = None
         self.Aph = None
         self.time = None
         self.dt = None

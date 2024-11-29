@@ -3,19 +3,28 @@ import json, os, sys
 import importlib
 
 class config_c:
-    def __init__(self,parameter_file='parameters/defaults.py'):
-        '''
-        Test
+    """
+    Class for configuration management.
         
+    """
+        
+    def __init__(self,parameter_file='parameters/defaults.py'):
+        """
         Parameters
         ----------
             parameter_file : str
-                DESCRIPTION. The default is 'parameters/defaults.py'.
-            
-        Returns
-        -------
-            None.
-        '''
+                file path to the parameter file.
+                file path is relative to the S2MFD directory.
+                        
+        Notes
+        -----
+        The parameter file should be a Python file with the following structure:
+        
+        .. code-block:: python
+
+            from S2MFD.parameters.defaults import *
+            #(change parameters from defaults.py here)
+        """
         base_dir = os.path.dirname(os.path.abspath(__file__))
         parameter_file = base_dir+'/'+parameter_file
                 
@@ -30,11 +39,9 @@ class config_c:
         Parameters
         ----------
             parameter_file : str
-                DESCRIPTION.
+                file path to the parameter file.
+                file path is relative to the S2MFD directory.
                             
-        Returns
-        -------
-            None.
         '''
         # Load the parameter_file as a module
         spec = importlib.util.spec_from_file_location("parameters", parameter_file)
@@ -47,7 +54,10 @@ class config_c:
                 setattr(self, k, v) 
         
     def save(self):
-        """Save configuration to a JSON file."""
+        """
+        Save configuration to a JSON file.
+        The data is store in self.configfile defined in the parameter file.
+        """
         params = {}
         for k in dir(self):
             if not k.startswith("__") and not callable(getattr(self, k)):
@@ -60,7 +70,14 @@ class config_c:
 
     @classmethod
     def load(cls, filename):
-        """Load configuration from a JSON file."""
+        """
+        Load configuration from a JSON file.
+        
+        Parameters
+        ----------
+        filename : str
+            file path to the JSON file.
+        """
         obj = cls.__new__(cls)
         with open(filename, 'r') as f:
             params = json.load(f)

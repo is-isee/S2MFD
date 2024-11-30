@@ -325,14 +325,24 @@
 <dt class="sig sig-object py" id="S2MFD.poloidal_mag">
 <span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">poloidal_mag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Aph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sinTH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dth</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/time_marching.html#poloidal_mag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.poloidal_mag" title="Link to this definition">#</a></dt>
 <dd><p>Calculate the poloidal magnetic field.</p>
-<p>Parameters:
-Aph (ndarray): Longitudinal vector potential
-RR (ndarray): Radial coordinate
-sinTH (ndarray): np.sin(TH)
-drr (ndarray): Radial grid spacing
-dth (ndarray): Colatitudinal grid spacing</p>
-<p>Returns:
-tuple: Brr (Radial  magnetic field), Bth (Latitudinal magnetic field)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Aph</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Longitudinal vector potential</p></li>
+<li><p><strong>RR</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Radial coordinate</p></li>
+<li><p><strong>sinTH</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>)</p></li>
+<li><p><strong>drr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Radial grid spacing</p></li>
+<li><p><strong>dth</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Colatitudinal grid spacing</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>Brr</strong> (<em>numpy.ndarray</em>) – Radial  magnetic field</p></li>
+<li><p><strong>Bth</strong> (<em>numpy.ndarray</em>) – Latitudinal magnetic field</p></li>
+</ul>
+</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

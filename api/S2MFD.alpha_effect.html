@@ -325,14 +325,23 @@
 <dt class="sig sig-object py" id="S2MFD.alpha_effect">
 <span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">alpha_effect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Bph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Aph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ibase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">so</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/time_marching.html#alpha_effect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.alpha_effect" title="Link to this definition">#</a></dt>
 <dd><p>Calculate the alpha effect.</p>
-<p>Parameters:
-Bph (ndarray): Longitudinal magnetic field
-Aph (ndarray): Longitudinal vector potential
-rr (ndarray): Radial coordinate
-ibase (int): Radial index for the base of the convection zone
-so (float): Source term coefficient</p>
-<p>Returns:
-ndarray: Aph_sour (Source term due to alpha effect)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Bph</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Longitudinal magnetic field</p></li>
+<li><p><strong>Aph</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Longitudinal vector potential</p></li>
+<li><p><strong>rr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Radial coordinate</p></li>
+<li><p><strong>ibase</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Radial index for the base of the convection zone</p></li>
+<li><p><strong>so</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Source term coefficient</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>Aph_sour</strong> – Source term due to alpha effect</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)">numpy.ndarray</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

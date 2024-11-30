@@ -325,14 +325,24 @@
 <dt class="sig sig-object py" id="S2MFD.time_marching">
 <span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">time_marching</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Bph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Aph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/time_marching.html#time_marching"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.time_marching" title="Link to this definition">#</a></dt>
 <dd><p>Perform time marching for the magnetic field.</p>
-<p>Parameters:
-Bph (ndarray): Longitudinal magnetic field
-Aph (ndarray): Longitudinal vector potential
-dt (float): Time step
-grid (object): Object containing grid information
-setup (object): Object containing setup information</p>
-<p>Returns:
-tuple: Bphm (Updated longitudinal magnetic field), Aphm (Updated longitudinal vector potential)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Bph</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Longitudinal magnetic field</p></li>
+<li><p><strong>Aph</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Longitudinal vector potential</p></li>
+<li><p><strong>dt</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Time step</p></li>
+<li><p><strong>grid</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><em>object</em></a>) – Object containing grid information</p></li>
+<li><p><strong>setup</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><em>object</em></a>) – Object containing setup information</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>Bphm</strong> (<em>numpy.ndarray</em>) – Updated longitudinal magnetic field</p></li>
+<li><p><strong>Aphm</strong> (<em>numpy.ndarray</em>) – Updated longitudinal vector potential</p></li>
+</ul>
+</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

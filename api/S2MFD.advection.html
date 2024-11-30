@@ -325,17 +325,29 @@
 <dt class="sig sig-object py" id="S2MFD.advection">
 <span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">advection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Bph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Aph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sinTH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">urr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dth</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/time_marching.html#advection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.advection" title="Link to this definition">#</a></dt>
 <dd><p>Calculate the advection terms of the magnetic field.</p>
-<p>Parameters:
-Bph (ndarray): Longitudinal magnetic field
-Aph (ndarray): Longitudinal vector potential
-RR (ndarray): Radial coordinate
-sinTH (ndarray): np.sin(TH)
-urr (ndarray): Radial velocity
-uth (ndarray): Colatitudinal velocity
-drr (ndarray): Radial grid spacing
-dth (ndarray): Colatitudinal grid spacing</p>
-<p>Returns:
-tuple: Bph_adrr (Radial advection of Bph), Bph_adth (Colatitudinal advection of Bph), Aph_adrr (Radial advection of Aph), Aph_adth (Colatitudinal advection of Aph)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Bph</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Longitudinal magnetic field</p></li>
+<li><p><strong>Aph</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Longitudinal vector potential</p></li>
+<li><p><strong>RR</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Radial coordinate</p></li>
+<li><p><strong>sinTH</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>)</p></li>
+<li><p><strong>urr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Radial velocity</p></li>
+<li><p><strong>uth</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Colatitudinal velocity</p></li>
+<li><p><strong>drr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Radial grid spacing</p></li>
+<li><p><strong>dth</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Colatitudinal grid spacing</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>Bph_adrr</strong> (<em>numpy.ndarray</em>) – Radial advection of Bph</p></li>
+<li><p><strong>Bph_adth</strong> (<em>numpy.ndarray</em>) – Colatitudinal advection of Bph</p></li>
+<li><p><strong>Aph_adrr</strong> (<em>numpy.ndarray</em>) – Radial advection of Aph</p></li>
+<li><p><strong>Aph_adth</strong> (<em>numpy.ndarray</em>) – Colatitudinal advection of Aph</p></li>
+</ul>
+</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

@@ -325,15 +325,25 @@
 <dt class="sig sig-object py" id="S2MFD.omega_effect">
 <span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">omega_effect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Brr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Bth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sinTH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omrr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omth</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/time_marching.html#omega_effect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.omega_effect" title="Link to this definition">#</a></dt>
 <dd><p>Calculate the omega effect.</p>
-<p>Parameters:
-Brr (ndarray): Radial magnetic field
-Bth (ndarray): Colatitudinal magnetic field
-RR (ndarray): Radial coordinate
-sinTH (ndarray): np.sin(TH)
-omrr (ndarray): Radial gradient of angular velocity
-omth (ndarray): Colatitudinal gradient of angular velocity</p>
-<p>Returns:
-tuple: Bph_omrr (Radial omega effect), Bph_omth (Colatitudinal omega effect)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Brr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Radial magnetic field</p></li>
+<li><p><strong>Bth</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Colatitudinal magnetic field</p></li>
+<li><p><strong>RR</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Radial coordinate</p></li>
+<li><p><strong>sinTH</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>)</p></li>
+<li><p><strong>omrr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Radial gradient of angular velocity</p></li>
+<li><p><strong>omth</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Colatitudinal gradient of angular velocity</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>Bph_omrr</strong> (<em>numpy.ndarray</em>) – Radial omega effect term of Bph</p></li>
+<li><p><strong>Bph_omrh</strong> (<em>numpy.ndarray</em>) – Colatitudinal omega effect term of Bph</p></li>
+</ul>
+</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

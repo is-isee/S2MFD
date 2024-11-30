@@ -273,15 +273,23 @@
 <span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">   Calculate the poloidal magnetic field.</span>
 
-<span class="sd">   Parameters:</span>
-<span class="sd">   Aph (ndarray): Longitudinal vector potential</span>
-<span class="sd">   RR (ndarray): Radial coordinate</span>
-<span class="sd">   sinTH (ndarray): np.sin(TH)</span>
-<span class="sd">   drr (ndarray): Radial grid spacing</span>
-<span class="sd">   dth (ndarray): Colatitudinal grid spacing</span>
-
-<span class="sd">   Returns:</span>
-<span class="sd">   tuple: Brr (Radial  magnetic field), Bth (Latitudinal magnetic field)</span>
+<span class="sd">   Parameters</span>
+<span class="sd">   ----------</span>
+<span class="sd">   Aph : numpy.ndarray</span>
+<span class="sd">      Longitudinal vector potential</span>
+<span class="sd">   RR : numpy.ndarray</span>
+<span class="sd">      Radial coordinate</span>
+<span class="sd">   sinTH : numpy.ndarray</span>
+<span class="sd">   drr : numpy.ndarray</span>
+<span class="sd">      Radial grid spacing</span>
+<span class="sd">   dth : numpy.ndarray</span>
+<span class="sd">      Colatitudinal grid spacing</span>
+<span class="sd">   Returns</span>
+<span class="sd">   -------</span>
+<span class="sd">   Brr : numpy.ndarray</span>
+<span class="sd">      Radial  magnetic field</span>
+<span class="sd">   Bth : numpy.ndarray</span>
+<span class="sd">      Latitudinal magnetic field</span>
 <span class="sd">   &quot;&quot;&quot;</span>
    <span class="n">Brr</span> <span class="o">=</span> <span class="o">+</span> <span class="n">dth2</span><span class="p">(</span><span class="n">sinTH</span><span class="o">*</span><span class="n">Aph</span><span class="p">,</span><span class="n">dth</span><span class="p">)</span><span class="o">/</span><span class="n">RR</span><span class="o">/</span><span class="n">sinTH</span>
    <span class="n">Bth</span> <span class="o">=</span> <span class="o">-</span> <span class="n">drr2</span><span class="p">(</span>   <span class="n">RR</span><span class="o">*</span><span class="n">Aph</span><span class="p">,</span><span class="n">drr</span><span class="p">)</span><span class="o">/</span><span class="n">RR</span>
@@ -296,18 +304,34 @@
 <span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">   Calculate the advection terms of the magnetic field.</span>
 
-<span class="sd">   Parameters:</span>
-<span class="sd">   Bph (ndarray): Longitudinal magnetic field</span>
-<span class="sd">   Aph (ndarray): Longitudinal vector potential</span>
-<span class="sd">   RR (ndarray): Radial coordinate</span>
-<span class="sd">   sinTH (ndarray): np.sin(TH)</span>
-<span class="sd">   urr (ndarray): Radial velocity</span>
-<span class="sd">   uth (ndarray): Colatitudinal velocity</span>
-<span class="sd">   drr (ndarray): Radial grid spacing</span>
-<span class="sd">   dth (ndarray): Colatitudinal grid spacing</span>
+<span class="sd">   Parameters</span>
+<span class="sd">   ----------</span>
+<span class="sd">   Bph : numpy.ndarray</span>
+<span class="sd">      Longitudinal magnetic field</span>
+<span class="sd">   Aph : numpy.ndarray</span>
+<span class="sd">      Longitudinal vector potential</span>
+<span class="sd">   RR : numpy.ndarray</span>
+<span class="sd">      Radial coordinate</span>
+<span class="sd">   sinTH : numpy.ndarray</span>
+<span class="sd">   urr : numpy.ndarray</span>
+<span class="sd">      Radial velocity</span>
+<span class="sd">   uth : numpy.ndarray</span>
+<span class="sd">      Colatitudinal velocity</span>
+<span class="sd">   drr : numpy.ndarray</span>
+<span class="sd">      Radial grid spacing</span>
+<span class="sd">   dth : numpy.ndarray</span>
+<span class="sd">      Colatitudinal grid spacing</span>
 
-<span class="sd">   Returns:</span>
-<span class="sd">   tuple: Bph_adrr (Radial advection of Bph), Bph_adth (Colatitudinal advection of Bph), Aph_adrr (Radial advection of Aph), Aph_adth (Colatitudinal advection of Aph)</span>
+<span class="sd">   Returns</span>
+<span class="sd">   -------</span>
+<span class="sd">   Bph_adrr : numpy.ndarray</span>
+<span class="sd">      Radial advection of Bph</span>
+<span class="sd">   Bph_adth : numpy.ndarray</span>
+<span class="sd">      Colatitudinal advection of Bph</span>
+<span class="sd">   Aph_adrr : numpy.ndarray</span>
+<span class="sd">      Radial advection of Aph</span>
+<span class="sd">   Aph_adth : numpy.ndarray</span>
+<span class="sd">      Colatitudinal advection of Aph</span>
 <span class="sd">   &quot;&quot;&quot;</span>
    <span class="c1"># 磁場の微分(移流量)</span>
    <span class="c1"># Bph_adrr = - drr2(Bph/RR   ,drr)*urr*RR #  動径方向の移流(Bph)</span>
@@ -329,18 +353,39 @@
 <span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">   Calculate the diffusion terms of the magnetic field.</span>
 
-<span class="sd">   Parameters:</span>
-<span class="sd">   Bph (ndarray): Longitudinal magnetic field</span>
-<span class="sd">   Aph (ndarray): Longitudinal vector potential</span>
-<span class="sd">   RR (ndarray): Radial coordinate</span>
-<span class="sd">   sinTH (ndarray): np.sin(TH)</span>
-<span class="sd">   drr (ndarray): Radial grid spacing</span>
-<span class="sd">   dth (ndarray): Colatitudinal grid spacing</span>
-<span class="sd">   et (ndarray): magnetic diffusivity</span>
-<span class="sd">   etrr (ndarray): Radial gradient of magnetic diffusivity</span>
-
-<span class="sd">   Returns:</span>
-<span class="sd">   tuple: Bph_dfrr (Radial diffusion of Bph), Bph_dfth (Colatitudinal diffusion of Bph), Bph_dfex (Extra diffusion term of Bph), Bph_dfrrg (Radial gradient diffusion of Bph), Aph_dfrr (Radial diffusion of Aph), Aph_dfth (Colatitudinal diffusion of Aph), Aph_dfex (Extra diffusion term of Aph)</span>
+<span class="sd">   Parameters</span>
+<span class="sd">   ----------</span>
+<span class="sd">   Bph : numpy.ndarray</span>
+<span class="sd">      Longitudinal magnetic field</span>
+<span class="sd">   Aph : numpy.ndarray</span>
+<span class="sd">      Longitudinal vector potential</span>
+<span class="sd">   RR : numpy.ndarray</span>
+<span class="sd">      Radial coordinate</span>
+<span class="sd">   sinTH : numpy.ndarray</span>
+<span class="sd">   drr : numpy.ndarray</span>
+<span class="sd">      Radial grid spacing</span>
+<span class="sd">   dth : numpy.ndarray</span>
+<span class="sd">      Colatitudinal grid spacing</span>
+<span class="sd">   et : numpy.ndarray</span>
+<span class="sd">      magnetic diffusivity</span>
+<span class="sd">   etrr : numpy.ndarray</span>
+<span class="sd">      Radial gradient of magnetic diffusivity</span>
+<span class="sd">   Returns</span>
+<span class="sd">   -------</span>
+<span class="sd">   Bph_dfrr : numpy.ndarray</span>
+<span class="sd">      Radial diffusion of Bph</span>
+<span class="sd">   Bph_dfth : numpy.ndarray</span>
+<span class="sd">      Colatitudinal diffusion of Bph</span>
+<span class="sd">   Bph_dfex : numpy.ndarray</span>
+<span class="sd">      Extra diffusion term of Bph</span>
+<span class="sd">   Bph_dfrrg : numpy.ndarray</span>
+<span class="sd">      Radial gradient diffusion of Bph</span>
+<span class="sd">   Aph_dfrr : numpy.ndarray</span>
+<span class="sd">      Radial diffusion of Aph</span>
+<span class="sd">   Aph_dfth : numpy.ndarray</span>
+<span class="sd">      Colatitudinal diffusion of Aph</span>
+<span class="sd">   Aph_dfex : numpy.ndarray</span>
+<span class="sd">      Extra diffusion term of Aph</span>
 <span class="sd">   &quot;&quot;&quot;</span>   
    <span class="c1"># magnetic derivative</span>
    <span class="n">Bphrr</span> <span class="o">=</span> <span class="n">drr1</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span><span class="n">drr</span><span class="p">,</span><span class="s1">&#39;up&#39;</span><span class="p">)</span>
@@ -369,16 +414,25 @@
 <span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">   Calculate the omega effect.</span>
 
-<span class="sd">   Parameters:</span>
-<span class="sd">   Brr (ndarray): Radial magnetic field</span>
-<span class="sd">   Bth (ndarray): Colatitudinal magnetic field</span>
-<span class="sd">   RR (ndarray): Radial coordinate</span>
-<span class="sd">   sinTH (ndarray): np.sin(TH)</span>
-<span class="sd">   omrr (ndarray): Radial gradient of angular velocity</span>
-<span class="sd">   omth (ndarray): Colatitudinal gradient of angular velocity</span>
-
-<span class="sd">   Returns:</span>
-<span class="sd">   tuple: Bph_omrr (Radial omega effect), Bph_omth (Colatitudinal omega effect)</span>
+<span class="sd">   Parameters</span>
+<span class="sd">   ----------</span>
+<span class="sd">   Brr : numpy.ndarray</span>
+<span class="sd">      Radial magnetic field</span>
+<span class="sd">   Bth : numpy.ndarray</span>
+<span class="sd">      Colatitudinal magnetic field</span>
+<span class="sd">   RR : numpy.ndarray</span>
+<span class="sd">      Radial coordinate</span>
+<span class="sd">   sinTH : numpy.ndarray</span>
+<span class="sd">   omrr : numpy.ndarray</span>
+<span class="sd">      Radial gradient of angular velocity</span>
+<span class="sd">   omth : numpy.ndarray</span>
+<span class="sd">      Colatitudinal gradient of angular velocity</span>
+<span class="sd">   Returns</span>
+<span class="sd">   -------</span>
+<span class="sd">   Bph_omrr : numpy.ndarray</span>
+<span class="sd">      Radial omega effect term of Bph</span>
+<span class="sd">   Bph_omrh : numpy.ndarray</span>
+<span class="sd">      Colatitudinal omega effect term of Bph</span>
 <span class="sd">   &quot;&quot;&quot;</span>
    <span class="n">Bph_omrr</span> <span class="o">=</span> <span class="n">Brr</span><span class="o">*</span><span class="n">omrr</span><span class="o">*</span><span class="n">RR</span><span class="o">*</span><span class="n">sinTH</span>
    <span class="n">Bph_omth</span> <span class="o">=</span> <span class="n">Bth</span><span class="o">*</span><span class="n">omth</span><span class="o">*</span><span class="n">RR</span><span class="o">*</span><span class="n">sinTH</span>
@@ -392,15 +446,22 @@
 <span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">   Calculate the alpha effect.</span>
 
-<span class="sd">   Parameters:</span>
-<span class="sd">   Bph (ndarray): Longitudinal magnetic field</span>
-<span class="sd">   Aph (ndarray): Longitudinal vector potential</span>
-<span class="sd">   rr (ndarray): Radial coordinate</span>
-<span class="sd">   ibase (int): Radial index for the base of the convection zone</span>
-<span class="sd">   so (float): Source term coefficient</span>
-
-<span class="sd">   Returns:</span>
-<span class="sd">   ndarray: Aph_sour (Source term due to alpha effect)</span>
+<span class="sd">   Parameters</span>
+<span class="sd">   ----------</span>
+<span class="sd">   Bph : numpy.ndarray</span>
+<span class="sd">      Longitudinal magnetic field</span>
+<span class="sd">   Aph : numpy.ndarray</span>
+<span class="sd">      Longitudinal vector potential</span>
+<span class="sd">   rr : numpy.ndarray</span>
+<span class="sd">      Radial coordinate</span>
+<span class="sd">   ibase : int</span>
+<span class="sd">      Radial index for the base of the convection zone</span>
+<span class="sd">   so : float</span>
+<span class="sd">      Source term coefficient</span>
+<span class="sd">   Returns</span>
+<span class="sd">   -------</span>
+<span class="sd">   Aph_sour : numpy.ndarray</span>
+<span class="sd">      Source term due to alpha effect</span>
 <span class="sd">   &quot;&quot;&quot;</span>
    <span class="k">if</span> <span class="n">alpha_type</span> <span class="o">==</span> <span class="s1">&#39;BL&#39;</span><span class="p">:</span>
       <span class="n">Bphso</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">Bph</span><span class="p">[</span><span class="n">ibase</span><span class="p">,</span> <span class="p">:][</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:],</span> <span class="nb">len</span><span class="p">(</span><span class="n">rr</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -417,15 +478,24 @@
 <span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">   Perform time marching for the magnetic field.</span>
 
-<span class="sd">   Parameters:</span>
-<span class="sd">   Bph (ndarray): Longitudinal magnetic field</span>
-<span class="sd">   Aph (ndarray): Longitudinal vector potential</span>
-<span class="sd">   dt (float): Time step</span>
-<span class="sd">   grid (object): Object containing grid information</span>
-<span class="sd">   setup (object): Object containing setup information</span>
-
-<span class="sd">   Returns:</span>
-<span class="sd">   tuple: Bphm (Updated longitudinal magnetic field), Aphm (Updated longitudinal vector potential)</span>
+<span class="sd">   Parameters</span>
+<span class="sd">   ----------</span>
+<span class="sd">   Bph : numpy.ndarray  </span>
+<span class="sd">      Longitudinal magnetic field</span>
+<span class="sd">   Aph : numpy.ndarray</span>
+<span class="sd">      Longitudinal vector potential</span>
+<span class="sd">   dt : float</span>
+<span class="sd">      Time step</span>
+<span class="sd">   grid : object</span>
+<span class="sd">      Object containing grid information</span>
+<span class="sd">   setup : object</span>
+<span class="sd">      Object containing setup information</span>
+<span class="sd">   Returns</span>
+<span class="sd">   -------</span>
+<span class="sd">   Bphm : numpy.ndarray</span>
+<span class="sd">      Updated longitudinal magnetic field</span>
+<span class="sd">   Aphm : numpy.ndarray</span>
+<span class="sd">      Updated longitudinal vector potential</span>
 <span class="sd">   &quot;&quot;&quot;</span>   
    <span class="c1"># calculate poloidal magnetic field</span>
    <span class="n">Brr</span><span class="p">,</span> <span class="n">Bth</span> <span class="o">=</span> <span class="n">poloidal_mag</span><span class="p">(</span><span class="n">Aph</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">sinTH</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">dth</span><span class="p">)</span>

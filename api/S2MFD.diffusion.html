@@ -325,17 +325,32 @@
 <dt class="sig sig-object py" id="S2MFD.diffusion">
 <span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">diffusion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Bph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Aph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sinTH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RRm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sinTHm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">et</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">etrr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/time_marching.html#diffusion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.diffusion" title="Link to this definition">#</a></dt>
 <dd><p>Calculate the diffusion terms of the magnetic field.</p>
-<p>Parameters:
-Bph (ndarray): Longitudinal magnetic field
-Aph (ndarray): Longitudinal vector potential
-RR (ndarray): Radial coordinate
-sinTH (ndarray): np.sin(TH)
-drr (ndarray): Radial grid spacing
-dth (ndarray): Colatitudinal grid spacing
-et (ndarray): magnetic diffusivity
-etrr (ndarray): Radial gradient of magnetic diffusivity</p>
-<p>Returns:
-tuple: Bph_dfrr (Radial diffusion of Bph), Bph_dfth (Colatitudinal diffusion of Bph), Bph_dfex (Extra diffusion term of Bph), Bph_dfrrg (Radial gradient diffusion of Bph), Aph_dfrr (Radial diffusion of Aph), Aph_dfth (Colatitudinal diffusion of Aph), Aph_dfex (Extra diffusion term of Aph)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Bph</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Longitudinal magnetic field</p></li>
+<li><p><strong>Aph</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Longitudinal vector potential</p></li>
+<li><p><strong>RR</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Radial coordinate</p></li>
+<li><p><strong>sinTH</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>)</p></li>
+<li><p><strong>drr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Radial grid spacing</p></li>
+<li><p><strong>dth</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Colatitudinal grid spacing</p></li>
+<li><p><strong>et</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – magnetic diffusivity</p></li>
+<li><p><strong>etrr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Radial gradient of magnetic diffusivity</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>Bph_dfrr</strong> (<em>numpy.ndarray</em>) – Radial diffusion of Bph</p></li>
+<li><p><strong>Bph_dfth</strong> (<em>numpy.ndarray</em>) – Colatitudinal diffusion of Bph</p></li>
+<li><p><strong>Bph_dfex</strong> (<em>numpy.ndarray</em>) – Extra diffusion term of Bph</p></li>
+<li><p><strong>Bph_dfrrg</strong> (<em>numpy.ndarray</em>) – Radial gradient diffusion of Bph</p></li>
+<li><p><strong>Aph_dfrr</strong> (<em>numpy.ndarray</em>) – Radial diffusion of Aph</p></li>
+<li><p><strong>Aph_dfth</strong> (<em>numpy.ndarray</em>) – Colatitudinal diffusion of Aph</p></li>
+<li><p><strong>Aph_dfex</strong> (<em>numpy.ndarray</em>) – Extra diffusion term of Aph</p></li>
+</ul>
+</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

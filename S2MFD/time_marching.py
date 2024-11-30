@@ -36,18 +36,34 @@ def advection(Bph, Aph, RR, sinTH, urr,uth,drr,dth):
    """
    Calculate the advection terms of the magnetic field.
 
-   Parameters:
-   Bph (ndarray): Longitudinal magnetic field
-   Aph (ndarray): Longitudinal vector potential
-   RR (ndarray): Radial coordinate
-   sinTH (ndarray): np.sin(TH)
-   urr (ndarray): Radial velocity
-   uth (ndarray): Colatitudinal velocity
-   drr (ndarray): Radial grid spacing
-   dth (ndarray): Colatitudinal grid spacing
+   Parameters
+   ----------
+   Bph : numpy.ndarray
+      Longitudinal magnetic field
+   Aph : numpy.ndarray
+      Longitudinal vector potential
+   RR : numpy.ndarray
+      Radial coordinate
+   sinTH : numpy.ndarray
+   urr : numpy.ndarray
+      Radial velocity
+   uth : numpy.ndarray
+      Colatitudinal velocity
+   drr : numpy.ndarray
+      Radial grid spacing
+   dth : numpy.ndarray
+      Colatitudinal grid spacing
 
-   Returns:
-   tuple: Bph_adrr (Radial advection of Bph), Bph_adth (Colatitudinal advection of Bph), Aph_adrr (Radial advection of Aph), Aph_adth (Colatitudinal advection of Aph)
+   Returns
+   -------
+   Bph_adrr : numpy.ndarray
+      Radial advection of Bph
+   Bph_adth : numpy.ndarray
+      Colatitudinal advection of Bph
+   Aph_adrr : numpy.ndarray
+      Radial advection of Aph
+   Aph_adth : numpy.ndarray
+      Colatitudinal advection of Aph
    """
    # 磁場の微分(移流量)
    # Bph_adrr = - drr2(Bph/RR   ,drr)*urr*RR #  動径方向の移流(Bph)
@@ -66,18 +82,39 @@ def diffusion(Bph, Aph, RR, sinTH, RRm, sinTHm, drr, dth, et, etrr):
    """
    Calculate the diffusion terms of the magnetic field.
 
-   Parameters:
-   Bph (ndarray): Longitudinal magnetic field
-   Aph (ndarray): Longitudinal vector potential
-   RR (ndarray): Radial coordinate
-   sinTH (ndarray): np.sin(TH)
-   drr (ndarray): Radial grid spacing
-   dth (ndarray): Colatitudinal grid spacing
-   et (ndarray): magnetic diffusivity
-   etrr (ndarray): Radial gradient of magnetic diffusivity
-
-   Returns:
-   tuple: Bph_dfrr (Radial diffusion of Bph), Bph_dfth (Colatitudinal diffusion of Bph), Bph_dfex (Extra diffusion term of Bph), Bph_dfrrg (Radial gradient diffusion of Bph), Aph_dfrr (Radial diffusion of Aph), Aph_dfth (Colatitudinal diffusion of Aph), Aph_dfex (Extra diffusion term of Aph)
+   Parameters
+   ----------
+   Bph : numpy.ndarray
+      Longitudinal magnetic field
+   Aph : numpy.ndarray
+      Longitudinal vector potential
+   RR : numpy.ndarray
+      Radial coordinate
+   sinTH : numpy.ndarray
+   drr : numpy.ndarray
+      Radial grid spacing
+   dth : numpy.ndarray
+      Colatitudinal grid spacing
+   et : numpy.ndarray
+      magnetic diffusivity
+   etrr : numpy.ndarray
+      Radial gradient of magnetic diffusivity
+   Returns
+   -------
+   Bph_dfrr : numpy.ndarray
+      Radial diffusion of Bph
+   Bph_dfth : numpy.ndarray
+      Colatitudinal diffusion of Bph
+   Bph_dfex : numpy.ndarray
+      Extra diffusion term of Bph
+   Bph_dfrrg : numpy.ndarray
+      Radial gradient diffusion of Bph
+   Aph_dfrr : numpy.ndarray
+      Radial diffusion of Aph
+   Aph_dfth : numpy.ndarray
+      Colatitudinal diffusion of Aph
+   Aph_dfex : numpy.ndarray
+      Extra diffusion term of Aph
    """   
    # magnetic derivative
    Bphrr = drr1(Bph,drr,'up')
@@ -103,16 +140,25 @@ def omega_effect(Brr, Bth, RR, sinTH, omrr, omth):
    """
    Calculate the omega effect.
 
-   Parameters:
-   Brr (ndarray): Radial magnetic field
-   Bth (ndarray): Colatitudinal magnetic field
-   RR (ndarray): Radial coordinate
-   sinTH (ndarray): np.sin(TH)
-   omrr (ndarray): Radial gradient of angular velocity
-   omth (ndarray): Colatitudinal gradient of angular velocity
-
-   Returns:
-   tuple: Bph_omrr (Radial omega effect), Bph_omth (Colatitudinal omega effect)
+   Parameters
+   ----------
+   Brr : numpy.ndarray
+      Radial magnetic field
+   Bth : numpy.ndarray
+      Colatitudinal magnetic field
+   RR : numpy.ndarray
+      Radial coordinate
+   sinTH : numpy.ndarray
+   omrr : numpy.ndarray
+      Radial gradient of angular velocity
+   omth : numpy.ndarray
+      Colatitudinal gradient of angular velocity
+   Returns
+   -------
+   Bph_omrr : numpy.ndarray
+      Radial omega effect term of Bph
+   Bph_omrh : numpy.ndarray
+      Colatitudinal omega effect term of Bph
    """
    Bph_omrr = Brr*omrr*RR*sinTH
    Bph_omth = Bth*omth*RR*sinTH
@@ -123,15 +169,22 @@ def alpha_effect(Bph, Aph, rr, ibase, so, alpha_type):
    """
    Calculate the alpha effect.
 
-   Parameters:
-   Bph (ndarray): Longitudinal magnetic field
-   Aph (ndarray): Longitudinal vector potential
-   rr (ndarray): Radial coordinate
-   ibase (int): Radial index for the base of the convection zone
-   so (float): Source term coefficient
-
-   Returns:
-   ndarray: Aph_sour (Source term due to alpha effect)
+   Parameters
+   ----------
+   Bph : numpy.ndarray
+      Longitudinal magnetic field
+   Aph : numpy.ndarray
+      Longitudinal vector potential
+   rr : numpy.ndarray
+      Radial coordinate
+   ibase : int
+      Radial index for the base of the convection zone
+   so : float
+      Source term coefficient
+   Returns
+   -------
+   Aph_sour : numpy.ndarray
+      Source term due to alpha effect
    """
    if alpha_type == 'BL':
       Bphso = np.repeat(Bph[ibase, :][np.newaxis, :], len(rr), axis=0)
@@ -145,15 +198,24 @@ def time_marching(Bph, Aph, dt, cfg, grid, setup):
    """
    Perform time marching for the magnetic field.
 
-   Parameters:
-   Bph (ndarray): Longitudinal magnetic field
-   Aph (ndarray): Longitudinal vector potential
-   dt (float): Time step
-   grid (object): Object containing grid information
-   setup (object): Object containing setup information
-
-   Returns:
-   tuple: Bphm (Updated longitudinal magnetic field), Aphm (Updated longitudinal vector potential)
+   Parameters
+   ----------
+   Bph : numpy.ndarray  
+      Longitudinal magnetic field
+   Aph : numpy.ndarray
+      Longitudinal vector potential
+   dt : float
+      Time step
+   grid : object
+      Object containing grid information
+   setup : object
+      Object containing setup information
+   Returns
+   -------
+   Bphm : numpy.ndarray
+      Updated longitudinal magnetic field
+   Aphm : numpy.ndarray
+      Updated longitudinal vector potential
    """   
    # calculate poloidal magnetic field
    Brr, Bth = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)

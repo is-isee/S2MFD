@@ -50,9 +50,10 @@ html_theme = 'sphinx_book_theme'
 #html_theme = "pydata_sphinx_theme"
 html_static_path = []
 
-# autodoc_member_order = 'bysource'
+autodoc_member_order = 'groupwise'
 autodoc_default_options = {
     'special-members': '__init__',
+    'private-members': False,
 }
 
 napoleon_include_init_with_doc = True

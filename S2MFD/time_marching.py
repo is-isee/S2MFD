@@ -8,15 +8,23 @@ def poloidal_mag(Aph, RR, sinTH, drr, dth):
    """
    Calculate the poloidal magnetic field.
 
-   Parameters:
-   Aph (ndarray): Longitudinal vector potential
-   RR (ndarray): Radial coordinate
-   sinTH (ndarray): np.sin(TH)
-   drr (ndarray): Radial grid spacing
-   dth (ndarray): Colatitudinal grid spacing
-
-   Returns:
-   tuple: Brr (Radial  magnetic field), Bth (Latitudinal magnetic field)
+   Parameters
+   ----------
+   Aph : numpy.ndarray
+      Longitudinal vector potential
+   RR : numpy.ndarray
+      Radial coordinate
+   sinTH : numpy.ndarray
+   drr : numpy.ndarray
+      Radial grid spacing
+   dth : numpy.ndarray
+      Colatitudinal grid spacing
+   Returns
+   -------
+   Brr : numpy.ndarray
+      Radial  magnetic field
+   Bth : numpy.ndarray
+      Latitudinal magnetic field
    """
    Brr = + dth2(sinTH*Aph,dth)/RR/sinTH
    Bth = - drr2(   RR*Aph,drr)/RR

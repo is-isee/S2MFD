@@ -6,7 +6,6 @@ Example
 >>> import S2MFD
 >>> S2MFD.run_simulation()
 
-
 """
 
 paramdir = 'parameters/'
@@ -19,7 +18,7 @@ from .data import Data
 from .time_marching import *
 from .boundary_condition import *
 
-__all__ = ['Cfg', 'Grid', 'Seetup', 'Data']
+__all__ = ['Cfg', 'Grid', 'Setup', 'Data']
 
 try:
     from ._version import version as __version__

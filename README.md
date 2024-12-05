@@ -23,7 +23,7 @@ S2MFD.run_simulation()
 ## Documentation
 
 ### URL
-https://is-isee.github.io/S2MFD/master
+https://is-isee.github.io/S2MFD/main
 
 ### Sphinx
 

@@ -2,7 +2,7 @@ import numpy as np
 import json, os, sys
 import importlib
 
-class Config:
+class Cfg:
     """
     Class for configuration management.
         

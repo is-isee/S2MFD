@@ -7,7 +7,7 @@ class Data:
 
     Attributes
     --------------
-    cfg : S2MFD.Config
+    cfg : S2MFD.Cfg
       Configuration object.
     grid : S2MFD.Grid
       Grid object.
@@ -32,7 +32,7 @@ class Data:
         
         Parameters
         ----------
-        cfg : S2MFD.Config
+        cfg : S2MFD.Cfg
             Configuration object.
         grid : S2MFD.Grid
             Grid object.
@@ -68,7 +68,7 @@ class Data:
         S2MFD.S2MFD_data
             An instance of the S2MFD_data class.
         """        
-        cfg = S2MFD.Config.load(datadir+'config.json')
+        cfg = S2MFD.Cfg.load(datadir+'config.json')
         cfg.datadir = datadir
         grid = S2MFD.Grid.load(datadir+cfg.gridfile)
         setup = S2MFD.Setup.load(datadir+cfg.setupfile)

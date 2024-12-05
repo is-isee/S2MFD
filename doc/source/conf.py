@@ -14,7 +14,9 @@ import S2MFD
 project = 'S2MFD'
 copyright = '2024, S2MFD project'
 author = 'Hideyuki Hotta'
-release = '2024.11.28'
+
+version = S2MFD.__version__
+release = S2MFD.__version__
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -27,6 +29,7 @@ extensions = [
     'sphinx.ext.intersphinx',  # 他のドキュメントへのリンク
     'sphinx.ext.autosummary',
     'sphinx_automodapi.automodapi',
+    'sphinx_multiversion',
 ]
 
 intersphinx_mapping = {
@@ -43,10 +46,10 @@ language = 'en'
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'sphinx_book_theme'
+#html_theme = 'sphinx_book_theme'
 #html_theme = 'alabaster'
 #html_theme = 'sphinx_material'
-#html_theme = 'sphinx_rtd_theme'
+html_theme = 'sphinx_rtd_theme'
 #html_theme = "pydata_sphinx_theme"
 html_static_path = []
 
@@ -55,6 +58,8 @@ autodoc_default_options = {
     'special-members': '__init__',
     'private-members': False,
 }
+
+smv_tag_whitelist = r'^v.*$'  # タグ "v1.0" などを対象
 
 napoleon_include_init_with_doc = True
 napoleon_use_ivar = True

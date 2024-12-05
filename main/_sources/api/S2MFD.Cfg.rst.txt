@@ -1,0 +1,21 @@
+Cfg
+===
+
+.. currentmodule:: S2MFD
+
+.. autoclass:: Cfg
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Cfg.load
+      ~Cfg.load_parameters
+      ~Cfg.save
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: load
+   .. automethod:: load_parameters
+   .. automethod:: save

@@ -4,9 +4,12 @@ Solar/Stellar Mean Field Dynamo code
 ---
 ## Installation
 
+Currently S2MFD is under development. You need to install the package in an editable mode.
+
 ```bash
 git clone https://github.com/is-isee/S2MFD.git
 cd S2MFD
+pip install -e .
 ```
 
 ## Quick Start

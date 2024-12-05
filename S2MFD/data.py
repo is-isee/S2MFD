@@ -1,17 +1,17 @@
 import S2MFD
 import numpy as np
 
-class S2MFD_data:
+class Data:
     """
     Class for managing the whole simulation data.
 
     Attributes
     --------------
-    cfg : S2MFD.config_c
+    cfg : S2MFD.Config
       Configuration object.
-    grid : S2MFD.grid_c
+    grid : S2MFD.Grid
       Grid object.
-    setup : S2MFD.setup_c
+    setup : S2MFD.Setup
       Setup object.
     Bph : numpy.ndarray
       Longitudinal magnetic field.
@@ -32,11 +32,11 @@ class S2MFD_data:
         
         Parameters
         ----------
-        cfg : S2MFD.config_c
+        cfg : S2MFD.Config
             Configuration object.
-        grid : S2MFD.grid_c
+        grid : S2MFD.Grid
             Grid object.
-        setup : S2MFD.setup_c
+        setup : S2MFD.Setup
             Setup object.
             
         Returns
@@ -68,10 +68,10 @@ class S2MFD_data:
         S2MFD.S2MFD_data
             An instance of the S2MFD_data class.
         """        
-        cfg = S2MFD.config_c.load(datadir+'config.json')
+        cfg = S2MFD.Config.load(datadir+'config.json')
         cfg.datadir = datadir
-        grid = S2MFD.grid_c.load(datadir+cfg.gridfile)
-        setup = S2MFD.setup_c.load(datadir+cfg.setupfile)
+        grid = S2MFD.Grid.load(datadir+cfg.gridfile)
+        setup = S2MFD.Setup.load(datadir+cfg.setupfile)
         
         return cls(cfg,grid,setup)
     

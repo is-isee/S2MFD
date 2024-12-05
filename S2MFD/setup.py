@@ -6,7 +6,7 @@ import pickle
 from scipy.special import erf
 
 @dataclass
-class setup_c:
+class Setup:
    """
    Class to configure and initialize physical properties used in simulations.
 
@@ -45,10 +45,10 @@ class setup_c:
       
       Parameters
       ----------
-      cfg : S2MFD.config_c
+      cfg : S2MFD.Config
          Configuration object.
          
-      grid : S2MFD.grid_c
+      grid : S2MFD.Grid
          Grid object.
       """
       # differential rotation

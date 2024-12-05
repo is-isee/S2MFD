@@ -3,7 +3,7 @@ import numpy as np
 import pickle
 
 @dataclass
-class grid_c:
+class Grid:
    """
    Class for managing the grid data.
 

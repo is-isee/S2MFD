@@ -160,10 +160,10 @@
 <li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.run_simulation.html">run_simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.time_marching.html">time_marching</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.tvd_runge_kutta.html">tvd_runge_kutta</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.S2MFD_data.html">S2MFD_data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.config_c.html">config_c</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.grid_c.html">grid_c</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.setup_c.html">setup_c</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Config.html">Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Data.html">Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Grid.html">Grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Setup.html">Setup</a></li>
 </ul>
 </details></li>
 </ul>
@@ -265,16 +265,16 @@
 <span class="kn">import</span> <span class="nn">json</span><span class="o">,</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">importlib</span>
 
-<div class="viewcode-block" id="config_c">
-<a class="viewcode-back" href="../../api/S2MFD.config_c.html#S2MFD.config_c">[docs]</a>
-<span class="k">class</span> <span class="nc">config_c</span><span class="p">:</span>
+<div class="viewcode-block" id="Config">
+<a class="viewcode-back" href="../../api/S2MFD.Config.html#S2MFD.Config">[docs]</a>
+<span class="k">class</span> <span class="nc">Config</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Class for configuration management.</span>
 <span class="sd">        </span>
 <span class="sd">    &quot;&quot;&quot;</span>
         
-<div class="viewcode-block" id="config_c.__init__">
-<a class="viewcode-back" href="../../api/S2MFD.config_c.html#S2MFD.config_c.__init__">[docs]</a>
+<div class="viewcode-block" id="Config.__init__">
+<a class="viewcode-back" href="../../api/S2MFD.Config.html#S2MFD.Config.__init__">[docs]</a>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">parameter_file</span><span class="o">=</span><span class="s1">&#39;parameters/defaults.py&#39;</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Parameters</span>
@@ -300,8 +300,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">load_parameters</span><span class="p">(</span><span class="n">parameter_file</span><span class="p">)</span></div>
 
         
-<div class="viewcode-block" id="config_c.load_parameters">
-<a class="viewcode-back" href="../../api/S2MFD.config_c.html#S2MFD.config_c.load_parameters">[docs]</a>
+<div class="viewcode-block" id="Config.load_parameters">
+<a class="viewcode-back" href="../../api/S2MFD.Config.html#S2MFD.Config.load_parameters">[docs]</a>
     <span class="k">def</span> <span class="nf">load_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameter_file</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Load parameters from an external Python file.</span>
@@ -324,8 +324,8 @@
                 <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> </div>
 
         
-<div class="viewcode-block" id="config_c.save">
-<a class="viewcode-back" href="../../api/S2MFD.config_c.html#S2MFD.config_c.save">[docs]</a>
+<div class="viewcode-block" id="Config.save">
+<a class="viewcode-back" href="../../api/S2MFD.Config.html#S2MFD.Config.save">[docs]</a>
     <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Save configuration to a JSON file.</span>
@@ -342,8 +342,8 @@
             <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="config_c.load">
-<a class="viewcode-back" href="../../api/S2MFD.config_c.html#S2MFD.config_c.load">[docs]</a>
+<div class="viewcode-block" id="Config.load">
+<a class="viewcode-back" href="../../api/S2MFD.Config.html#S2MFD.Config.load">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>

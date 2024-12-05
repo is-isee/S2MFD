@@ -160,10 +160,10 @@
 <li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.run_simulation.html">run_simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.time_marching.html">time_marching</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.tvd_runge_kutta.html">tvd_runge_kutta</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.S2MFD_data.html">S2MFD_data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.config_c.html">config_c</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.grid_c.html">grid_c</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.setup_c.html">setup_c</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Config.html">Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Data.html">Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Grid.html">Grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Setup.html">Setup</a></li>
 </ul>
 </details></li>
 </ul>
@@ -271,7 +271,7 @@
 <span class="sd">   Initialize the simulation by setting up the grid and setup objects.</span>
 
 <span class="sd">   Parameters:</span>
-<span class="sd">   cfg (object): S2MFD.config_c object</span>
+<span class="sd">   cfg (object): S2MFD.Config object</span>
 
 <span class="sd">   Returns:</span>
 <span class="sd">   object: Initialized S2MFD.data object containing configuration, grid, and setup.</span>
@@ -287,16 +287,16 @@
 
    <span class="c1"># create grid and setup</span>
    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">cont_flag</span><span class="p">:</span>
-      <span class="n">grid</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">grid_c</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="o">+</span><span class="n">cfg</span><span class="o">.</span><span class="n">gridfile</span><span class="p">)</span>
-      <span class="n">setup</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">setup_c</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="o">+</span><span class="n">cfg</span><span class="o">.</span><span class="n">setupfile</span><span class="p">)</span>
+      <span class="n">grid</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Grid</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="o">+</span><span class="n">cfg</span><span class="o">.</span><span class="n">gridfile</span><span class="p">)</span>
+      <span class="n">setup</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Setup</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="o">+</span><span class="n">cfg</span><span class="o">.</span><span class="n">setupfile</span><span class="p">)</span>
    <span class="k">else</span><span class="p">:</span>
-      <span class="n">grid</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">grid_c</span><span class="p">(</span><span class="n">ix</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">ix</span><span class="p">,</span><span class="n">jx</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">jx</span><span class="p">,</span><span class="n">margin</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">margin</span>
+      <span class="n">grid</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Grid</span><span class="p">(</span><span class="n">ix</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">ix</span><span class="p">,</span><span class="n">jx</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">jx</span><span class="p">,</span><span class="n">margin</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">margin</span>
                <span class="p">,</span><span class="n">rrmin</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrmin</span><span class="p">,</span><span class="n">rrmax</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrmax</span><span class="p">,</span><span class="n">thmin</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">thmin</span><span class="p">,</span><span class="n">thmax</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">thmax</span><span class="p">)</span>
       <span class="n">grid</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="o">+</span><span class="n">cfg</span><span class="o">.</span><span class="n">gridfile</span><span class="p">)</span>
-      <span class="n">setup</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">setup_c</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span><span class="n">grid</span><span class="p">)</span>
+      <span class="n">setup</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Setup</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span><span class="n">grid</span><span class="p">)</span>
       <span class="n">setup</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="o">+</span><span class="n">cfg</span><span class="o">.</span><span class="n">setupfile</span><span class="p">)</span>
       
-   <span class="n">data</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">S2MFD_data</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span><span class="n">grid</span><span class="p">,</span><span class="n">setup</span><span class="p">)</span>
+   <span class="n">data</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Data</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span><span class="n">grid</span><span class="p">,</span><span class="n">setup</span><span class="p">)</span>
       
    <span class="k">return</span> <span class="n">data</span></div>
 
@@ -422,9 +422,9 @@
 <span class="k">def</span> <span class="nf">run_simulation</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parameter_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
    <span class="k">if</span> <span class="n">cfg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">parameter_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-         <span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">config_c</span><span class="p">()</span>
+         <span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Config</span><span class="p">()</span>
       <span class="k">else</span><span class="p">:</span>
-         <span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">config_c</span><span class="p">(</span><span class="n">parameter_file</span><span class="p">)</span>
+         <span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="n">parameter_file</span><span class="p">)</span>
    
    <span class="n">data</span> <span class="o">=</span> <span class="n">initialize</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
    <span class="n">cfl_condition</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>

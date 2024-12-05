@@ -160,10 +160,10 @@
 <li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.run_simulation.html">run_simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.time_marching.html">time_marching</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.tvd_runge_kutta.html">tvd_runge_kutta</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.S2MFD_data.html">S2MFD_data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.config_c.html">config_c</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.grid_c.html">grid_c</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.setup_c.html">setup_c</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Config.html">Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Data.html">Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Grid.html">Grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Setup.html">Setup</a></li>
 </ul>
 </details></li>
 </ul>
@@ -265,10 +265,10 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">pickle</span>
 
-<div class="viewcode-block" id="grid_c">
-<a class="viewcode-back" href="../../api/S2MFD.grid_c.html#S2MFD.grid_c">[docs]</a>
+<div class="viewcode-block" id="Grid">
+<a class="viewcode-back" href="../../api/S2MFD.Grid.html#S2MFD.Grid">[docs]</a>
 <span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">grid_c</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">Grid</span><span class="p">:</span>
 <span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">   Class for managing the grid data.</span>
 
@@ -375,8 +375,8 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RR</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TH</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">RR</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TH</span><span class="p">)</span>
    
       
-<div class="viewcode-block" id="grid_c.save">
-<a class="viewcode-back" href="../../api/S2MFD.grid_c.html#S2MFD.grid_c.save">[docs]</a>
+<div class="viewcode-block" id="Grid.save">
+<a class="viewcode-back" href="../../api/S2MFD.Grid.html#S2MFD.Grid.save">[docs]</a>
    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
 <span class="w">      </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">      Save the grid data to a file.</span>
@@ -389,8 +389,8 @@
       <span class="n">np</span><span class="o">.</span><span class="n">savez</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span></div>
 
    
-<div class="viewcode-block" id="grid_c.load">
-<a class="viewcode-back" href="../../api/S2MFD.grid_c.html#S2MFD.grid_c.load">[docs]</a>
+<div class="viewcode-block" id="Grid.load">
+<a class="viewcode-back" href="../../api/S2MFD.Grid.html#S2MFD.Grid.load">[docs]</a>
    <span class="nd">@classmethod</span>
    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
 <span class="w">      </span><span class="sd">&quot;&quot;&quot;</span>

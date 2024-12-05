@@ -160,10 +160,10 @@
 <li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.run_simulation.html">run_simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.time_marching.html">time_marching</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.tvd_runge_kutta.html">tvd_runge_kutta</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.S2MFD_data.html">S2MFD_data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.config_c.html">config_c</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.grid_c.html">grid_c</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.setup_c.html">setup_c</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Config.html">Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Data.html">Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Grid.html">Grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Setup.html">Setup</a></li>
 </ul>
 </details></li>
 </ul>
@@ -268,10 +268,10 @@
 <span class="kn">import</span> <span class="nn">pickle</span>
 <span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">erf</span>
 
-<div class="viewcode-block" id="setup_c">
-<a class="viewcode-back" href="../../api/S2MFD.setup_c.html#S2MFD.setup_c">[docs]</a>
+<div class="viewcode-block" id="Setup">
+<a class="viewcode-back" href="../../api/S2MFD.Setup.html#S2MFD.Setup">[docs]</a>
 <span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">setup_c</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">Setup</span><span class="p">:</span>
 <span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">   Class to configure and initialize physical properties used in simulations.</span>
 
@@ -304,18 +304,18 @@
    <span class="n">etrr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
    <span class="n">ibase</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
    
-<div class="viewcode-block" id="setup_c.__init__">
-<a class="viewcode-back" href="../../api/S2MFD.setup_c.html#S2MFD.setup_c.__init__">[docs]</a>
+<div class="viewcode-block" id="Setup.__init__">
+<a class="viewcode-back" href="../../api/S2MFD.Setup.html#S2MFD.Setup.__init__">[docs]</a>
    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">cfg</span><span class="p">,</span><span class="n">grid</span><span class="p">):</span>
 <span class="w">      </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">      Initialize the setup object.</span>
 <span class="sd">      </span>
 <span class="sd">      Parameters</span>
 <span class="sd">      ----------</span>
-<span class="sd">      cfg : S2MFD.config_c</span>
+<span class="sd">      cfg : S2MFD.Config</span>
 <span class="sd">         Configuration object.</span>
 <span class="sd">         </span>
-<span class="sd">      grid : S2MFD.grid_c</span>
+<span class="sd">      grid : S2MFD.Grid</span>
 <span class="sd">         Grid object.</span>
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="c1"># differential rotation</span>
@@ -384,8 +384,8 @@
 
 
 
-<div class="viewcode-block" id="setup_c.save">
-<a class="viewcode-back" href="../../api/S2MFD.setup_c.html#S2MFD.setup_c.save">[docs]</a>
+<div class="viewcode-block" id="Setup.save">
+<a class="viewcode-back" href="../../api/S2MFD.Setup.html#S2MFD.Setup.save">[docs]</a>
    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
 <span class="w">      </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">      Save the setup data to a file.</span>
@@ -398,8 +398,8 @@
       <span class="n">np</span><span class="o">.</span><span class="n">savez</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span></div>
 
    
-<div class="viewcode-block" id="setup_c.load">
-<a class="viewcode-back" href="../../api/S2MFD.setup_c.html#S2MFD.setup_c.load">[docs]</a>
+<div class="viewcode-block" id="Setup.load">
+<a class="viewcode-back" href="../../api/S2MFD.Setup.html#S2MFD.Setup.load">[docs]</a>
    <span class="nd">@classmethod</span>
    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
 <span class="w">      </span><span class="sd">&quot;&quot;&quot;</span>

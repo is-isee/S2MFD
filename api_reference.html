@@ -161,10 +161,10 @@
 <li class="toctree-l2"><a class="reference internal" href="api/S2MFD.run_simulation.html">run_simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/S2MFD.time_marching.html">time_marching</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/S2MFD.tvd_runge_kutta.html">tvd_runge_kutta</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/S2MFD.S2MFD_data.html">S2MFD_data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/S2MFD.config_c.html">config_c</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/S2MFD.grid_c.html">grid_c</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/S2MFD.setup_c.html">setup_c</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/S2MFD.Config.html">Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/S2MFD.Data.html">Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/S2MFD.Grid.html">Grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/S2MFD.Setup.html">Setup</a></li>
 </ul>
 </details></li>
 </ul>
@@ -396,16 +396,16 @@
 <h3>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h3>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table autosummary">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.S2MFD_data.html#S2MFD.S2MFD_data" title="S2MFD.S2MFD_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">S2MFD_data</span></code></a>(cfg, grid, setup)</p></td>
-<td><p>Class for managing the whole simulation data.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.config_c.html#S2MFD.config_c" title="S2MFD.config_c"><code class="xref py py-obj docutils literal notranslate"><span class="pre">config_c</span></code></a>([parameter_file])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.Config.html#S2MFD.Config" title="S2MFD.Config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Config</span></code></a>([parameter_file])</p></td>
 <td><p>Class for configuration management.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.grid_c.html#S2MFD.grid_c" title="S2MFD.grid_c"><code class="xref py py-obj docutils literal notranslate"><span class="pre">grid_c</span></code></a>(ix, jx, margin, rrmin, rrmax, thmin, ...)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.Data.html#S2MFD.Data" title="S2MFD.Data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Data</span></code></a>(cfg, grid, setup)</p></td>
+<td><p>Class for managing the whole simulation data.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.Grid.html#S2MFD.Grid" title="S2MFD.Grid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Grid</span></code></a>(ix, jx, margin, rrmin, rrmax, thmin, thmax)</p></td>
 <td><p>Class for managing the grid data.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.setup_c.html#S2MFD.setup_c" title="S2MFD.setup_c"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_c</span></code></a>(cfg, grid)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.Setup.html#S2MFD.Setup" title="S2MFD.Setup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Setup</span></code></a>(cfg, grid)</p></td>
 <td><p>Class to configure and initialize physical properties used in simulations.</p></td>
 </tr>
 </tbody>

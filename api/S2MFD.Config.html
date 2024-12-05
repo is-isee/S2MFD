@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>initial_condition &#8212; S2MFD 2024.11.28 documentation</title>
+    <title>Config &#8212; S2MFD 2024.11.28 documentation</title>
   
   
   
@@ -44,11 +44,11 @@
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'api/S2MFD.initial_condition';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/S2MFD.Config';</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="initialize" href="S2MFD.initialize.html" />
-    <link rel="prev" title="dth2" href="S2MFD.dth2.html" />
+    <link rel="next" title="Data" href="S2MFD.Data.html" />
+    <link rel="prev" title="tvd_runge_kutta" href="S2MFD.tvd_runge_kutta.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
@@ -152,7 +152,7 @@
 <li class="toctree-l2"><a class="reference internal" href="S2MFD.drr2.html">drr2</a></li>
 <li class="toctree-l2"><a class="reference internal" href="S2MFD.dth1.html">dth1</a></li>
 <li class="toctree-l2"><a class="reference internal" href="S2MFD.dth2.html">dth2</a></li>
-<li class="toctree-l2 current active"><a class="current reference internal" href="#">initial_condition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="S2MFD.initial_condition.html">initial_condition</a></li>
 <li class="toctree-l2"><a class="reference internal" href="S2MFD.initialize.html">initialize</a></li>
 <li class="toctree-l2"><a class="reference internal" href="S2MFD.io.html">io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="S2MFD.main_loop.html">main_loop</a></li>
@@ -161,7 +161,7 @@
 <li class="toctree-l2"><a class="reference internal" href="S2MFD.run_simulation.html">run_simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="S2MFD.time_marching.html">time_marching</a></li>
 <li class="toctree-l2"><a class="reference internal" href="S2MFD.tvd_runge_kutta.html">tvd_runge_kutta</a></li>
-<li class="toctree-l2"><a class="reference internal" href="S2MFD.Config.html">Config</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="S2MFD.Data.html">Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="S2MFD.Grid.html">Grid</a></li>
 <li class="toctree-l2"><a class="reference internal" href="S2MFD.Setup.html">Setup</a></li>
@@ -221,7 +221,7 @@
       
       
       
-      <li><a href="../_sources/api/S2MFD.initial_condition.rst" target="_blank"
+      <li><a href="../_sources/api/S2MFD.Config.rst" target="_blank"
    class="btn btn-sm btn-download-source-button dropdown-item"
    title="Download source file"
    data-bs-placement="left" data-bs-toggle="tooltip"
@@ -297,7 +297,7 @@
               
 
 <div id="jb-print-docs-body" class="onlyprint">
-    <h1>initial_condition</h1>
+    <h1>Config</h1>
     <!-- Table of contents -->
     <div id="print-main-content">
         <div id="jb-print-toc">
@@ -307,7 +307,13 @@
             </div>
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#S2MFD.initial_condition"><code class="docutils literal notranslate"><span class="pre">initial_condition()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#S2MFD.Config"><code class="docutils literal notranslate"><span class="pre">Config</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#S2MFD.Config.load"><code class="docutils literal notranslate"><span class="pre">Config.load()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#S2MFD.Config.load_parameters"><code class="docutils literal notranslate"><span class="pre">Config.load_parameters()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#S2MFD.Config.save"><code class="docutils literal notranslate"><span class="pre">Config.save()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#S2MFD.Config.__init__"><code class="docutils literal notranslate"><span class="pre">Config.__init__()</span></code></a></li>
+</ul>
+</li>
 </ul>
             </nav>
         </div>
@@ -319,12 +325,77 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="initial-condition">
-<h1>initial_condition<a class="headerlink" href="#initial-condition" title="Link to this heading">#</a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="S2MFD.initial_condition">
-<span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">initial_condition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/main_functions.html#initial_condition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.initial_condition" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+  <section id="config">
+<h1>Config<a class="headerlink" href="#config" title="Link to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="S2MFD.Config">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">Config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameter_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'parameters/defaults.py'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/config.html#Config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Config" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Class for configuration management.</p>
+<p class="rubric">Methods Summary</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Config.load" title="S2MFD.Config.load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code></a>(filename)</p></td>
+<td><p>Load configuration from a JSON file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Config.load_parameters" title="S2MFD.Config.load_parameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_parameters</span></code></a>(parameter_file)</p></td>
+<td><p>Load parameters from an external Python file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Config.save" title="S2MFD.Config.save"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code></a>()</p></td>
+<td><p>Save configuration to a JSON file.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Methods Documentation</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Config.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/config.html#Config.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Config.load" title="Link to this definition">#</a></dt>
+<dd><p>Load configuration from a JSON file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – file path to the JSON file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Config.load_parameters">
+<span class="sig-name descname"><span class="pre">load_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameter_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/config.html#Config.load_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Config.load_parameters" title="Link to this definition">#</a></dt>
+<dd><p>Load parameters from an external Python file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameter_file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – file path to the parameter file.
+file path is relative to the S2MFD directory.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Config.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/config.html#Config.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Config.save" title="Link to this definition">#</a></dt>
+<dd><p>Save configuration to a JSON file.
+The data is store in self.configfile defined in the parameter file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Config.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameter_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'parameters/defaults.py'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/config.html#Config.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Config.__init__" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameter_file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – file path to the parameter file.
+file path is relative to the S2MFD directory.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The parameter file should be a Python file with the following structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">S2MFD.parameters.defaults</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="c1">#(change parameters from defaults.py here)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
 
 </section>
 
@@ -340,20 +411,20 @@
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="S2MFD.dth2.html"
+       href="S2MFD.tvd_runge_kutta.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">dth2</p>
+        <p class="prev-next-title">tvd_runge_kutta</p>
       </div>
     </a>
     <a class="right-next"
-       href="S2MFD.initialize.html"
+       href="S2MFD.Data.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">initialize</p>
+        <p class="prev-next-title">Data</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -374,7 +445,13 @@
   </div>
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#S2MFD.initial_condition"><code class="docutils literal notranslate"><span class="pre">initial_condition()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#S2MFD.Config"><code class="docutils literal notranslate"><span class="pre">Config</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#S2MFD.Config.load"><code class="docutils literal notranslate"><span class="pre">Config.load()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#S2MFD.Config.load_parameters"><code class="docutils literal notranslate"><span class="pre">Config.load_parameters()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#S2MFD.Config.save"><code class="docutils literal notranslate"><span class="pre">Config.save()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#S2MFD.Config.__init__"><code class="docutils literal notranslate"><span class="pre">Config.__init__()</span></code></a></li>
+</ul>
+</li>
 </ul>
   </nav></div>
 

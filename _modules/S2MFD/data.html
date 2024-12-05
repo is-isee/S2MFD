@@ -160,10 +160,10 @@
 <li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.run_simulation.html">run_simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.time_marching.html">time_marching</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.tvd_runge_kutta.html">tvd_runge_kutta</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.S2MFD_data.html">S2MFD_data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.config_c.html">config_c</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.grid_c.html">grid_c</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.setup_c.html">setup_c</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Config.html">Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Data.html">Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Grid.html">Grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/S2MFD.Setup.html">Setup</a></li>
 </ul>
 </details></li>
 </ul>
@@ -264,19 +264,19 @@
 <span></span><span class="kn">import</span> <span class="nn">S2MFD</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<div class="viewcode-block" id="S2MFD_data">
-<a class="viewcode-back" href="../../api/S2MFD.S2MFD_data.html#S2MFD.S2MFD_data">[docs]</a>
-<span class="k">class</span> <span class="nc">S2MFD_data</span><span class="p">:</span>
+<div class="viewcode-block" id="Data">
+<a class="viewcode-back" href="../../api/S2MFD.Data.html#S2MFD.Data">[docs]</a>
+<span class="k">class</span> <span class="nc">Data</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Class for managing the whole simulation data.</span>
 
 <span class="sd">    Attributes</span>
 <span class="sd">    --------------</span>
-<span class="sd">    cfg : S2MFD.config_c</span>
+<span class="sd">    cfg : S2MFD.Config</span>
 <span class="sd">      Configuration object.</span>
-<span class="sd">    grid : S2MFD.grid_c</span>
+<span class="sd">    grid : S2MFD.Grid</span>
 <span class="sd">      Grid object.</span>
-<span class="sd">    setup : S2MFD.setup_c</span>
+<span class="sd">    setup : S2MFD.Setup</span>
 <span class="sd">      Setup object.</span>
 <span class="sd">    Bph : numpy.ndarray</span>
 <span class="sd">      Longitudinal magnetic field.</span>
@@ -291,19 +291,19 @@
 <span class="sd">    nd : int</span>
 <span class="sd">      Data output step.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-<div class="viewcode-block" id="S2MFD_data.__init__">
-<a class="viewcode-back" href="../../api/S2MFD.S2MFD_data.html#S2MFD.S2MFD_data.__init__">[docs]</a>
+<div class="viewcode-block" id="Data.__init__">
+<a class="viewcode-back" href="../../api/S2MFD.Data.html#S2MFD.Data.__init__">[docs]</a>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">setup</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize the S2MFD_data object.</span>
 <span class="sd">        </span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        cfg : S2MFD.config_c</span>
+<span class="sd">        cfg : S2MFD.Config</span>
 <span class="sd">            Configuration object.</span>
-<span class="sd">        grid : S2MFD.grid_c</span>
+<span class="sd">        grid : S2MFD.Grid</span>
 <span class="sd">            Grid object.</span>
-<span class="sd">        setup : S2MFD.setup_c</span>
+<span class="sd">        setup : S2MFD.Setup</span>
 <span class="sd">            Setup object.</span>
 <span class="sd">            </span>
 <span class="sd">        Returns</span>
@@ -321,8 +321,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">nd</span> <span class="o">=</span> <span class="kc">None</span>      </div>
 
     
-<div class="viewcode-block" id="S2MFD_data.initial_load">
-<a class="viewcode-back" href="../../api/S2MFD.S2MFD_data.html#S2MFD.S2MFD_data.initial_load">[docs]</a>
+<div class="viewcode-block" id="Data.initial_load">
+<a class="viewcode-back" href="../../api/S2MFD.Data.html#S2MFD.Data.initial_load">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">initial_load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span><span class="n">datadir</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; </span>
@@ -338,16 +338,16 @@
 <span class="sd">        S2MFD.S2MFD_data</span>
 <span class="sd">            An instance of the S2MFD_data class.</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
-        <span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">config_c</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">datadir</span><span class="o">+</span><span class="s1">&#39;config.json&#39;</span><span class="p">)</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">datadir</span><span class="o">+</span><span class="s1">&#39;config.json&#39;</span><span class="p">)</span>
         <span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span> <span class="o">=</span> <span class="n">datadir</span>
-        <span class="n">grid</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">grid_c</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">datadir</span><span class="o">+</span><span class="n">cfg</span><span class="o">.</span><span class="n">gridfile</span><span class="p">)</span>
-        <span class="n">setup</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">setup_c</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">datadir</span><span class="o">+</span><span class="n">cfg</span><span class="o">.</span><span class="n">setupfile</span><span class="p">)</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Grid</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">datadir</span><span class="o">+</span><span class="n">cfg</span><span class="o">.</span><span class="n">gridfile</span><span class="p">)</span>
+        <span class="n">setup</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Setup</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">datadir</span><span class="o">+</span><span class="n">cfg</span><span class="o">.</span><span class="n">setupfile</span><span class="p">)</span>
         
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span><span class="n">grid</span><span class="p">,</span><span class="n">setup</span><span class="p">)</span></div>
 
     
-<div class="viewcode-block" id="S2MFD_data.get_data_file_path">
-<a class="viewcode-back" href="../../api/S2MFD.S2MFD_data.html#S2MFD.S2MFD_data.get_data_file_path">[docs]</a>
+<div class="viewcode-block" id="Data.get_data_file_path">
+<a class="viewcode-back" href="../../api/S2MFD.Data.html#S2MFD.Data.get_data_file_path">[docs]</a>
     <span class="k">def</span> <span class="nf">get_data_file_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nd</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Generate the file path for a specific step.</span>
@@ -365,8 +365,8 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="o">+</span><span class="s1">&#39;data.&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">nd</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;.npz&#39;</span></div>
 
     
-<div class="viewcode-block" id="S2MFD_data.data_load">
-<a class="viewcode-back" href="../../api/S2MFD.S2MFD_data.html#S2MFD.S2MFD_data.data_load">[docs]</a>
+<div class="viewcode-block" id="Data.data_load">
+<a class="viewcode-back" href="../../api/S2MFD.Data.html#S2MFD.Data.data_load">[docs]</a>
     <span class="k">def</span> <span class="nf">data_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">nd</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load data for `Bph`, `Aph`, `time`, `n` and `nd`, from a file for a specific step.</span>

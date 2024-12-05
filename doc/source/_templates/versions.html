@@ -1,0 +1,27 @@
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      Version: {{ current_version.name }}
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+      {% if languages is iterable and languages|length >= 1 %}
+      <dl>
+        <dt>{{ _('Languages') }}</dt>
+          {% for the_language, url in languages %}
+            <dd><a href="{{ url }}">{{ the_language }}</a></dd>
+          {% endfor %}
+      </dl>
+      {% endif %}
+      {% if versions is iterable %}
+      <dl>
+        <dt>{{ _('Versions') }}</dt>
+        {% for version in versions %}
+          <dd><a href="{{ version.url }}">{{ version.name }}</a></dd>
+        {% endfor %}
+      </dl>
+      {% else %}
+      <p>No versions available</p>
+      {% endif %}
+      <br>
+    </div>
+</div>

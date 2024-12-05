@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from S2MFD.tools import drr2, dth2
-import S2MFD.config as cfg
+import S2MFD.cfg as Cfg
 import numpy as np
 import pickle
 from scipy.special import erf
@@ -45,7 +45,7 @@ class Setup:
       
       Parameters
       ----------
-      cfg : S2MFD.Config
+      cfg : S2MFD.Cfg
          Configuration object.
          
       grid : S2MFD.Grid

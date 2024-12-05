@@ -1,6 +1,6 @@
 paramdir = 'parameters/'
 from .main_functions import *
-from .config import Config
+from .cfg import Cfg
 from .grid import Grid
 from .setup import Setup
 from .data import Data

@@ -6,7 +6,7 @@ def initialize(cfg):
    Initialize the simulation by setting up the grid and setup objects.
 
    Parameters:
-   cfg (object): S2MFD.config_c object
+   cfg (object): S2MFD.Config object
 
    Returns:
    object: Initialized S2MFD.data object containing configuration, grid, and setup.
@@ -22,16 +22,16 @@ def initialize(cfg):
 
    # create grid and setup
    if cfg.cont_flag:
-      grid = S2MFD.grid_c.load(cfg.datadir+cfg.gridfile)
-      setup = S2MFD.setup_c.load(cfg.datadir+cfg.setupfile)
+      grid = S2MFD.Grid.load(cfg.datadir+cfg.gridfile)
+      setup = S2MFD.Setup.load(cfg.datadir+cfg.setupfile)
    else:
-      grid = S2MFD.grid_c(ix=cfg.ix,jx=cfg.jx,margin=cfg.margin
+      grid = S2MFD.Grid(ix=cfg.ix,jx=cfg.jx,margin=cfg.margin
                ,rrmin=cfg.rrmin,rrmax=cfg.rrmax,thmin=cfg.thmin,thmax=cfg.thmax)
       grid.save(cfg.datadir+cfg.gridfile)
-      setup = S2MFD.setup_c(cfg,grid)
+      setup = S2MFD.Setup(cfg,grid)
       setup.save(cfg.datadir+cfg.setupfile)
       
-   data = S2MFD.S2MFD_data(cfg,grid,setup)
+   data = S2MFD.Data(cfg,grid,setup)
       
    return data
 
@@ -139,9 +139,9 @@ def main_loop(data):
 def run_simulation(cfg=None, parameter_file=None):
    if cfg is None:
       if parameter_file is None:
-         cfg = S2MFD.config_c()
+         cfg = S2MFD.Config()
       else:
-         cfg = S2MFD.config_c(parameter_file)
+         cfg = S2MFD.Config(parameter_file)
    
    data = initialize(cfg)
    cfl_condition(data)

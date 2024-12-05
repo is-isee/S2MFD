@@ -59,6 +59,12 @@ autodoc_default_options = {
     'private-members': False,
 }
 
+html_context = {
+    "current_version": "main",  # 現在のバージョン
+    "versions": [               # 他のバージョンリスト
+        ("main", "/main/"),
+    ],
+}
 smv_tag_whitelist = r'^v.*$'  # タグ "v1.0" などを対象
 
 napoleon_include_init_with_doc = True

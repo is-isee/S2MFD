@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Usage &mdash; S2MFD 0.1.0 documentation</title>
+  <title>Usage &mdash; S2MFD 0.1.dev111 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
@@ -14,7 +14,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/documentation_options.js?v=1c57b938"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -84,8 +84,8 @@
 <p>デフォルトのパラメタは <a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2008A%26A...483..949J/abstract">Jouve et al., 2008</a> のFlux transport dynamoの動径磁場上部境界条件のものである。</p>
 <p>パラメタを変更するには、以下の二つの方法がある。</p>
 <ol class="arabic">
-<li><p>パラメタファイルを用意する。
-<code class="code docutils literal notranslate"><span class="pre">S2MFD.run_simulation()</span></code> の引数にパラメタファイルのパスを指定する。 <code class="code docutils literal notranslate"><span class="pre">S2MFD/parameters/</span></code> 以下にパラメタファイルを設置し、そのパスを指定する。</p>
+<li><p>パラメタファイルを用意する。</p>
+<p><code class="code docutils literal notranslate"><span class="pre">S2MFD.run_simulation()</span></code> の引数にパラメタファイルのパスを指定する。 <code class="code docutils literal notranslate"><span class="pre">S2MFD/parameters/</span></code> 以下にパラメタファイルを設置し、そのパスを指定する。</p>
 <blockquote>
 <div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">S2MFD</span>
 <span class="n">S2MFD</span><span class="o">.</span><span class="n">run_simulation</span><span class="p">(</span><span class="s1">&#39;parameters/your_parameter_file.py&#39;</span><span class="p">)</span>

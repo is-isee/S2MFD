@@ -38,6 +38,7 @@ def run_simulation(cfg=None, parameter_file=None):
          cfg = S2MFD.Cfg(parameter_file)
    
    sim = S2MFD.Simulation(cfg)
+   sim.initialize_simulation()
    sim.cfl_condition()
    sim.initial_condition()
    sim.main_loop()

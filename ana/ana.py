@@ -5,7 +5,7 @@ sys.path.append('../')
 import S2MFD
 
 datadir = '../data/'
-data = S2MFD.S2MFD_data.initial_load(datadir)
+data = S2MFD.Data.initial_load(datadir)
 
 cfg = data.cfg
 grid = data.grid

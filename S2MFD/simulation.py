@@ -65,7 +65,7 @@ class Simulation(S2MFD.Data):
                 
         self.dt  = dtmin
     
-    def io(self):
+    def save(self):
         """
         Saves data to file
         """
@@ -84,6 +84,7 @@ class Simulation(S2MFD.Data):
         grid = self.grid
         setup = self.setup
         import glob
+        print(cfg.cont_flag)
         # 初期条件
         if cfg.cont_flag:
             files = glob.glob(cfg.datadir+'data.*.npz')
@@ -100,7 +101,7 @@ class Simulation(S2MFD.Data):
             # data.Bph = np.sin(2*grid.TH)*0.4
             # data.Bph[0:setup.ibase,:] = 0
             
-        self.io()
+        self.save()
         
     def tvd_runge_kutta(self):
         """
@@ -149,14 +150,14 @@ class Simulation(S2MFD.Data):
                 # ax.set_ylim(-1,1)
                 # plt.pause(0.01)
                         
-                self.io()
+                self.save()
 
             self.tvd_runge_kutta()
             
 __all__ = [
          'initialize',
          'cfl_condition',
-         'io',
+         'save',
          'initial_condition',
          'tvd_runge_kutta',
          'main_loop',

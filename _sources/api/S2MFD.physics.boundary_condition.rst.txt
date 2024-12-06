@@ -1,0 +1,6 @@
+boundary_condition
+==================
+
+.. currentmodule:: S2MFD.physics
+
+.. autofunction:: boundary_condition

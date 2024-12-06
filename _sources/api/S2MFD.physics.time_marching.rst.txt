@@ -1,0 +1,6 @@
+time_marching
+=============
+
+.. currentmodule:: S2MFD.physics
+
+.. autofunction:: time_marching

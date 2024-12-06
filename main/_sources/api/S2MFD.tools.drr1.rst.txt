@@ -1,0 +1,6 @@
+drr1
+====
+
+.. currentmodule:: S2MFD.tools
+
+.. autofunction:: drr1

@@ -1,0 +1,6 @@
+advection
+=========
+
+.. currentmodule:: S2MFD.physics
+
+.. autofunction:: advection

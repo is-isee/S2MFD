@@ -21,7 +21,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="initialize" href="S2MFD.initialize.html" />
-    <link rel="prev" title="diffusion" href="S2MFD.diffusion.html" /> 
+    <link rel="prev" title="cfl_condition" href="S2MFD.cfl_condition.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -50,25 +50,20 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../api_reference.html">API reference</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api_reference.html#module-S2MFD">S2MFD Package</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="../api_reference.html#functions">Functions</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="S2MFD.advection.html">advection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="S2MFD.alpha_effect.html">alpha_effect</a></li>
-<li class="toctree-l4"><a class="reference internal" href="S2MFD.boundary_condition.html">boundary_condition</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.cfl_condition.html">cfl_condition</a></li>
-<li class="toctree-l4"><a class="reference internal" href="S2MFD.diffusion.html">diffusion</a></li>
 <li class="toctree-l4 current"><a class="current reference internal" href="#">initial_condition</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.initialize.html">initialize</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.io.html">io</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.main_loop.html">main_loop</a></li>
-<li class="toctree-l4"><a class="reference internal" href="S2MFD.omega_effect.html">omega_effect</a></li>
-<li class="toctree-l4"><a class="reference internal" href="S2MFD.poloidal_mag.html">poloidal_mag</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.run_simulation.html">run_simulation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="S2MFD.time_marching.html">time_marching</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.tvd_runge_kutta.html">tvd_runge_kutta</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../api_reference.html#classes">Classes</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.physics">S2MFD.physics Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.tools">S2MFD.tools Package</a></li>
 </ul>
 </li>
 </ul>
@@ -103,7 +98,21 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="S2MFD.initial_condition">
 <span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">initial_condition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/main_functions.html#initial_condition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.initial_condition" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Applies initial condition</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>S2MFD.data</em>) – instance of S2MFD.data</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>data</strong> – instance of S2MFD.data</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>S2MFD.data</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>We do not have to return data because it is a mutable object, but we do so for clarity</p>
+</dd></dl>
 
 </section>
 
@@ -111,7 +120,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="S2MFD.diffusion.html" class="btn btn-neutral float-left" title="diffusion" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="S2MFD.cfl_condition.html" class="btn btn-neutral float-left" title="cfl_condition" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="S2MFD.initialize.html" class="btn btn-neutral float-right" title="initialize" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

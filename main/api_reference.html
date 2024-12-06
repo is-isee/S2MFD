@@ -20,7 +20,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="advection" href="api/S2MFD.advection.html" />
+    <link rel="next" title="cfl_condition" href="api/S2MFD.cfl_condition.html" />
     <link rel="prev" title="Usage" href="usage.html" /> 
 </head>
 
@@ -50,19 +50,12 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#module-S2MFD">S2MFD Package</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#functions">Functions</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.advection.html">advection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.alpha_effect.html">alpha_effect</a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.boundary_condition.html">boundary_condition</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.cfl_condition.html">cfl_condition</a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.diffusion.html">diffusion</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.initial_condition.html">initial_condition</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.initialize.html">initialize</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.io.html">io</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.main_loop.html">main_loop</a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.omega_effect.html">omega_effect</a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.poloidal_mag.html">poloidal_mag</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.run_simulation.html">run_simulation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.time_marching.html">time_marching</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.tvd_runge_kutta.html">tvd_runge_kutta</a></li>
 </ul>
 </li>
@@ -71,6 +64,29 @@
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.Data.html">Data</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.Grid.html">Grid</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.Setup.html">Setup</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-S2MFD.physics">S2MFD.physics Package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.time_marching.html">time_marching</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.boundary_condition.html">boundary_condition</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.poloidal_mag.html">poloidal_mag</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.advection.html">advection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.diffusion.html">diffusion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.omega_effect.html">omega_effect</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.alpha_effect.html">alpha_effect</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-S2MFD.tools">S2MFD.tools Package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.tools.drr1.html">drr1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.tools.drr2.html">drr2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.tools.dth1.html">dth1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.tools.dth2.html">dth2</a></li>
 </ul>
 </li>
 </ul>
@@ -117,47 +133,26 @@
 <h3>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h3>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.advection.html#S2MFD.advection" title="S2MFD.advection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">advection</span></code></a>(Bph, Aph, RR, sinTH, urr, uth, ...)</p></td>
-<td><p>Calculate the advection terms of the magnetic field.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.alpha_effect.html#S2MFD.alpha_effect" title="S2MFD.alpha_effect"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alpha_effect</span></code></a>(Bph, Aph, rr, ibase, so, alpha_type)</p></td>
-<td><p>Calculate the alpha effect.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.boundary_condition.html#S2MFD.boundary_condition" title="S2MFD.boundary_condition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">boundary_condition</span></code></a>(Bph, Aph, grid)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.cfl_condition.html#S2MFD.cfl_condition" title="S2MFD.cfl_condition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cfl_condition</span></code></a>(data)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.diffusion.html#S2MFD.diffusion" title="S2MFD.diffusion"><code class="xref py py-obj docutils literal notranslate"><span class="pre">diffusion</span></code></a>(Bph, Aph, RR, sinTH, RRm, sinTHm, ...)</p></td>
-<td><p>Calculate the diffusion terms of the magnetic field.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.cfl_condition.html#S2MFD.cfl_condition" title="S2MFD.cfl_condition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cfl_condition</span></code></a>(data)</p></td>
+<td><p>Applies CFL condition</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.initial_condition.html#S2MFD.initial_condition" title="S2MFD.initial_condition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_condition</span></code></a>(data)</p></td>
-<td><p></p></td>
+<td><p>Applies initial condition</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.initialize.html#S2MFD.initialize" title="S2MFD.initialize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initialize</span></code></a>(cfg)</p></td>
 <td><p>Initialize the simulation by setting up the grid and setup objects.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.io.html#S2MFD.io" title="S2MFD.io"><code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code></a>(data)</p></td>
-<td><p></p></td>
+<td><p>Saves data to file</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.main_loop.html#S2MFD.main_loop" title="S2MFD.main_loop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">main_loop</span></code></a>(data)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.omega_effect.html#S2MFD.omega_effect" title="S2MFD.omega_effect"><code class="xref py py-obj docutils literal notranslate"><span class="pre">omega_effect</span></code></a>(Brr, Bth, RR, sinTH, omrr, omth)</p></td>
-<td><p>Calculate the omega effect.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.poloidal_mag.html#S2MFD.poloidal_mag" title="S2MFD.poloidal_mag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">poloidal_mag</span></code></a>(Aph, RR, sinTH, drr, dth)</p></td>
-<td><p>Calculate the poloidal magnetic field.</p></td>
+<td><p>Runs the main loop of the simulation</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.run_simulation.html#S2MFD.run_simulation" title="S2MFD.run_simulation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_simulation</span></code></a>([cfg, parameter_file])</p></td>
-<td><p></p></td>
+<td><p>Launches the simulation</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.time_marching.html#S2MFD.time_marching" title="S2MFD.time_marching"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time_marching</span></code></a>(Bph, Aph, dt, cfg, grid, setup)</p></td>
-<td><p>Perform time marching for the magnetic field.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.tvd_runge_kutta.html#S2MFD.tvd_runge_kutta" title="S2MFD.tvd_runge_kutta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tvd_runge_kutta</span></code></a>(data)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.tvd_runge_kutta.html#S2MFD.tvd_runge_kutta" title="S2MFD.tvd_runge_kutta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tvd_runge_kutta</span></code></a>(data)</p></td>
+<td><p>Applies TVD Runge-Kutta method</p></td>
 </tr>
 </tbody>
 </table>
@@ -182,6 +177,59 @@
 </table>
 </section>
 </section>
+<section id="module-S2MFD.physics">
+<span id="s2mfd-physics-package"></span><h2>S2MFD.physics Package<a class="headerlink" href="#module-S2MFD.physics" title="Link to this heading"></a></h2>
+<section id="id1">
+<h3>Functions<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.physics.time_marching.html#S2MFD.physics.time_marching" title="S2MFD.physics.time_marching"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time_marching</span></code></a>(Bph, Aph, dt, cfg, grid, setup)</p></td>
+<td><p>Perform time marching for the magnetic field.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.physics.boundary_condition.html#S2MFD.physics.boundary_condition" title="S2MFD.physics.boundary_condition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">boundary_condition</span></code></a>(Bph, Aph, grid)</p></td>
+<td><p>Applies boundary condition for the magnetic field.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.physics.poloidal_mag.html#S2MFD.physics.poloidal_mag" title="S2MFD.physics.poloidal_mag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">poloidal_mag</span></code></a>(Aph, RR, sinTH, drr, dth)</p></td>
+<td><p>Calculate the poloidal magnetic field.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.physics.advection.html#S2MFD.physics.advection" title="S2MFD.physics.advection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">advection</span></code></a>(Bph, Aph, RR, sinTH, urr, uth, ...)</p></td>
+<td><p>Calculate the advection terms of the magnetic field.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.physics.diffusion.html#S2MFD.physics.diffusion" title="S2MFD.physics.diffusion"><code class="xref py py-obj docutils literal notranslate"><span class="pre">diffusion</span></code></a>(Bph, Aph, RR, sinTH, RRm, sinTHm, ...)</p></td>
+<td><p>Calculate the diffusion terms of the magnetic field.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.physics.omega_effect.html#S2MFD.physics.omega_effect" title="S2MFD.physics.omega_effect"><code class="xref py py-obj docutils literal notranslate"><span class="pre">omega_effect</span></code></a>(Brr, Bth, RR, sinTH, omrr, omth)</p></td>
+<td><p>Calculate the omega effect.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.physics.alpha_effect.html#S2MFD.physics.alpha_effect" title="S2MFD.physics.alpha_effect"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alpha_effect</span></code></a>(Bph, Aph, rr, ibase, so, alpha_type)</p></td>
+<td><p>Calculate the alpha effect.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="module-S2MFD.tools">
+<span id="s2mfd-tools-package"></span><h2>S2MFD.tools Package<a class="headerlink" href="#module-S2MFD.tools" title="Link to this heading"></a></h2>
+<section id="id2">
+<h3>Functions<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.tools.drr1.html#S2MFD.tools.drr1" title="S2MFD.tools.drr1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">drr1</span></code></a>(qq, drr, dir)</p></td>
+<td><p>To calculate 1st order accuracy derivative in r direction</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.tools.drr2.html#S2MFD.tools.drr2" title="S2MFD.tools.drr2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">drr2</span></code></a>(qq, drr)</p></td>
+<td><p>To calculate 2nd order accuracy derivative in r direction</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.tools.dth1.html#S2MFD.tools.dth1" title="S2MFD.tools.dth1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dth1</span></code></a>(qq, dth, dir)</p></td>
+<td><p>To calculate 1st order accuracy derivative in theta direction</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.tools.dth2.html#S2MFD.tools.dth2" title="S2MFD.tools.dth2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dth2</span></code></a>(qq, dth)</p></td>
+<td><p>To calculate 2nd order accuracy derivative in theta direction</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
 </section>
 
 
@@ -189,7 +237,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="usage.html" class="btn btn-neutral float-left" title="Usage" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="api/S2MFD.advection.html" class="btn btn-neutral float-right" title="advection" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="api/S2MFD.cfl_condition.html" class="btn btn-neutral float-right" title="cfl_condition" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

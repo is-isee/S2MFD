@@ -1,0 +1,6 @@
+dth2
+====
+
+.. currentmodule:: S2MFD.tools
+
+.. autofunction:: dth2

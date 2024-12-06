@@ -1,0 +1,6 @@
+poloidal_mag
+============
+
+.. currentmodule:: S2MFD.physics
+
+.. autofunction:: poloidal_mag

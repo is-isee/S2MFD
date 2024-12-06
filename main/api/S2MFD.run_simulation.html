@@ -20,8 +20,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="time_marching" href="S2MFD.time_marching.html" />
-    <link rel="prev" title="poloidal_mag" href="S2MFD.poloidal_mag.html" /> 
+    <link rel="next" title="tvd_runge_kutta" href="S2MFD.tvd_runge_kutta.html" />
+    <link rel="prev" title="main_loop" href="S2MFD.main_loop.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -50,25 +50,20 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../api_reference.html">API reference</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api_reference.html#module-S2MFD">S2MFD Package</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="../api_reference.html#functions">Functions</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="S2MFD.advection.html">advection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="S2MFD.alpha_effect.html">alpha_effect</a></li>
-<li class="toctree-l4"><a class="reference internal" href="S2MFD.boundary_condition.html">boundary_condition</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.cfl_condition.html">cfl_condition</a></li>
-<li class="toctree-l4"><a class="reference internal" href="S2MFD.diffusion.html">diffusion</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.initial_condition.html">initial_condition</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.initialize.html">initialize</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.io.html">io</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.main_loop.html">main_loop</a></li>
-<li class="toctree-l4"><a class="reference internal" href="S2MFD.omega_effect.html">omega_effect</a></li>
-<li class="toctree-l4"><a class="reference internal" href="S2MFD.poloidal_mag.html">poloidal_mag</a></li>
 <li class="toctree-l4 current"><a class="current reference internal" href="#">run_simulation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="S2MFD.time_marching.html">time_marching</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.tvd_runge_kutta.html">tvd_runge_kutta</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../api_reference.html#classes">Classes</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.physics">S2MFD.physics Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.tools">S2MFD.tools Package</a></li>
 </ul>
 </li>
 </ul>
@@ -103,7 +98,17 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="S2MFD.run_simulation">
 <span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">run_simulation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/main_functions.html#run_simulation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.run_simulation" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Launches the simulation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cfg</strong> (<a class="reference internal" href="S2MFD.Cfg.html#S2MFD.Cfg" title="S2MFD.Cfg"><em>S2MFD.Cfg</em></a><em>, </em><em>optional</em>) – instance of S2MFD.Cfg</p></li>
+<li><p><strong>parameter_file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – file path to the parameter file.
+file path is relative to the S2MFD directory.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 </section>
 
@@ -111,8 +116,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="S2MFD.poloidal_mag.html" class="btn btn-neutral float-left" title="poloidal_mag" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="S2MFD.time_marching.html" class="btn btn-neutral float-right" title="time_marching" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="S2MFD.main_loop.html" class="btn btn-neutral float-left" title="main_loop" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="S2MFD.tvd_runge_kutta.html" class="btn btn-neutral float-right" title="tvd_runge_kutta" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

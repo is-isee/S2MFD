@@ -1,5 +1,26 @@
 #
 def boundary_condition(Bph, Aph, grid):
+   """
+   Applies boundary condition for the magnetic field.
+   
+   Parameters
+   ----------
+   Bph : numpy.ndarray
+      Longitudinal magnetic field
+   Aph : numpy.ndarray
+      Longitudinal vector potential
+      
+   Returns
+   -------
+   tuple of numpy.ndarray
+      - Bph : Radial  magnetic field
+      - Aph : Latitudinal magnetic
+      
+   Notes
+   -----
+   We do not have to return Bph and Aph because they are mutable objects, but we do so for clarity.
+   
+   """
    # 動径方向境界条件
    for i in range(0, grid.margin):
       # bottom boundary condition

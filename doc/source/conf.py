@@ -34,14 +34,16 @@ extensions = [
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'numpy': ('https://numpy.org/doc/stable/', None),  # NumPy のドキュメントへのリンクを追加
-    # 他のプロジェクトのドキュメントへのリンクを追加する場合はここに記述
+    'numpy': ('https://numpy.org/doc/stable/', None),
+    'numba': ('https://numba.readthedocs.io/en/stable/', None),  # Numba のドキュメントへのリンクを追加
 }
 
 templates_path = ['_templates']
 exclude_patterns = []
 
 language = 'en'
+
+autosummary_generate = True
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

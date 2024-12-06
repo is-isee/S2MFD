@@ -31,7 +31,7 @@ Btht = np.zeros((grid.ixg,grid.jxg,n1-n0))
 Bpht = np.zeros((grid.ixg,grid.jxg,n1-n0))
 for n  in range(n0,n1):
     data.data_load(n)
-    Brr, Bth = S2MFD.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+    Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
     d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')
     timet[n-n0] = d['time']
     Brrt[:,:,n-n0] = Brr

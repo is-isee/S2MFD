@@ -19,12 +19,13 @@ def poloidal_mag(Aph, RR, sinTH, drr, dth):
       Radial grid spacing
    dth : numpy.ndarray
       Colatitudinal grid spacing
+
    Returns
    -------
-   Brr : numpy.ndarray
-      Radial  magnetic field
-   Bth : numpy.ndarray
-      Latitudinal magnetic field
+   tuple of numpy.ndarray, float
+      - Brr : Radial  magnetic field
+      - Bth : Latitudinal magnetic field
+         
    """
    Brr = + dth2(sinTH*Aph,dth)/RR/sinTH
    Bth = - drr2(   RR*Aph,drr)/RR
@@ -56,14 +57,11 @@ def advection(Bph, Aph, RR, sinTH, urr,uth,drr,dth):
 
    Returns
    -------
-   Bph_adrr : numpy.ndarray
-      Radial advection of Bph
-   Bph_adth : numpy.ndarray
-      Colatitudinal advection of Bph
-   Aph_adrr : numpy.ndarray
-      Radial advection of Aph
-   Aph_adth : numpy.ndarray
-      Colatitudinal advection of Aph
+   tuple of numpy.ndarray
+      - Bph_adrr : Radial advection of Bph
+      - Bph_adth : Colatitudinal advection of Bph
+      - Aph_adrr : Radial advection of Aph
+      - Aph_adth : Colatitudinal advection of Aph
    """
    # 磁場の微分(移流量)
    # Bph_adrr = - drr2(Bph/RR   ,drr)*urr*RR #  動径方向の移流(Bph)
@@ -99,22 +97,18 @@ def diffusion(Bph, Aph, RR, sinTH, RRm, sinTHm, drr, dth, et, etrr):
       magnetic diffusivity
    etrr : numpy.ndarray
       Radial gradient of magnetic diffusivity
+   
    Returns
    -------
-   Bph_dfrr : numpy.ndarray
-      Radial diffusion of Bph
-   Bph_dfth : numpy.ndarray
-      Colatitudinal diffusion of Bph
-   Bph_dfex : numpy.ndarray
-      Extra diffusion term of Bph
-   Bph_dfrrg : numpy.ndarray
-      Radial gradient diffusion of Bph
-   Aph_dfrr : numpy.ndarray
-      Radial diffusion of Aph
-   Aph_dfth : numpy.ndarray
-      Colatitudinal diffusion of Aph
-   Aph_dfex : numpy.ndarray
-      Extra diffusion term of Aph
+   tuple of numpy.ndarray
+      - Bph_dfrr : Radial diffusion of Bph
+      - Bph_dfth : Colatitudinal diffusion of Bph
+      - Bph_dfex : Extra diffusion term of Bph
+      - Bph_dfrrg : Radial gradient diffusion of Bph
+      - Aph_dfrr : Radial diffusion of Aph
+      - Aph_dfth : Colatitudinal diffusion of Aph
+      - Aph_dfex : Extra diffusion term of Aph
+      
    """   
    # magnetic derivative
    Bphrr = drr1(Bph,drr,'up')
@@ -153,12 +147,13 @@ def omega_effect(Brr, Bth, RR, sinTH, omrr, omth):
       Radial gradient of angular velocity
    omth : numpy.ndarray
       Colatitudinal gradient of angular velocity
+
    Returns
    -------
-   Bph_omrr : numpy.ndarray
-      Radial omega effect term of Bph
-   Bph_omrh : numpy.ndarray
-      Colatitudinal omega effect term of Bph
+   tuple of numpy.ndarray
+   Bph_omrr : Radial omega effect term of Bph
+   Bph_omrh : Colatitudinal omega effect term of Bph
+   
    """
    Bph_omrr = Brr*omrr*RR*sinTH
    Bph_omth = Bth*omth*RR*sinTH
@@ -212,10 +207,9 @@ def time_marching(Bph, Aph, dt, cfg, grid, setup):
       Object containing setup information
    Returns
    -------
-   Bphm : numpy.ndarray
-      Updated longitudinal magnetic field
-   Aphm : numpy.ndarray
-      Updated longitudinal vector potential
+   tuple of numpy
+      - Bphm : Updated longitudinal magnetic field
+      - Aphm : Updated longitudinal vector potential
    """   
    # calculate poloidal magnetic field
    Brr, Bth = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
@@ -245,4 +239,3 @@ def time_marching(Bph, Aph, dt, cfg, grid, setup):
    Aphm = Aph + dt*dAph
    
    return Bphm, Aphm
-

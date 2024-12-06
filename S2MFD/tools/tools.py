@@ -12,14 +12,21 @@ def drr1(qq,drr,dir):
     '''
     To calculate 1st order accuracy derivative in r direction
    
-    Input:
-        qq: quantity to be differentiated (numpy 2D array)
-        drr: grid spacing in r direction (float)
-        dir: string, 'up' or 'dw'
-            'up': qq[i] = qq[i+1] - qq[i]
-            'dw': qq[i] = qq[i] - qq[i-1]
-    Output:
-        dqq: differentiated quantity (numpy 2D array)
+    Parameters
+    ----------
+    qq : numpy.ndarray, float
+        Quantity to be differentiated (2D)
+    drr : float
+        Grid spacing in r direction
+    dir: string
+        'up' or 'dw'
+        
+        'up': qq[i] = qq[i+1] - qq[i]
+        'dw': qq[i] = qq[i] - qq[i-1]
+    Returns
+    -------
+    dqq: numpy.ndarray, float
+        Differentiated quantity (2D)
     '''
    
     if dir == 'up':
@@ -48,11 +55,16 @@ def drr2(qq,drr):
     '''
     To calculate 2nd order accuracy derivative in r direction
    
-    Input:
-        qq: quantity to be differentiated (numpy 2D array)
-        drr: grid spacing in r direction (float)
-    Output:
-        dqq: differentiated quantity (numpy 2D array)
+    Parameters
+    ----------
+    qq: numpy.ndarray, float
+        Quantity to be differentiated (2D)
+    drr: float
+        Grid spacing in r direction
+    Returns
+    -------
+        dqq: numpy.ndarray, float
+            Differentiated quantity (2D)
     '''   
 
     # vectorization
@@ -74,14 +86,21 @@ def dth1(qq,dth,dir):
     '''
     To calculate 1st order accuracy derivative in theta direction
    
-    Input:
-        qq: quantity to be differentiated (numpy 2D array)
-        drr: grid spacing in theta direction (float)
-        dir: string, 'up' or 'dw'
+    Parameters
+    ----------
+        qq: numpy.ndarray, float
+            Quantity to be differentiated (2D)
+        drr: float
+            Grid spacing in theta direction
+        dir: string
+            'up' or 'dw'
             'up': qq[j] = qq[j+1] - qq[j]
             'dw': qq[j] = qq[j] - qq[j-1]
-    Output:
-        dqq: differentiated quantity (numpy 2D array)
+    
+    Returns
+    -------
+        dqq: numpy.ndarray
+            Differentiated quantity (2D)
     '''
    
     if dir == 'up':
@@ -109,11 +128,16 @@ def dth2(qq,dth):
     '''
     To calculate 2nd order accuracy derivative in theta direction
    
-    Input:
-        qq: quantity to be differentiated (numpy 2D array)
-        drr: grid spacing in theta direction (float)
-    Output:
-        dqq: differentiated quantity (numpy 2D array)
+    Parameters
+    ----------
+        qq: numpy.ndarray
+            Quantity to be differentiated (2D)
+        drr: float
+            Grid spacing in theta direction
+    
+    Returns
+    -------
+        dqq: differentiated quantity (2D)
     '''
     
     # vectorization
@@ -129,5 +153,3 @@ def dth2(qq,dth):
             dqq[i,j+1] = (qq[i,j+2] - qq[i,j])/dth*0.5
 
     return dqq
-
-#########

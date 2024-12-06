@@ -36,6 +36,24 @@ def initialize(cfg):
    return data
 
 def cfl_condition(data):
+   """
+   Applies CFL condition
+   
+   Parameters
+   ----------
+   data : S2MFD.data
+      instance of S2MFD.data
+   
+   Returns
+   -------
+   data : S2MFD.data
+      instance of S2MFD.data
+   
+   Notes
+   -----
+   We do not have to return data because it is a mutable object, but we do so for clarity
+
+   """
    grid = data.grid
    setup = data.setup
    #CFL condition
@@ -55,14 +73,39 @@ def cfl_condition(data):
    return data
 
 def io(data):
+   """
+   Saves data to file
+   
+   Parameters
+   ----------
+   data : S2MFD.data
+      instance of S2MFD.data
+   """
    grid = data.grid
-   Brr, Bth = S2MFD.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+   Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
    print(f"{data.time/86400:7.1f} [day]; n={data.n:06d}; nd={data.nd:04d}")
    filename = data.get_data_file_path(data.nd)
    np.savez(file=filename \
                ,Bph=data.Bph,Aph=data.Aph,time=data.time,n=data.n)
 
 def initial_condition(data):
+   """
+   Applies initial condition
+   
+   Parameters
+   ----------
+   data : S2MFD.data
+      instance of S2MFD.data
+   
+   Returns
+   -------
+   data : S2MFD.data
+      instance of S2MFD.data
+   
+   Notes
+   -----
+   We do not have to return data because it is a mutable object, but we do so for clarity   
+   """
    cfg = data.cfg
    grid = data.grid
    setup = data.setup
@@ -88,24 +131,48 @@ def initial_condition(data):
    return data
 
 def tvd_runge_kutta(data):
+   """
+   Applies TVD Runge-Kutta method
+   
+   Parameters
+   ----------
+   data : S2MFD.data
+      instance of S2MFD.data
+      
+   Returns
+   -------
+   data : S2MFD.data
+      instance of S2MFD.data
+      
+   Notes
+   -----
+   We do not have to return data because it is a mutable object, but we do so for clarity.
+   
+   """
    cfg = data.cfg
    grid = data.grid
    setup = data.setup
    #### dynamo equation               
-   Bphm, Aphm = S2MFD.time_marching(data.Bph , data.Aph ,data.dt, cfg, grid, setup)
-   Bphm, Aphm = S2MFD.boundary_condition(Bphm, Aphm, grid)
+   Bphm, Aphm = S2MFD.physics.time_marching(data.Bph , data.Aph ,data.dt, cfg, grid, setup)
+   Bphm, Aphm = S2MFD.physics.boundary_condition(Bphm, Aphm, grid)
 
-   Bphn, Aphn = S2MFD.time_marching(Bphm, Aphm, data.dt, cfg, grid, setup)
-   Bphn, Aphn = S2MFD.boundary_condition(Bphn, Aphn, grid)
+   Bphn, Aphn = S2MFD.physics.time_marching(Bphm, Aphm, data.dt, cfg, grid, setup)
+   Bphn, Aphn = S2MFD.physics.boundary_condition(Bphn, Aphn, grid)
    
    data.Bph = 0.5*data.Bph + 0.5*Bphn
    data.Aph = 0.5*data.Aph + 0.5*Aphn
    
    return data
 
-
-
 def main_loop(data):
+   """
+   Runs the main loop of the simulation
+      
+   Parameters
+   ----------
+   data : S2MFD.data
+      instance of S2MFD.data
+   """
    import matplotlib.pyplot as plt
    
    cfg = data.cfg
@@ -137,6 +204,17 @@ def main_loop(data):
       data = tvd_runge_kutta(data)
                               
 def run_simulation(cfg=None, parameter_file=None):
+   """
+   Launches the simulation
+   
+   Parameters
+   ----------
+   cfg : S2MFD.Cfg, optional
+      instance of S2MFD.Cfg
+   parameter_file : str, optional
+      file path to the parameter file.
+      file path is relative to the S2MFD directory.
+   """
    if cfg is None:
       if parameter_file is None:
          cfg = S2MFD.Cfg()

@@ -15,8 +15,23 @@ from .cfg import Cfg
 from .grid import Grid
 from .setup import Setup
 from .data import Data
-from .time_marching import *
-from .boundary_condition import *
+from . import physics
+from . import tools
+
+# __all__ = [ 'Cfg',
+#             'Grid',
+#             'Setup',
+#             'Data',
+#             'physics',
+#             'tools',
+#             'initialize',
+#             'cfl_condition',
+#             'io',
+#             'initial_condition',
+#             'tvd_runge_kutta',
+#             'main_loop',
+#             'run_simulation',
+#             ]
 
 try:
     from ._version import version as __version__

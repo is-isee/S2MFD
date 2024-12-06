@@ -1,0 +1,267 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API reference &mdash; S2MFD 0.1.dev111 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=1c57b938"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="run_simulation" href="api/S2MFD.run_simulation.html" />
+    <link rel="prev" title="Usage" href="usage.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            S2MFD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-S2MFD">S2MFD Package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#functions">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.run_simulation.html">run_simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.Cfg.html">Cfg</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.Grid.html">Grid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.Setup.html">Setup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.Data.html">Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.Simulation.html">Simulation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-S2MFD.physics">S2MFD.physics Package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.time_marching.html">time_marching</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.boundary_condition.html">boundary_condition</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.poloidal_mag.html">poloidal_mag</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.advection.html">advection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.diffusion.html">diffusion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.omega_effect.html">omega_effect</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.alpha_effect.html">alpha_effect</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-S2MFD.tools">S2MFD.tools Package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.tools.drr1.html">drr1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.tools.drr2.html">drr2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.tools.dth1.html">dth1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.tools.dth2.html">dth2</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">S2MFD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">API reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/api_reference.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="api-reference">
+<h1>API reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h1>
+<section id="module-S2MFD">
+<span id="s2mfd-package"></span><h2>S2MFD Package<a class="headerlink" href="#module-S2MFD" title="Link to this heading"></a></h2>
+<p>S2MFD: A Python package for solving 2D mean field dynamo equations in background of solar/stellar convection zone.</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">S2MFD</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S2MFD</span><span class="o">.</span><span class="n">run_simulation</span><span class="p">()</span>
+</pre></div>
+</div>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.run_simulation.html#S2MFD.run_simulation" title="S2MFD.run_simulation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_simulation</span></code></a>([cfg, parameter_file])</p></td>
+<td><p>Launches the simulation</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.Cfg.html#S2MFD.Cfg" title="S2MFD.Cfg"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Cfg</span></code></a>([parameter_file])</p></td>
+<td><p>Class for configuration management.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.Grid.html#S2MFD.Grid" title="S2MFD.Grid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Grid</span></code></a>(ix, jx, margin, rrmin, rrmax, thmin, thmax)</p></td>
+<td><p>Class for managing the grid data.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.Setup.html#S2MFD.Setup" title="S2MFD.Setup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Setup</span></code></a>(cfg, grid)</p></td>
+<td><p>Class to configure and initialize physical properties used in simulations.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.Data.html#S2MFD.Data" title="S2MFD.Data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Data</span></code></a>(cfg, grid, setup)</p></td>
+<td><p>Class for managing the whole simulation data.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.Simulation.html#S2MFD.Simulation" title="S2MFD.Simulation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Simulation</span></code></a>(cfg[, grid, setup])</p></td>
+<td><p>Class for running the simulation inheriting from S2MFD.Data</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="module-S2MFD.physics">
+<span id="s2mfd-physics-package"></span><h2>S2MFD.physics Package<a class="headerlink" href="#module-S2MFD.physics" title="Link to this heading"></a></h2>
+<section id="id1">
+<h3>Functions<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.physics.time_marching.html#S2MFD.physics.time_marching" title="S2MFD.physics.time_marching"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time_marching</span></code></a>(Bph, Aph, dt, cfg, grid, setup)</p></td>
+<td><p>Perform time marching for the magnetic field.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.physics.boundary_condition.html#S2MFD.physics.boundary_condition" title="S2MFD.physics.boundary_condition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">boundary_condition</span></code></a>(Bph, Aph, grid)</p></td>
+<td><p>Applies boundary condition for the magnetic field.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.physics.poloidal_mag.html#S2MFD.physics.poloidal_mag" title="S2MFD.physics.poloidal_mag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">poloidal_mag</span></code></a>(Aph, RR, sinTH, drr, dth)</p></td>
+<td><p>Calculate the poloidal magnetic field.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.physics.advection.html#S2MFD.physics.advection" title="S2MFD.physics.advection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">advection</span></code></a>(Bph, Aph, RR, sinTH, urr, uth, ...)</p></td>
+<td><p>Calculate the advection terms of the magnetic field.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.physics.diffusion.html#S2MFD.physics.diffusion" title="S2MFD.physics.diffusion"><code class="xref py py-obj docutils literal notranslate"><span class="pre">diffusion</span></code></a>(Bph, Aph, RR, sinTH, RRm, sinTHm, ...)</p></td>
+<td><p>Calculate the diffusion terms of the magnetic field.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.physics.omega_effect.html#S2MFD.physics.omega_effect" title="S2MFD.physics.omega_effect"><code class="xref py py-obj docutils literal notranslate"><span class="pre">omega_effect</span></code></a>(Brr, Bth, RR, sinTH, omrr, omth)</p></td>
+<td><p>Calculate the omega effect.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.physics.alpha_effect.html#S2MFD.physics.alpha_effect" title="S2MFD.physics.alpha_effect"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alpha_effect</span></code></a>(Bph, Aph, rr, ibase, so, alpha_type)</p></td>
+<td><p>Calculate the alpha effect.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="module-S2MFD.tools">
+<span id="s2mfd-tools-package"></span><h2>S2MFD.tools Package<a class="headerlink" href="#module-S2MFD.tools" title="Link to this heading"></a></h2>
+<section id="id2">
+<h3>Functions<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.tools.drr1.html#S2MFD.tools.drr1" title="S2MFD.tools.drr1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">drr1</span></code></a>(qq, drr, dir)</p></td>
+<td><p>To calculate 1st order accuracy derivative in r direction</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.tools.drr2.html#S2MFD.tools.drr2" title="S2MFD.tools.drr2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">drr2</span></code></a>(qq, drr)</p></td>
+<td><p>To calculate 2nd order accuracy derivative in r direction</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.tools.dth1.html#S2MFD.tools.dth1" title="S2MFD.tools.dth1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dth1</span></code></a>(qq, dth, dir)</p></td>
+<td><p>To calculate 1st order accuracy derivative in theta direction</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.tools.dth2.html#S2MFD.tools.dth2" title="S2MFD.tools.dth2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dth2</span></code></a>(qq, dth)</p></td>
+<td><p>To calculate 2nd order accuracy derivative in theta direction</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="usage.html" class="btn btn-neutral float-left" title="Usage" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api/S2MFD.run_simulation.html" class="btn btn-neutral float-right" title="run_simulation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, S2MFD project.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      Version: v0.2.0
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+      
+      
+      <dl>
+        <dt>Versions</dt>
+        
+          <dd><a href="../v0.1.0/api_reference.html">v0.1.0</a></dd>
+        
+          <dd><a href="api_reference.html">v0.2.0</a></dd>
+        
+          <dd><a href="../main/api_reference.html">main</a></dd>
+        
+      </dl>
+      
+      <br>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

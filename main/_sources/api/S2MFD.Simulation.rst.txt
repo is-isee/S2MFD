@@ -1,0 +1,27 @@
+Simulation
+==========
+
+.. currentmodule:: S2MFD
+
+.. autoclass:: Simulation
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Simulation.cfl_condition
+      ~Simulation.initial_condition
+      ~Simulation.initialize_simulation
+      ~Simulation.main_loop
+      ~Simulation.save
+      ~Simulation.tvd_runge_kutta
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: cfl_condition
+   .. automethod:: initial_condition
+   .. automethod:: initialize_simulation
+   .. automethod:: main_loop
+   .. automethod:: save
+   .. automethod:: tvd_runge_kutta

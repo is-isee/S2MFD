@@ -1,0 +1,250 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data &mdash; S2MFD 0.1.dev111 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1c57b938"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Simulation" href="S2MFD.Simulation.html" />
+    <link rel="prev" title="Setup" href="S2MFD.Setup.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            S2MFD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_reference.html">API reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api_reference.html#module-S2MFD">S2MFD Package</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../api_reference.html#functions">Functions</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../api_reference.html#classes">Classes</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="S2MFD.Cfg.html">Cfg</a></li>
+<li class="toctree-l4"><a class="reference internal" href="S2MFD.Grid.html">Grid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="S2MFD.Setup.html">Setup</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="S2MFD.Simulation.html">Simulation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.physics">S2MFD.physics Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.tools">S2MFD.tools Package</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">S2MFD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api_reference.html">API reference</a></li>
+      <li class="breadcrumb-item active">Data</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/S2MFD.Data.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="data">
+<h1>Data<a class="headerlink" href="#data" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="S2MFD.Data">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">Data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/data.html#Data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Data" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Class for managing the whole simulation data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cfg</strong> (<a class="reference internal" href="S2MFD.Cfg.html#S2MFD.Cfg" title="S2MFD.Cfg"><em>S2MFD.Cfg</em></a>) – Configuration object.</p></li>
+<li><p><strong>grid</strong> (<a class="reference internal" href="S2MFD.Grid.html#S2MFD.Grid" title="S2MFD.Grid"><em>S2MFD.Grid</em></a>) – Grid object.</p></li>
+<li><p><strong>setup</strong> (<a class="reference internal" href="S2MFD.Setup.html#S2MFD.Setup" title="S2MFD.Setup"><em>S2MFD.Setup</em></a>) – Setup object.</p></li>
+<li><p><strong>Bph</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Longitudinal magnetic field.</p></li>
+<li><p><strong>Aph</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Longitudinal vector potential.</p></li>
+<li><p><strong>time</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Simulation time.</p></li>
+<li><p><strong>dt</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Time spacing.</p></li>
+<li><p><strong>n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Time step.</p></li>
+<li><p><strong>nd</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Data output step.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Methods Summary</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Data.data_load" title="S2MFD.Data.data_load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data_load</span></code></a>(nd)</p></td>
+<td><p>Load data for <cite>Bph</cite>, <cite>Aph</cite>, <cite>time</cite>, <cite>n</cite> and <cite>nd</cite>, from a file for a specific step.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Data.get_data_file_path" title="S2MFD.Data.get_data_file_path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_data_file_path</span></code></a>(nd)</p></td>
+<td><p>Generate the file path for a specific step.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Data.initial_load" title="S2MFD.Data.initial_load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_load</span></code></a>(datadir)</p></td>
+<td><p>Load initial configuration, grid, and setup from the specified directory.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods Documentation</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Data.data_load">
+<span class="sig-name descname"><span class="pre">data_load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nd</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/data.html#Data.data_load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Data.data_load" title="Link to this definition"></a></dt>
+<dd><p>Load data for <cite>Bph</cite>, <cite>Aph</cite>, <cite>time</cite>, <cite>n</cite> and <cite>nd</cite>, from a file for a specific step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>nd</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Data output step</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Data.get_data_file_path">
+<span class="sig-name descname"><span class="pre">get_data_file_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nd</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/data.html#Data.get_data_file_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Data.get_data_file_path" title="Link to this definition"></a></dt>
+<dd><p>Generate the file path for a specific step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>nd</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Data output step</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>File path for the specified data step.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Data.initial_load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initial_load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">datadir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/data.html#Data.initial_load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Data.initial_load" title="Link to this definition"></a></dt>
+<dd><p>Load initial configuration, grid, and setup from the specified directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>datadir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Directory containing the configuration, grid, and setup files.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of the S2MFD_data class.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>S2MFD.S2MFD_data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Data.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/data.html#Data.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Data.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize the S2MFD_data object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cfg</strong> (<a class="reference internal" href="S2MFD.Cfg.html#S2MFD.Cfg" title="S2MFD.Cfg"><em>S2MFD.Cfg</em></a>) – Configuration object.</p></li>
+<li><p><strong>grid</strong> (<a class="reference internal" href="S2MFD.Grid.html#S2MFD.Grid" title="S2MFD.Grid"><em>S2MFD.Grid</em></a>) – Grid object.</p></li>
+<li><p><strong>setup</strong> (<a class="reference internal" href="S2MFD.Setup.html#S2MFD.Setup" title="S2MFD.Setup"><em>S2MFD.Setup</em></a>) – Setup object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="S2MFD.Setup.html" class="btn btn-neutral float-left" title="Setup" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="S2MFD.Simulation.html" class="btn btn-neutral float-right" title="Simulation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, S2MFD project.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      Version: v0.2.0
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+      
+      
+      <dl>
+        <dt>Versions</dt>
+        
+          <dd><a href="../../v0.1.0/index.html">v0.1.0</a></dd>
+        
+          <dd><a href="S2MFD.Data.html">v0.2.0</a></dd>
+        
+          <dd><a href="../../main/index.html">main</a></dd>
+        
+      </dl>
+      
+      <br>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

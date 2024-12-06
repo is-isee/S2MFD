@@ -1,3 +1,6 @@
+"""
+Calculate physical processes in the simulation.
+"""
 from .physics_core import *
 from .boundary_condition import *
 

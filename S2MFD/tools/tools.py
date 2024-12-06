@@ -1,7 +1,3 @@
-'''
-Tools for S2MFD calculations
-
-'''
 import sys
 import numpy as np
 from numba import njit, float64

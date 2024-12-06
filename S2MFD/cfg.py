@@ -51,7 +51,7 @@ class Cfg:
         # Set self attributes for all items in the module
         for k, v in vars(module).items():
             if not k.startswith("__"):  # Skip special attributes
-                setattr(self, k, v) 
+                setattr(self, k, v)
         
     def save(self):
         """

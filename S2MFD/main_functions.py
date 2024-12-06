@@ -1,7 +1,7 @@
 import numpy as np
 import S2MFD
 
-def initialize(cfg):
+def initialize_simulation(cfg):
    """
    Initialize the simulation by setting up the grid and setup objects.
 
@@ -221,7 +221,17 @@ def run_simulation(cfg=None, parameter_file=None):
       else:
          cfg = S2MFD.Cfg(parameter_file)
    
-   data = initialize(cfg)
+   data = initialize_simulation(cfg)
    cfl_condition(data)
    initial_condition(data)
    main_loop(data)
+   
+__all__ = [
+         'initialize',
+         'cfl_condition',
+         'io',
+         'initial_condition',
+         'tvd_runge_kutta',
+         'main_loop',
+         'run_simulation',
+         ]

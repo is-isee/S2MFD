@@ -11,6 +11,7 @@ Example
 paramdir = 'parameters/'
 
 from .main_functions import *
+from .main_functions import __all__ as main_functions_all
 from .cfg import Cfg
 from .grid import Grid
 from .setup import Setup
@@ -18,20 +19,14 @@ from .data import Data
 from . import physics
 from . import tools
 
-# __all__ = [ 'Cfg',
-#             'Grid',
-#             'Setup',
-#             'Data',
-#             'physics',
-#             'tools',
-#             'initialize',
-#             'cfl_condition',
-#             'io',
-#             'initial_condition',
-#             'tvd_runge_kutta',
-#             'main_loop',
-#             'run_simulation',
-#             ]
+__all__ = [ 'Cfg',
+            'Grid',
+            'Setup',
+            'Data',
+            'physics',
+            'tools',
+            *main_functions_all,
+            ]
 
 try:
     from ._version import version as __version__

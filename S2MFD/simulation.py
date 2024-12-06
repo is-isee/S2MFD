@@ -84,7 +84,6 @@ class Simulation(S2MFD.Data):
         grid = self.grid
         setup = self.setup
         import glob
-        print(cfg.cont_flag)
         # 初期条件
         if cfg.cont_flag:
             files = glob.glob(cfg.datadir+'data.*.npz')

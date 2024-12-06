@@ -10,12 +10,12 @@ Example
 
 paramdir = 'parameters/'
 
-from .main_functions import *
-from .main_functions import __all__ as main_functions_all
+from .main_functions import run_simulation
 from .cfg import Cfg
 from .grid import Grid
 from .setup import Setup
 from .data import Data
+from .simulation import Simulation
 from . import physics
 from . import tools
 
@@ -23,9 +23,10 @@ __all__ = [ 'Cfg',
             'Grid',
             'Setup',
             'Data',
+            'Simulation',
             'physics',
             'tools',
-            *main_functions_all,
+            'run_simulation',
             ]
 
 try:

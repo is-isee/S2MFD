@@ -1,207 +1,4 @@
-import numpy as np
 import S2MFD
-
-def initialize_simulation(cfg):
-   """
-   Initialize the simulation by setting up the grid and setup objects.
-
-   Parameters:
-   cfg (object): S2MFD.Cfg object
-
-   Returns:
-   object: Initialized S2MFD.data object containing configuration, grid, and setup.
-   """   
-   import os
-   
-   # make data directory
-   if not os.path.isdir(cfg.datadir):
-      cfg.cont_flag = False
-      os.makedirs(cfg.datadir,exist_ok=True)
-
-   cfg.save()
-
-   # create grid and setup
-   if cfg.cont_flag:
-      grid = S2MFD.Grid.load(cfg.datadir+cfg.gridfile)
-      setup = S2MFD.Setup.load(cfg.datadir+cfg.setupfile)
-   else:
-      grid = S2MFD.Grid(ix=cfg.ix,jx=cfg.jx,margin=cfg.margin
-               ,rrmin=cfg.rrmin,rrmax=cfg.rrmax,thmin=cfg.thmin,thmax=cfg.thmax)
-      grid.save(cfg.datadir+cfg.gridfile)
-      setup = S2MFD.Setup(cfg,grid)
-      setup.save(cfg.datadir+cfg.setupfile)
-      
-   data = S2MFD.Data(cfg,grid,setup)
-      
-   return data
-
-def cfl_condition(data):
-   """
-   Applies CFL condition
-   
-   Parameters
-   ----------
-   data : S2MFD.data
-      instance of S2MFD.data
-   
-   Returns
-   -------
-   data : S2MFD.data
-      instance of S2MFD.data
-   
-   Notes
-   -----
-   We do not have to return data because it is a mutable object, but we do so for clarity
-
-   """
-   grid = data.grid
-   setup = data.setup
-   #CFL condition
-   c_cfl=0.8
-   dtmin = 1.e10
-   for i in range(grid.margin,grid.ixg-grid.margin):
-      for j in range(grid.margin,grid.jxg-grid.margin):
-         dt_adv = c_cfl * np.min([grid.drr, grid.rr[i]*grid.dth])/ np.sqrt(setup.urr[i,j]**2 + setup.uth[i,j]**2 + 1.e-20)
-         dt_dif = c_cfl * np.min([grid.drr, grid.rr[i]*grid.dth])**2/(2 * setup.et[i,j] + 1.e-20)
-         dtmin = np.min([dtmin,dt_adv,dt_dif])
-         
-   data.dt  = dtmin
-   
-   # cfg = data.cfg
-   # data.dt = 5.e-6*cfg.RSUN**2/cfg.ett
-   # print(data.dt)
-   return data
-
-def io(data):
-   """
-   Saves data to file
-   
-   Parameters
-   ----------
-   data : S2MFD.data
-      instance of S2MFD.data
-   """
-   grid = data.grid
-   Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
-   print(f"{data.time/86400:7.1f} [day]; n={data.n:06d}; nd={data.nd:04d}")
-   filename = data.get_data_file_path(data.nd)
-   np.savez(file=filename \
-               ,Bph=data.Bph,Aph=data.Aph,time=data.time,n=data.n)
-
-def initial_condition(data):
-   """
-   Applies initial condition
-   
-   Parameters
-   ----------
-   data : S2MFD.data
-      instance of S2MFD.data
-   
-   Returns
-   -------
-   data : S2MFD.data
-      instance of S2MFD.data
-   
-   Notes
-   -----
-   We do not have to return data because it is a mutable object, but we do so for clarity   
-   """
-   cfg = data.cfg
-   grid = data.grid
-   setup = data.setup
-   import glob
-   # 初期条件
-   if cfg.cont_flag:
-      files = glob.glob(cfg.datadir+'data.*.npz')
-      data.nd = max([int(f.split('.')[-2]) for f in files])
-      data.data_load(data.nd)
-   else:
-      data.nd = 0
-      data.n = 0
-      data.time = 0.0
-      data.Aph = np.zeros((grid.ixg, grid.jxg))
-      data.Bph = np.zeros((grid.ixg, grid.jxg))
-      data.Aph = grid.sinTH/(grid.RR/cfg.RSUN)**2*cfg.RSUN/100
-      data.Aph[0:setup.ibase,:] = 0
-      # data.Bph = np.sin(2*grid.TH)*0.4
-      # data.Bph[0:setup.ibase,:] = 0
-      
-   io(data)
-   
-   return data
-
-def tvd_runge_kutta(data):
-   """
-   Applies TVD Runge-Kutta method
-   
-   Parameters
-   ----------
-   data : S2MFD.data
-      instance of S2MFD.data
-      
-   Returns
-   -------
-   data : S2MFD.data
-      instance of S2MFD.data
-      
-   Notes
-   -----
-   We do not have to return data because it is a mutable object, but we do so for clarity.
-   
-   """
-   cfg = data.cfg
-   grid = data.grid
-   setup = data.setup
-   #### dynamo equation               
-   Bphm, Aphm = S2MFD.physics.time_marching(data.Bph , data.Aph ,data.dt, cfg, grid, setup)
-   Bphm, Aphm = S2MFD.physics.boundary_condition(Bphm, Aphm, grid)
-
-   Bphn, Aphn = S2MFD.physics.time_marching(Bphm, Aphm, data.dt, cfg, grid, setup)
-   Bphn, Aphn = S2MFD.physics.boundary_condition(Bphn, Aphn, grid)
-   
-   data.Bph = 0.5*data.Bph + 0.5*Bphn
-   data.Aph = 0.5*data.Aph + 0.5*Aphn
-   
-   return data
-
-def main_loop(data):
-   """
-   Runs the main loop of the simulation
-      
-   Parameters
-   ----------
-   data : S2MFD.data
-      instance of S2MFD.data
-   """
-   import matplotlib.pyplot as plt
-   
-   cfg = data.cfg
-   grid = data.grid
-      
-   # plt.clf()
-   # plt.close('all')
-   # fig = plt.figure('dynamo',figsize=(5,10))   
-   # ax = fig.add_subplot(111,aspect='equal')
-   
-   while data.time < cfg.tend:
-      data.time += data.dt
-      data.n += 1
-      if(data.time//cfg.dtout != (data.time-data.dt)//cfg.dtout):
-         data.nd += 1
-         # ax.clear()
-         # ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,data.Bph,vmax=5.e0,vmin=-5.e0,cmap='bwr',shading='auto')
-         # ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*data.Aph/cfg.RSUN,colors='black',levels=np.linspace(-0.02,0.02,16))
-         # radius = grid.rrmax/cfg.RSUN
-         # ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4)
-         # radius = grid.rrmin/cfg.RSUN         
-         # ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4)
-         # ax.set_xlim( 0,1)
-         # ax.set_ylim(-1,1)
-         # plt.pause(0.01)
-                  
-         io(data)
-
-      data = tvd_runge_kutta(data)
                               
 def run_simulation(cfg=None, parameter_file=None):
    """
@@ -214,6 +11,25 @@ def run_simulation(cfg=None, parameter_file=None):
    parameter_file : str, optional
       file path to the parameter file.
       file path is relative to the S2MFD directory.
+      
+   Example
+   -------
+   If you want to run the simulation with the default parameter file, you can do:
+
+   >>> import S2MFD
+   >>> S2MFD.run_simulation()
+   
+   If you want to run the simulation with a specific parameter file, you can do:
+
+   >>> import S2MFD
+   >>> S2MFD.run_simulation(parameter_file='parameters/alpha_omega.py')
+   
+   If you want to edit parameters in the parameter file, you can do:
+
+   >>> import S2MFD
+   >>> cfg = S2MFD.Cfg('parameters/alpha_omega.py')
+   >>> cfg.m = 2
+   >>> S2MFD.run_simulation(cfg)
    """
    if cfg is None:
       if parameter_file is None:
@@ -221,17 +37,8 @@ def run_simulation(cfg=None, parameter_file=None):
       else:
          cfg = S2MFD.Cfg(parameter_file)
    
-   data = initialize_simulation(cfg)
-   cfl_condition(data)
-   initial_condition(data)
-   main_loop(data)
+   sim = S2MFD.Simulation(cfg)
+   sim.cfl_condition()
+   sim.initial_condition()
+   sim.main_loop()
    
-__all__ = [
-         'initialize',
-         'cfl_condition',
-         'io',
-         'initial_condition',
-         'tvd_runge_kutta',
-         'main_loop',
-         'run_simulation',
-         ]

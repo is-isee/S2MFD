@@ -47,3 +47,53 @@ def boundary_condition(Bph, Aph, grid):
       Bph[grid.margin:grid.ixg-grid.margin,grid.jxg-j-1] = -Bph[grid.margin:grid.ixg-grid.margin,grid.jxg-2*grid.margin+j]
       Aph[grid.margin:grid.ixg-grid.margin,grid.jxg-j-1] = -Aph[grid.margin:grid.ixg-grid.margin,grid.jxg-2*grid.margin+j]
    return Bph, Aph
+
+# associated legendre polynomials (P^1_n(cosθ))
+def calculate_associated_legendre_polynomials(xx):
+   # associated legendre polynomials (P^1_n(cosθ))
+   # n = 0, 1
+   lelist = [np.zeros_like(xx), -(1-xx**2)**0.5]
+   # Final term number
+   termnum = 7
+   # n = 2, 3, ..., termnum
+   for l in range(2, termnum+1):
+      # recurrence relation
+      alp = ((2*l-1)/(l-1))*xx*lelist[l-1]-(l/(l-1))*lelist[l-2]
+      # associated legendre polynomials list
+      lelist.append(alp)
+   return lelist
+
+# Dikpati+1999
+def top_boundary_condition(Bph, Aph, grid, lelist):
+   PnS = np.zeros_like(grid.TH)
+   ale = np.zeros(termnum + 1)
+   integral = np.zeros_like(grid.th)
+
+   # a_n(t)
+   # n are odd numbers to maintain antisymmetry(north⇔south)
+   for i in range(0, termnum+1):
+      if i % 2 != 0:
+         # integrand
+         integrand = Aph[grid.ixg-grid.margin-1,:]*lelist[i]*grid.sinTH
+         #  TODO integrate (range:0~π/2)
+         # a_n(t)
+         for j in range(grid.margin, grid.jxg - grid.margin):
+            ale[i] += (2*i+1)*cfg.RSUN**(i+1)/(i*(i+1))*integrand[j] * grid.dth
+      else:
+         ale[i] = 0
+            
+   # a_n(t)を用いて、(35)式右辺をもとめる
+   for i in range(0, termnum+1):
+      PnS += -(i+1)*ale[i]/cfg.RSUN**(i+2)*lelist[i]
+      
+   # top boundary condition
+   # no electrical current
+   # Bph = 0, smoothly match Aph with an exterior potential field solution
+   # TODO margin=1にのみ対応
+   for i in range(0, grid.margin):
+      Bph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = -Bph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin]
+      Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = +Aph[grid.ixg-i-2,grid.margin:grid.jxg-grid.margin] \
+         -grid.drr*PnS
+      # Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = +Aph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin] \
+      #    -i*grid.drr*PnS
+   return Bph, Aph

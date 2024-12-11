@@ -51,16 +51,16 @@ def boundary_condition(Bph, Aph, grid):
 # associated legendre polynomials (P^1_n(cosθ))
 def calculate_associated_legendre_polynomials(xx):
    # associated legendre polynomials (P^1_n(cosθ))
-   # n = 0, 1
-   lelist = [np.zeros_like(xx), -(1-xx**2)**0.5]
    # Final term number
+   # TODO grid数で変化するので調べる。
    termnum = 7
+   # n = 0, 1
+   lelist      = np.zeros((len(xx), termnum+1)) 
+   lelist[:,1] = -(1-xx**2)**0.5
    # n = 2, 3, ..., termnum
    for l in range(2, termnum+1):
       # recurrence relation
-      alp = ((2*l-1)/(l-1))*xx*lelist[l-1]-(l/(l-1))*lelist[l-2]
-      # associated legendre polynomials list
-      lelist.append(alp)
+      lelist[:,l] = ((2*l-1)/(l-1))*xx*lelist[:,l-1]-(l/(l-1))*lelist[:,l-2]
    return lelist
 
 # Dikpati+1999

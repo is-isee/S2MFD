@@ -52,8 +52,8 @@ def boundary_condition(Bph, Aph, grid):
 def calculate_associated_legendre_polynomials(xx):
    # associated legendre polynomials (P^1_n(cosθ))
    # Final term number
-   # TODO grid数で変化するので調べる。
-   termnum = 7
+   # grid数で変化するので調べる。
+   termnum = num
    # n = 0, 1
    lelist      = np.zeros((len(xx), termnum+1)) 
    lelist[:,1] = -(1-xx**2)**0.5

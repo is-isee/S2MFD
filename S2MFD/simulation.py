@@ -24,7 +24,7 @@ class Simulation(S2MFD.Data):
                )
         if setup is None:
             setup = S2MFD.Setup(cfg, grid)
-        
+        # TODO Legendreも同様、if文はつけない
         super().__init__(cfg, grid, setup)
 
     def initialize_simulation(self):

@@ -13,6 +13,7 @@ paramdir = 'parameters/'
 from .main_functions import run_simulation
 from .cfg import Cfg
 from .grid import Grid
+from .legendre import Legendre
 from .setup import Setup
 from .data import Data
 from .simulation import Simulation
@@ -21,6 +22,7 @@ from . import tools
 
 __all__ = [ 'Cfg',
             'Grid',
+            'Legendre',
             'Setup',
             'Data',
             'Simulation',

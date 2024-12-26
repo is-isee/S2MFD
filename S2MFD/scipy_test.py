@@ -1,16 +1,36 @@
+# scipy提供のルジャンドル陪関数
 import scipy.special
 def scipy_le():
-    le = np.zeros((len(grid.cosTH), 100))
+    le = np.zeros((100,len(grid.cosTH)))
     for i in range(0,100):
-        le[:,i] = scipy.special.lpmv(1,i,grid.cosTH[0,:])
+        le[i,:] = scipy.special.lpmv(1,i,grid.cosTH[0,:])
     # plt.plot(grid.cosTH[0,:],le[:,20])
     return le
 
 # 直交性の検証
-
 def orthogonality(n):
     ale = np.zeros(50)
     for m in range(0,50): 
         for i in range(grid.margin, grid.jxg - grid.margin):
-            ale[m] += legendre.Pln[i,n]*legendre.Pln[i,m]*grid.sinTH[0,i]*grid.dth
+            ale[m] += legendre.P1n[n,i]*legendre.P1n[m,i]*grid.sinTH[0,i]*grid.dth
     return ale
+# Dikpati+1994(33)式の検証
+def test_33():
+    AR = np.random.rand(grid.jx)
+    ARe = np.zeros(grid.jx)
+    ale = np.zeros(legendre.termnum)
+    sinth = np.sin(grid.th[grid.margin:grid.jxg-grid.margin])
+    itg = np.zeros_like(sinth)
+    RSUN = 2
+    # a_n(t)
+    # n are odd numbers to maintain antisymmetry(north⇔south)
+    for i in range(1, legendre.termnum):
+        # integrate (range:0~π)
+        for j in range(0, grid.jx):
+            itg[i] += AR[j]*legendre.P1n[i,j]*sinth[j]* grid.dth
+        # a_n(t)
+        ale[i] = (2*i+1)*RSUN**(i+1)/(2*i*(i+1))*itg[i]
+    for i in range(0, legendre.termnum):
+        ARe += ale[i]/RSUN**(i+1)*legendre.P1n[i]
+    return AR, ARe
+

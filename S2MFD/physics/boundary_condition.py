@@ -1,5 +1,6 @@
-#
-def boundary_condition(Bph, Aph, grid, legendre):
+import numpy as np
+
+def boundary_condition(Bph, Aph, cfg, grid, legendre):
    """
    Applies boundary condition for the magnetic field.
    
@@ -49,12 +50,16 @@ def boundary_condition(Bph, Aph, grid, legendre):
       for i in range(1, legendre.termnum):
          # integrate (range:0~π)
          for j in range(0, grid.jx):
-            itg[i] += AR[j]*legendre.P1n[i,j]*sinth[j]* grid.dth
+            itg[i] += Aph[grid.ixg-2,j]*legendre.P1n[i,j]*sinth[j]* grid.dth
+            
          # a_n(t)
-         ale[i] = (2*i+1)*cfg.RSUN**(i+1)/(2*i*(i+1))*itg[i]
+         # ale[i] = (2*i+1)*cfg.RSUN**(i+1)/(2*i*(i+1))*itg[i]
          # 1~nまで足しあげる（Σ）      
          # a_n(t)を用いて、(35)式右辺をもとめる
-         P1Sum += (i+1)*ale[i]/cfg.RSUN**(i+2)*legendre.P1n[i]
+         # P1Sum += (i+1)*ale[i]/cfg.RSUN**(i+2)*legendre.P1n[i]
+         
+         ale[i] = (2*i+1)/(2*i*(i+1))*itg[i]
+         P1Sum += (i+1)*ale[i]/cfg.RSUN*legendre.P1n[i]
          
       # top boundary condition
       # no electrical current

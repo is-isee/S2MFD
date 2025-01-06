@@ -18,6 +18,7 @@ class Legendre:
         associated legendre polynomials 
     """
     def __init__(self,grid):
+        # 0<θ<πで定義
         self.costh = np.cos(grid.th[grid.margin:grid.jxg-grid.margin])
         self.termnum = grid.jx//2
         self.P1n = np.zeros((self.termnum,grid.jx))

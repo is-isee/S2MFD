@@ -112,10 +112,10 @@ class Simulation(S2MFD.Data):
         setup = self.setup
         #### dynamo equation               
         Bphm, Aphm = S2MFD.physics.time_marching(self.Bph , self.Aph ,self.dt, cfg, grid, setup)
-        Bphm, Aphm = S2MFD.physics.boundary_condition(Bphm, Aphm, grid)
+        Bphm, Aphm = S2MFD.physics.boundary_condition(Bphm, Aphm, grid, legendre)
 
         Bphn, Aphn = S2MFD.physics.time_marching(Bphm, Aphm, self.dt, cfg, grid, setup)
-        Bphn, Aphn = S2MFD.physics.boundary_condition(Bphn, Aphn, grid)
+        Bphn, Aphn = S2MFD.physics.boundary_condition(Bphn, Aphn, grid, legendre)
         
         self.Bph = 0.5*self.Bph + 0.5*Bphn
         self.Aph = 0.5*self.Aph + 0.5*Aphn

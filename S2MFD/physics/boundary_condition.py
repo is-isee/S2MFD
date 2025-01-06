@@ -39,23 +39,22 @@ def boundary_condition(Bph, Aph, grid, legendre):
       
          
    else:
-      PnS = np.zeros_like(grid.TH)
       ale = np.zeros(legendre.termnum)
       sinth = np.sin(grid.th[grid.margin:grid.jxg-grid.margin])
-      itg = np.zeros_like(sinth)
+      itg = np.zeros(legendre.termnum)
+      P1Sum = np.zeros_like(grid.th[grid.margin:grid.jxg-grid.margin])
 
       # a_n(t)
       # n are odd numbers to maintain antisymmetry(north⇔south)
-      for i in range(0, legendre.termnum):
+      for i in range(1, legendre.termnum):
          # integrate (range:0~π)
-         for j in range(grid.margin, grid.jxg - grid.margin):
-            itg[i] += Aph[grid.ixg-grid.margin-1,j]*legendre.P1n[i,j]*sinth* grid.dth
+         for j in range(0, grid.jx):
+            itg[i] += AR[j]*legendre.P1n[i,j]*sinth[j]* grid.dth
          # a_n(t)
          ale[i] = (2*i+1)*cfg.RSUN**(i+1)/(2*i*(i+1))*itg[i]
-               
-      # a_n(t)を用いて、(35)式右辺をもとめる
-      for i in range(0, termnum):
-         PnS += -(i+1)*ale[i]/cfg.RSUN**(i+2)*legendre.P1n[i,:]
+         # 1~nまで足しあげる（Σ）      
+         # a_n(t)を用いて、(35)式右辺をもとめる
+         P1Sum += (i+1)*ale[i]/cfg.RSUN**(i+2)*legendre.P1n[i]
          
       # top boundary condition
       # no electrical current
@@ -63,7 +62,7 @@ def boundary_condition(Bph, Aph, grid, legendre):
       for i in range(0, grid.margin):
          Bph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = -Bph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin]
          Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = +Aph[grid.ixg-i-2,grid.margin:grid.jxg-grid.margin] \
-            -grid.drr*PnS
+            -grid.drr*P1Sum
       # bottom boundary condition
       # perfect conductor
       # Aph = 0, d(r*Bph)/dr = 0
@@ -97,32 +96,32 @@ def boundary_condition(Bph, Aph, grid, legendre):
 #    return lelist
 
 # Dikpati+1999
-def top_boundary_condition(Bph, Aph, grid, legendre):
-   PnS = np.zeros_like(grid.TH)
-   ale = np.zeros(legendre.termnum)
-   itg = np.zeros_like(grid.th)
+# def top_boundary_condition(Bph, Aph, grid, legendre):
+#    PnS = np.zeros_like(grid.TH)
+#    ale = np.zeros(legendre.termnum)
+#    itg = np.zeros_like(grid.th)
 
-   # a_n(t)
-   # n are odd numbers to maintain antisymmetry(north⇔south)
-   for i in range(0, legendre.termnum):
-      # integrate (range:0~π)
-      for j in range(grid.margin, grid.jxg - grid.margin):
-         itg[i] += Aph[grid.ixg-grid.margin-1,j]*legendre.P1n[i,j]*np.sin(grid.th[j])* grid.dth
-      # a_n(t)
-      ale[i] = (2*i+1)*cfg.RSUN**(i+1)/(2*i*(i+1))*itg[i]
+#    # a_n(t)
+#    # n are odd numbers to maintain antisymmetry(north⇔south)
+#    for i in range(0, legendre.termnum):
+#       # integrate (range:0~π)
+#       for j in range(grid.margin, grid.jxg - grid.margin):
+#          itg[i] += Aph[grid.ixg-grid.margin-1,j]*legendre.P1n[i,j]*np.sin(grid.th[j])* grid.dth
+#       # a_n(t)
+#       ale[i] = (2*i+1)*cfg.RSUN**(i+1)/(2*i*(i+1))*itg[i]
             
-   # a_n(t)を用いて、(35)式右辺をもとめる
-   for i in range(0, termnum):
-      PnS += -(i+1)*ale[i]/cfg.RSUN**(i+2)*legendre.P1n[i,:]
+#    # a_n(t)を用いて、(35)式右辺をもとめる
+#    for i in range(0, termnum):
+#       PnS += -(i+1)*ale[i]/cfg.RSUN**(i+2)*legendre.P1n[i,:]
       
-   # top boundary condition
-   # no electrical current
-   # Bph = 0, smoothly match Aph with an exterior potential field solution
-   # TODO margin=1にのみ対応
-   for i in range(0, grid.margin):
-      Bph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = -Bph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin]
-      Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = +Aph[grid.ixg-i-2,grid.margin:grid.jxg-grid.margin] \
-         -grid.drr*PnS
-      # Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = +Aph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin] \
-      #    -i*grid.drr*PnS
-   return Bph, Aph
+#    # top boundary condition
+#    # no electrical current
+#    # Bph = 0, smoothly match Aph with an exterior potential field solution
+#    # TODO margin=1にのみ対応
+#    for i in range(0, grid.margin):
+#       Bph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = -Bph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin]
+#       Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = +Aph[grid.ixg-i-2,grid.margin:grid.jxg-grid.margin] \
+#          -grid.drr*PnS
+#       # Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = +Aph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin] \
+#       #    -i*grid.drr*PnS
+#    return Bph, Aph

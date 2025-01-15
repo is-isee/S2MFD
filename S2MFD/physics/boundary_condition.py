@@ -40,27 +40,52 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
       
          
    else:
-      ale = np.zeros(legendre.termnum)
+      """
+      ant = np.zeros(legendre.termnum)
       sinth = np.sin(grid.th[grid.margin:grid.jxg-grid.margin])
       itg = np.zeros(legendre.termnum)
-      P1Sum = np.zeros_like(grid.th[grid.margin:grid.jxg-grid.margin])
+      P1Sum = np.zeros_like(sinth)
 
       # a_n(t)
       # n are odd numbers to maintain antisymmetry(north⇔south)
-      for i in range(1, legendre.termnum):
+      for n in range(1, legendre.termnum):
+         # 34式
          # integrate (range:0~π)
          for j in range(0, grid.jx):
-            itg[i] += Aph[grid.ixg-2,j]*legendre.P1n[i,j]*sinth[j]* grid.dth
-            
-         # a_n(t)
-         # ale[i] = (2*i+1)*cfg.RSUN**(i+1)/(2*i*(i+1))*itg[i]
-         # 1~nまで足しあげる（Σ）      
-         # a_n(t)を用いて、(35)式右辺をもとめる
-         # P1Sum += (i+1)*ale[i]/cfg.RSUN**(i+2)*legendre.P1n[i]
+            itg[n] += Aph[grid.ixg-2,j]*legendre.P1n[n,j]*sinth[j]* grid.dth
+         ant[n] = (2*n+1)/(2*n*(n+1))*itg[n]
          
-         ale[i] = (2*i+1)/(2*i*(i+1))*itg[i]
-         P1Sum += (i+1)*ale[i]/cfg.RSUN*legendre.P1n[i]
-         
+         # 35式
+         P1Sum += (n+1)*ant[n]/cfg.RSUN*legendre.P1n[n]
+      """
+      
+      
+      # 必要な配列を初期化
+      ant = np.zeros(legendre.termnum)
+      sinth = np.sin(grid.th[grid.margin:grid.jxg - grid.margin])  # θのサイン値
+      P1Sum = np.zeros_like(sinth)  # 合計用配列
+
+      # Aph, legendre.P1n の一部を事前に切り出し
+      Aph_reduced = Aph[grid.ixg - 2, 0:grid.jx]  # Aph の固定行部分
+      P1n_reduced = legendre.P1n[:, :]    # Legendre多項式部分
+
+      # a_n(t) の計算をベクトル化
+      # n = 1 から始まるため、スライスで範囲を調整
+      n_values = np.arange(1, legendre.termnum)  # n のインデックスを作成
+      coefficients = (2 * n_values + 1) / (2 * n_values * (n_values + 1))  # 係数部分
+
+      # Equation 34: ベクトル化された積分計算
+      itg = np.sum(Aph_reduced * P1n_reduced[n_values, :].T * sinth * grid.dth, axis=1)
+
+      # ant の計算 (ベクトル化済み)
+      ant[n_values] = coefficients * itg
+
+      # Equation 35: ベクトル化された P1Sum の更新
+      P1Sum += np.sum(
+         ((n_values + 1) * ale[n_values][:, np.newaxis] / cfg.RSUN * P1n_reduced[n_values, :]),
+         axis=0
+      )
+      
       # top boundary condition
       # no electrical current
       # Bph = 0, smoothly match Aph with an exterior potential field solution

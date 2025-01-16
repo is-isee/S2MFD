@@ -78,6 +78,7 @@ def test_33_an():
     return AR, itg, ant, ant_2
 
 # ナイキスト波数の検討
+# Nyquistで第何項まで書くか指定
 def test_33_nyquist(Nyquist):
     # 0<θ<πで定義
     costh = np.cos(grid.th[grid.margin:grid.jxg-grid.margin])
@@ -122,9 +123,11 @@ def test_33_nyquist(Nyquist):
 
 # ユークリッド距離を用いて一致度を評価
 def Euclid_distance(n):
-    AR, itg, ant, ant_2 = test_33_nyquist(n)
-    ed2 = 0
-    for i in range(1,n):
-        ed2 += (ant[i] - ant_2[i])**2
-    ed = np.sqrt(ed2)
+    ed = np.zeros(n)
+    for i in range(2,n):
+        AR, itg, ant, ant_2 = test_33_nyquist(i)
+        ed2 = 0
+        for j in range(2,i):
+            ed2 += (ant[j] - ant_2[j])**2
+        ed[i] = np.sqrt(ed2)
     return ed

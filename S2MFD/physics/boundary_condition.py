@@ -40,7 +40,6 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
       
          
    else:
-      """
       ant = np.zeros(legendre.termnum)
       sinth = np.sin(grid.th[grid.margin:grid.jxg-grid.margin])
       itg = np.zeros(legendre.termnum)
@@ -58,34 +57,36 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
          # 35式
          P1Sum += (n+1)*ant[n]/cfg.RSUN*legendre.P1n[n]
       """
-      
-      
+      # TODO 実際の計算には1~63のみ使用する
       # 必要な配列を初期化
-      ant = np.zeros(legendre.termnum)
-      sinth = np.sin(grid.th[grid.margin:grid.jxg - grid.margin])  # θのサイン値
-      P1Sum = np.zeros_like(sinth)  # 合計用配列
+      ant = np.zeros(legendre.termnum-1) # (63,)
+      sinth = np.sin(grid.th[grid.margin:grid.jxg - grid.margin])  # θのサイン値(128,)
+      sinth_ex = np.repeat(sinth[:, np.newaxis], legendre.termnum-1, axis=1)  # (128, 63)
+      P1Sum = np.zeros_like(sinth)  # 合計用配列(128,)
 
       # Aph, legendre.P1n の一部を事前に切り出し
-      Aph_reduced = Aph[grid.ixg - 2, 0:grid.jx]  # Aph の固定行部分
-      P1n_reduced = legendre.P1n[:, :]    # Legendre多項式部分
-
+      Aph_reduced = Aph[grid.ixg - 2, 0:grid.jx]  # Aph の固定行部分(128,)
+      # n(0~63まで入っている)
+      P1n_reduced = legendre.P1n[1:, :]    # Legendre多項式部分(63,128)
+      Aph_ex = np.repeat(Aph_reduced[:, np.newaxis], legendre.termnum-1, axis=1)  # (128, 63)
       # a_n(t) の計算をベクトル化
       # n = 1 から始まるため、スライスで範囲を調整
-      n_values = np.arange(1, legendre.termnum)  # n のインデックスを作成
-      coefficients = (2 * n_values + 1) / (2 * n_values * (n_values + 1))  # 係数部分
+      n_values = np.arange(1, legendre.termnum)  # n のインデックスを作成(1~63)
+      coefficients = (2 * n_values + 1) / (2 * n_values * (n_values + 1))  # 係数部分(63この係数、1~63に対応する)
 
-      # Equation 34: ベクトル化された積分計算
-      itg = np.sum(Aph_reduced * P1n_reduced[n_values, :].T * sinth * grid.dth, axis=1)
-
+      # Equation 34: ベクトル化された積分計算(nこ出てきてほしい)
+      itg = np.sum(Aph_ex * P1n_reduced[n_values-1, :].T * sinth_ex * grid.dth, axis=0)
       # ant の計算 (ベクトル化済み)
-      ant[n_values] = coefficients * itg
-
-      # Equation 35: ベクトル化された P1Sum の更新
-      P1Sum += np.sum(
-         ((n_values + 1) * ale[n_values][:, np.newaxis] / cfg.RSUN * P1n_reduced[n_values, :]),
+      ant[n_values-1] = coefficients * itg
+      ant_ex = np.repeat(ant[:, np.newaxis], grid.jx, axis=1) 
+      n_values_ex = np.repeat(ant[:, np.newaxis], grid.jx, axis=1)
+      # print(ant.shape)
+      # Equation 35: ベクトル化された P1Sum の更新(n=1~63までの足し算をしたい)
+      P1Sum = np.sum(
+         ((n_values_ex[n_values-1,:] + 1) * ant_ex[n_values-1,:] / cfg.RSUN * P1n_reduced[n_values-1, :]),
          axis=0
       )
-      
+      """
       # top boundary condition
       # no electrical current
       # Bph = 0, smoothly match Aph with an exterior potential field solution

@@ -20,11 +20,11 @@ class Legendre:
     def __init__(self,grid):
         # 0<θ<πで定義
         self.costh = np.cos(grid.th[grid.margin:grid.jxg-grid.margin])
-        self.termnum = grid.jx//2
-        self.P1n = np.zeros((self.termnum,grid.jx))
+        self.lmax = grid.jx//2
+        self.P1n = np.zeros((self.lmax,grid.jx))
         # n = 1
         self.P1n[1,:] = -(1-self.costh**2)**0.5
         # n = 2, 3, ...
-        for i in range(2, self.termnum):
+        for i in range(2, self.lmax):
             # recurrence relation
             self.P1n[i,:] = ((2*i-1)/(i-1))*self.costh*self.P1n[i-1,:]-(i/(i-1))*self.P1n[i-2,:]

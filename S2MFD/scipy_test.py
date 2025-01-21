@@ -50,7 +50,7 @@ def test_33_an():
     # AR = np.random.rand(grid.jx)
     AR = np.zeros(grid.jx)
     # a_n(t)の項、n個あるのでルジャンドル陪関数のnに従う
-    ant = np.random.rand(legendre.termnum)
+    ant = np.random.randn(legendre.termnum)
     ant_2 = np.zeros(legendre.termnum)
     
     # 0<θ<πで定義
@@ -119,7 +119,41 @@ def test_33_nyquist(Nyquist):
         # a_n(t)
         ant_2[n] = (2*n+1)*RSUN**(n+1)/(2*n*(n+1))*itg[n]
         
-    return AR, itg, ant, ant_2
+    # return AR, itg, ant, ant_2
+    return AR, ant_2, P1n
+def test_33_3(Nyquist,ant_2,P1n):
+    termnum = Nyquist
+    # Rでのベクトルポテンシャル（太陽内部）
+    # AR = np.random.rand(grid.jx)
+    AR_2 = np.zeros(grid.jx)
+    # a_n(t)の項、n個あるのでルジャンドル陪関数のnに従う
+    ant = ant_2[0:Nyquist]
+    ant_3 = np.zeros(termnum)
+    
+    # 0<θ<πで定義
+    sinth = np.sin(grid.th[grid.margin:grid.jxg-grid.margin])
+    
+    # (34)式の積分、nに従う
+    itg = np.zeros(termnum)
+    
+    # cfg.RSUNを使うと数字が大きすぎて無理
+    RSUN = cfg.RSUN/cfg.RSUN
+    
+    # a_n(t)
+    # TODO n=0は定義できない。
+    for n in range(1, termnum):
+        # 33式からAを計算
+        AR_2 += ant[n]/RSUN**(n+1)*P1n[n]
+        
+    for n in range(1, termnum):
+        # integrate (range:0~π)
+        for j in range(0, grid.jx):
+            itg[n] += AR_2[j]*P1n[n,j]*sinth[j]* grid.dth
+        # a_n(t)
+        ant_3[n] = (2*n+1)*RSUN**(n+1)/(2*n*(n+1))*itg[n]
+        
+    # return AR_2, itg, ant, ant_3
+    return AR_2
 
 # ユークリッド距離を用いて一致度を評価
 def Euclid_distance(n):
@@ -130,4 +164,17 @@ def Euclid_distance(n):
         for j in range(2,i):
             ed2 += (ant[j] - ant_2[j])**2
         ed[i] = np.sqrt(ed2)
+    return ed
+
+# ユークリッド距離を用いて一致度を評価
+def Euclid_distance_2(n):
+    AR, ant_2, P1n = test_33_nyquist(n)
+    ed = np.zeros(n)
+    for i in range(2,n):
+        AR_2 = test_33_3(i,ant_2,P1n)
+        ed2 = 0
+        for j in range(25,128):
+            ed2 += (AR[j] - AR_2[j])**2
+        ed[i] = np.sqrt(ed2)
+    
     return ed

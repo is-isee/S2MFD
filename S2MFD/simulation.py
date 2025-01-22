@@ -5,7 +5,7 @@ class Simulation(S2MFD.Data):
     """
     Class for running the simulation inheriting from S2MFD.Data
     """
-    def __init__(self, cfg, grid=None, setup=None):
+    def __init__(self, cfg, grid=None, setup=None, legendre=None):
         """
         Parameters
         ----------
@@ -24,8 +24,9 @@ class Simulation(S2MFD.Data):
                )
         if setup is None:
             setup = S2MFD.Setup(cfg, grid)
-        
-        super().__init__(cfg, grid, setup)
+        # TODO Legendreも同様、if文はつけない
+        legendre = S2MFD.Legendre(grid)
+        super().__init__(cfg, grid, setup ,legendre)
 
     def initialize_simulation(self):
         """
@@ -109,12 +110,13 @@ class Simulation(S2MFD.Data):
         cfg = self.cfg
         grid = self.grid
         setup = self.setup
+        legendre = self.legendre
         #### dynamo equation               
         Bphm, Aphm = S2MFD.physics.time_marching(self.Bph , self.Aph ,self.dt, cfg, grid, setup)
-        Bphm, Aphm = S2MFD.physics.boundary_condition(Bphm, Aphm, grid)
+        Bphm, Aphm = S2MFD.physics.boundary_condition(Bphm, Aphm, cfg, grid, legendre)
 
         Bphn, Aphn = S2MFD.physics.time_marching(Bphm, Aphm, self.dt, cfg, grid, setup)
-        Bphn, Aphn = S2MFD.physics.boundary_condition(Bphn, Aphn, grid)
+        Bphn, Aphn = S2MFD.physics.boundary_condition(Bphn, Aphn, cfg, grid, legendre)
         
         self.Bph = 0.5*self.Bph + 0.5*Bphn
         self.Aph = 0.5*self.Aph + 0.5*Aphn

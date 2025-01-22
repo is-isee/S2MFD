@@ -51,7 +51,7 @@ class Grid:
       Cartesian x-coordinates based on radial and colatitudinal grids.
    Y : numpy.ndarray
       Cartesian y-coordinates based on radial and colatitudinal grids.
-    """
+   """
    ix: int
    jx: int
    ixg: int = field(init=False)

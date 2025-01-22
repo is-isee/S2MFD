@@ -26,7 +26,7 @@ class Data:
     nd : int
       Data output step.
     """
-    def __init__(self, cfg, grid, setup):
+    def __init__(self, cfg, grid, setup, legendre):
         """
         Initialize the S2MFD_data object.
         
@@ -46,6 +46,7 @@ class Data:
         self.cfg = cfg
         self.grid = grid
         self.setup = setup
+        self.legendre = legendre
 
         self.Aph = None
         self.time = None

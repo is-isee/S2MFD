@@ -20,7 +20,7 @@ class Legendre:
     def __init__(self,grid):
         # 0<θ<πで定義
         self.costh = np.cos(grid.th[grid.margin:grid.jxg-grid.margin])
-        self.lmax = grid.jx//2
+        self.lmax = grid.jx
         self.P1n = np.zeros((self.lmax,grid.jx))
         # n = 1
         self.P1n[1,:] = -(1-self.costh**2)**0.5

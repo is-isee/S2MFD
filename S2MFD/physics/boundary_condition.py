@@ -22,7 +22,8 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
    We do not have to return Bph and Aph because they are mutable objects, but we do so for clarity.
    
    """
-   if legendre is None:
+   aaaa = 3
+   if aaaa == 2:
       # 動径方向境界条件
       for i in range(0, grid.margin):
          # top boundary condition 
@@ -60,49 +61,53 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
       """
       
       # 必要な配列を初期化
-      ant = np.zeros(legendre.lmax-1) # (63,)
-      sinth = np.sin(grid.th[grid.margin:grid.jxg - grid.margin])  # θのサイン値(128,)
-      sinth_ex = np.repeat(sinth[:, np.newaxis], legendre.lmax-1, axis=1)  # (128, 63)
-      P1Sum = np.zeros_like(sinth)  # 合計用配列(128,)
-      RSUN = cfg.RSUN/cfg.RSUN
+      ant = np.zeros(legendre.lmax-1) # (127(n),)
+      sinth = np.sin(grid.th[grid.margin:grid.jxg - grid.margin])  # θのサイン値(128(θ),)
+      sinth_ex = np.repeat(sinth[:, np.newaxis], legendre.lmax-1, axis=1)  # (128(θ), 127(n))
+      P1Sum = np.zeros_like(sinth)  # 合計用配列(128(θ),)
+      RSUN_dim = cfg.RSUN # 1
       # Aph, legendre.P1n の一部を事前に切り出し
-      Aph_reduced = Aph[grid.ixg - 2, 0:grid.jx]  # Aph の固定行部分(128,)
+      Aph_reduced = Aph[grid.ixg - 2, 1:grid.jx+1]  # 太陽表面のAφ(128(θ),)、1~128
       # n(0~63まで入っている)
-      P1n_reduced = legendre.P1n[1:, :].T   # Legendre多項式部分(n=1~127)
-      Aph_ex = np.repeat(Aph_reduced[:, np.newaxis], legendre.lmax-1, axis=1)  # (128, 63)
+      P1n_reduced = legendre.P1n[1:, :].T   # (128(θ),127(n))
+      Aph_ex = np.repeat(Aph_reduced[:, np.newaxis], legendre.lmax-1, axis=1)  # (128(θ),127(n))
       # a_n(t) の計算をベクトル化
       # n = 1 から始まるため、スライスで範囲を調整
-      n_values = np.arange(1, legendre.lmax)  # n のインデックスを作成(1~63)
-      coefficients = (2 * n_values + 1) / (2 * n_values * (n_values + 1))*RSUN**(n_values+1)  # 係数部分(63この係数、1~63に対応する)
-
+      n_values = np.arange(1, legendre.lmax)  # n のインデックスを作成(1~127)
+      # coefficients = (2 * n_values + 1) / (2 * n_values * (n_values + 1))*RSUN_dim**(n_values+1)  # (127(n),)
+      coefficients = (2 * n_values + 1) / (2 * n_values * (n_values + 1)) # (127(n),)
       # Equation 34: ベクトル化された積分計算(nこ出てきてほしい)
-      itg = np.sum(Aph_ex * P1n_reduced * sinth_ex * grid.dth, axis=0)
+      itg = np.sum(Aph_ex * P1n_reduced * sinth_ex * grid.dth, axis=0) # (127(n),)
+      # print(Aph_ex) # これがおかしい、式を見直す
       # ant の計算 (ベクトル化済み)
-      ant = coefficients * itg
+      ant = coefficients * itg # (127(n),)
       # θを追加
-      ant_ex = np.repeat(ant[:, np.newaxis], grid.jx, axis=1) 
+      ant_ex = np.repeat(ant[:, np.newaxis], grid.jx, axis=1) # (127(n),128(θ))
       # θを追加
-      n_values_ex = np.repeat(n_values[:, np.newaxis], grid.jx, axis=1)
-      # print(ant.shape)
+      n_values_ex = np.repeat(n_values[:, np.newaxis], grid.jx, axis=1) # (127(n),128(θ))
       # Equation 35: ベクトル化された P1Sum の更新(n=1~63までの足し算をしたい)
+      # P1Sum = np.sum(
+      #    ((n_values_ex + 1) * ant_ex / RSUN_dim**(n_values_ex + 2) * P1n_reduced.T),
+      #    axis=0
+      # )
       P1Sum = np.sum(
-         ((n_values_ex + 1) * ant_ex / RSUN**(n_values_ex + 2) * P1n_reduced.T),
+         ((n_values_ex + 1) * ant_ex / RSUN_dim * P1n_reduced.T),
          axis=0
       )
-      
-      # top boundary condition
-      # no electrical current
-      # Bph = 0, smoothly match Aph with an exterior potential field solution
       for i in range(0, grid.margin):
+         # top boundary condition
+         # no electrical current
+         # Bph = 0, smoothly match Aph with an exterior potential field solution
          Bph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = -Bph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin]
+         # print(P1Sum) クソデカ
          Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = +Aph[grid.ixg-i-2,grid.margin:grid.jxg-grid.margin] \
             -grid.drr*P1Sum
-      # bottom boundary condition
-      # perfect conductor
-      # Aph = 0, d(r*Bph)/dr = 0
-      Aph[i,grid.margin:grid.jxg-grid.margin] = - Aph[2*grid.margin-i-1,grid.margin:grid.jxg-grid.margin]
-      Bph[i,grid.margin:grid.jxg-grid.margin] = + Bph[2*grid.margin-i-1,grid.margin:grid.jxg-grid.margin] \
-         /grid.rr[i]*grid.rr[2*grid.margin-i-1]
+         # bottom boundary condition
+         # perfect conductor
+         # Aph = 0, d(r*Bph)/dr = 0
+         Aph[i,grid.margin:grid.jxg-grid.margin] = - Aph[2*grid.margin-i-1,grid.margin:grid.jxg-grid.margin]
+         Bph[i,grid.margin:grid.jxg-grid.margin] = + Bph[2*grid.margin-i-1,grid.margin:grid.jxg-grid.margin] \
+            /grid.rr[i]*grid.rr[2*grid.margin-i-1]
 
    # 緯度方向境界条件      
    for j in range(0, grid.margin):

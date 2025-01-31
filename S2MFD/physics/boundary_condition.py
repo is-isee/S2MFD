@@ -40,6 +40,7 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
       
          
    else:
+      # for文（非常に時間がかかる）
       """
       ant = np.zeros(legendre.termnum)
       sinth = np.sin(grid.th[grid.margin:grid.jxg-grid.margin])
@@ -58,7 +59,32 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
          # 35式
          P1Sum += (n+1)*ant[n]/cfg.RSUN*legendre.P1n[n]
       """
+      # for文を用いない。meshgrid
+      # (n,θ)に統一
+      """
+      # 必要な配列を初期化
+      ant = np.zeros(legendre.lmax-1) # (127(n),)
+      RSUN_dim = cfg.RSUN
+      sinth = np.sin(grid.th[grid.margin:grid.jxg - grid.margin])  # θのサイン値(128(θ),)
+      n_values = np.arange(1, legendre.lmax)  # n のインデックスを作成(1~127)
+      Aph_reduced = Aph[grid.ixg - 2, 1:grid.jx+1]  # 太陽表面のAφ(128(θ),)、1~128
+      P1Sum = np.zeros_like(sinth)  # 合計用配列(128(θ),)
+      P1n_reduced = legendre.P1n[1:, :]   # (127(n), 128(θ))
       
+      sinth_ex, n_values_ex  = np.meshgrid(sinth, n_values) # (127(n), 128(θ))
+      Aph_ex, n_values_ex  = np.meshgrid(Aph_reduced, n_values) # (127(n), 128(θ))
+      
+      # coefficients = (2 * n_values + 1) / (2 * n_values * (n_values + 1))*RSUN_dim**(n_values+1)  # (127(n),)
+      coefficients = (2 * n_values + 1) / (2 * n_values * (n_values + 1)) # (127(n),)
+      # 0~πの積分
+      itg = np.sum(Aph_ex * P1n_reduced * sinth_ex * grid.dth, axis=1) # (127(n),)
+      # ant の計算 (ベクトル化済み)
+      ant = coefficients * itg # (127(n),)
+      # θを追加
+      ant_ex, dammy  = np.meshgrid(ant, sinth, indexing = 'ij') # (127(n), 128(θ))
+      P1Sum = np.sum((n_values_ex + 1) * ant_ex / RSUN_dim * P1n_reduced,axis=0)
+      """
+      # for文を用いない。not_meshgrid
       # 必要な配列を初期化
       ant = np.zeros(legendre.lmax-1) # (127(n),)
       sinth = np.sin(grid.th[grid.margin:grid.jxg - grid.margin])  # θのサイン値(128(θ),)
@@ -89,10 +115,7 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
       #    ((n_values_ex + 1) * ant_ex / RSUN_dim**(n_values_ex + 2) * P1n_reduced.T),
       #    axis=0
       # )
-      P1Sum = np.sum(
-         ((n_values_ex + 1) * ant_ex / RSUN_dim * P1n_reduced.T),
-         axis=0
-      )
+      P1Sum = np.sum((n_values_ex + 1) * ant_ex / RSUN_dim * P1n_reduced.T,axis=0)
       for i in range(0, grid.margin):
          # top boundary condition
          # no electrical current

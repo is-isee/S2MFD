@@ -20,7 +20,6 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
    Notes
    -----
    We do not have to return Bph and Aph because they are mutable objects, but we do so for clarity.
-   
    """
    aaaa = 3
    if aaaa == 2:

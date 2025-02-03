@@ -178,3 +178,26 @@ def Euclid_distance_2(n):
         ed[i] = np.sqrt(ed2)
     
     return ed
+
+# ポアソン方程式検証コード
+# 拡散方程式と形はほとんど同じ
+# r tools.pyを先に実行
+def poisson_test(Aph,grid):
+    drr   = grid.drr
+    dth   = grid.dth
+    RR    = grid.RR
+    RRm   = grid.RRm
+    sinTH = grid.sinTH
+    
+    Aphrr = drr1(Aph,drr,'up')
+    Aphth = dth1(Aph,dth,'up')
+    
+    Aph_dfrr = + drr1(RRm**2*Aphrr,drr,'dw')/RR**2
+    Aph_dfth = + dth1(sinTHm*Aphth,dth,'dw')/RR**2/sinTH
+    Aph_dfex = - Aph/RR**2/sinTH**2
+    
+    main_po = Aph_dfrr + Aph_dfth + Aph_dfex
+    
+    return main_po # まずmain_po.shapeが(130,130)か確認
+# 検証候補：main_po[grid.ixg-1,grid.margin:grid.jxg-grid.margin]
+    

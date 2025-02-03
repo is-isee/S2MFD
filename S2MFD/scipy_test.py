@@ -196,8 +196,9 @@ def poisson_test(Aph,grid):
     Aph_dfth = + dth1(sinTHm*Aphth,dth,'dw')/RR**2/sinTH
     Aph_dfex = - Aph/RR**2/sinTH**2
     
-    main_po = Aph_dfrr + Aph_dfth + Aph_dfex
+    poisson_eq = Aph_dfrr + Aph_dfth + Aph_dfex
     
-    return main_po # まずmain_po.shapeが(130,130)か確認
+    return poisson_eq # まずmain_po.shapeが(130,130)か確認
+
 # 検証候補：main_po[grid.ixg-1,grid.margin:grid.jxg-grid.margin]
     

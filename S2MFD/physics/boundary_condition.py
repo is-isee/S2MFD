@@ -103,7 +103,7 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
       coefficients = (2 * n_values + 1) / (2 * n_values * (n_values + 1)) # (127(n),)
       # Equation 34: ベクトル化された積分計算(nこ出てきてほしい)
       itg = np.sum(Aph_ex * P1n_reduced * sinth_ex * grid.dth, axis=0) # (127(n),)
-      # print(Aph_ex) # これがおかしい、式を見直す
+     
       # ant の計算 (ベクトル化済み)
       ant = coefficients * itg # (127(n),)
       # θを追加

@@ -28,3 +28,29 @@ class Legendre:
         for i in range(2, self.lmax):
             # recurrence relation
             self.P1n[i,:] = ((2*i-1)/(i-1))*self.costh*self.P1n[i-1,:]-(i/(i-1))*self.P1n[i-2,:]
+            
+    def save(self, filename):
+        """
+        Save the Legendre data to a file.
+
+        Parameters
+        ----------
+        filename : str
+            File name to save the Legendre data.
+        """
+        np.savez(filename, **self.__dict__)
+
+    @classmethod
+    def load(cls, filename):
+        """
+        Load the grid data from a file.
+
+        Parameters
+        ----------
+        filename : str
+            File name to load the grid data.
+        """
+        data = np.load(filename,allow_pickle=True)
+        obj = cls.__new__(cls)
+        obj.__dict__.update({key: data[key] for key in data.files})
+        return obj

@@ -58,4 +58,5 @@ cont_flag = True
 datadir = 'data/'
 gridfile = 'grid.npz'
 setupfile = 'setup.npz'
+legendrefile = 'legendre.npz'
 configfile = 'config.json'

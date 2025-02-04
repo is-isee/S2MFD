@@ -45,9 +45,11 @@ class Simulation(S2MFD.Data):
         if self.cfg.cont_flag:
             self.grid = S2MFD.Grid.load(self.cfg.datadir+self.cfg.gridfile)
             self.setup = S2MFD.Setup.load(self.cfg.datadir+self.cfg.setupfile)
+            self.legendre = S2MFD.Legendre.load(self.cfg.datadir+self.cfg.legendrefile)
         else:
             self.grid.save(self.cfg.datadir+self.cfg.gridfile)
             self.setup.save(self.cfg.datadir+self.cfg.setupfile)
+            self.legendre.save(self.cfg.datadir+self.cfg.legendrefile)
         
     def cfl_condition(self):
         """

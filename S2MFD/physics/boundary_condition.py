@@ -21,8 +21,7 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
    -----
    We do not have to return Bph and Aph because they are mutable objects, but we do so for clarity.
    """
-   aaaa = 3
-   if aaaa == 2:
+   if cfg.boundary_condition_type == 'vertical':
       # 動径方向境界条件
       for i in range(0, grid.margin):
          # top boundary condition 
@@ -39,7 +38,7 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
             /grid.rr[i]*grid.rr[2*grid.margin-i-1]
       
          
-   else:
+   elif cfg.boundary_condition_type == 'potential':
       # for文（非常に時間がかかる）
       """
       ant = np.zeros(legendre.termnum)

@@ -93,7 +93,7 @@ class Setup:
          c2d  = (2*cfg.m+cfg.p+1)*cfg.m/(cfg.m+1)/cfg.p * (xi0**(-(cfg.m+cfg.p)))
          xi  = cfg.RSUN/grid.RR  - 1
          xi[grid.RR > cfg.RSUN] = 0 
-         self.urr = cfg.uu0*((cfg.RSUN/grid.RR)**2) \
+         self.urr = cfg.uu0*(cfg.RSUN/grid.RR) \
             *(-1/(cfg.m+1) + c1d/(2*cfg.m + 1)*xi**cfg.m - c2d/(2*cfg.m+cfg.p+1)*xi**(cfg.m+cfg.p)) \
             *xi*grid.sinTH**cfg.q*( (cfg.q+2)*grid.cosTH**2 - grid.sinTH**2)
 

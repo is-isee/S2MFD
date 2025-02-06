@@ -188,6 +188,7 @@ def poisson_test(Aph,grid):
     RR    = grid.RR
     RRm   = grid.RRm
     sinTH = grid.sinTH
+    sinTHm = grid.sinTHm
     
     Aphrr = drr1(Aph,drr,'up')
     Aphth = dth1(Aph,dth,'up')
@@ -201,4 +202,19 @@ def poisson_test(Aph,grid):
     return poisson_eq # まずmain_po.shapeが(130,130)か確認
 
 # 検証候補：main_po[grid.ixg-1,grid.margin:grid.jxg-grid.margin]
+def test_do(num):
+    poisson_eq = poisson_test(Apht[:,:,num],grid)
+    kk = np.zeros(130)
+    for i in range(0,130):
+        kk[i] = np.mean(poisson_eq[i,:])
+    plt.plot(np.abs(kk))
     
+def test_time_ave():
+    kk = np.zeros((130,4000))
+    kkk = np.zeros(130)
+    for j in range(1000,5000):
+        poisson_eq = poisson_test(Apht[:,:,j],grid)
+        for i in range(0,130):
+            kk[i,j] = np.mean(poisson_eq[i,:])
+        kkk = np.mean(kk,axis=1)
+    plt.plot(np.abs(kkk))

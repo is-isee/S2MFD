@@ -7,7 +7,7 @@ import S2MFD
 # datadir = '../data_alpha_omega_etaconst/'
 # datadir = '../data_alpha_omega/'
 # datadir = '../data_flux_transport/'
-datadir = '../data_potential/'
+datadir = '../data/'
 # datadir = '../data_dikpati99/'
 data = S2MFD.Data.initial_load(datadir)
 

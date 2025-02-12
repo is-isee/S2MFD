@@ -5,9 +5,9 @@ sys.path.append('../')
 import S2MFD
 
 # datadir = '../data_alpha_omega_etaconst/'
-datadir = '../data_alpha_omega/'
+# datadir = '../data_alpha_omega/'
 # datadir = '../data_flux_transport/'
-# datadir = '../data_potential/'
+datadir = '../data_potential/'
 data = S2MFD.Data.initial_load(datadir)
 
 cfg = data.cfg
@@ -53,8 +53,8 @@ Bpht0_sign_diff = np.diff(Bpht0_sign)
 
 ns = np.where(Bpht0_sign_diff == +2)[0][-2]
 ne = np.where(Bpht0_sign_diff == +2)[0][-1]
-# timeu = (timet[ns:ne]-timet[ns])/tau_diff
-timeu = (timet[ns:]-timet[ns])/tau_diff
+timeu = (timet[ns:ne]-timet[ns])/tau_diff
+# timeu = (timet[ns:]-timet[ns])/tau_diff
 B_range = 3
 plt.clf()
 plt.close('all')
@@ -65,8 +65,8 @@ ax2 = fig.add_subplot(2,1,2)
 # Brrt0u = Brrt0[ns:ne]
 # nw = ne - ns
 # nm = np.argmax(Bpht0u)
-ax1.pcolormesh(timeu,grid.th/np.pi*180,Bpht_7[:,ns:],cmap='bwr',shading='auto')
-ax2.pcolormesh(timeu,grid.th/np.pi*180,Brrt_s[:,ns:],vmax=B_range*1e-2,vmin=-B_range*1e-2,cmap='bwr',shading='auto')
+ax1.pcolormesh(timeu,grid.th/np.pi*180,Bpht_7[:,ns:ne],cmap='bwr',shading='auto')
+ax2.pcolormesh(timeu,grid.th/np.pi*180,Brrt_s[:,ns:ne],vmax=B_range*1e-2,vmin=-B_range*1e-2,cmap='bwr',shading='auto')
 
 ax1.set_ylabel(r'$B_\phi$: $r=0.7R_\odot$')
 ax2.set_ylabel(r'$B_r$: $r=R_\odot$')

@@ -104,7 +104,6 @@ def test_33_ann():
 
 def potential_test(Aph,add,types):
     ant = np.zeros(legendre.lmax-1) # (127(n),)
-    RSUN_dim = grid.rr[grid.jxg-2] 
     sinth = np.sin(grid.th[grid.margin:grid.jxg - grid.margin])  # θのサイン値(128(θ),)
     n_values = np.arange(1, legendre.lmax)  # n のインデックスを作成(1~127)
     P1Sum = np.zeros_like(sinth)  # 合計用配列(128(θ),)
@@ -158,7 +157,7 @@ def potential_test(Aph,add,types):
             elif types == "num":
                 Aph_expand[i,:] = Aph_expand[i-1,:] - grid.drr*np.sum((n_values_ex + 1) * ant_ex * (grid.rr[grid.ixg-2]/rr_ex[i])**(n_values_ex + 1) * (1/rr_ex[i]) * P1n_reduced,axis=0)
     
-    return Aph_expand, X_expand, Y_expand, RR_ex, TH_ex
+    return Aph_ana, Aph_num, Aph_expand, X_expand, Y_expand, RR_ex, TH_ex
 
 # 描画用コード
 def make_medi(Aph):

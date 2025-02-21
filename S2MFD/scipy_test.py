@@ -138,16 +138,15 @@ def potential_test(Aph,add,types):
     ant = coefficients * itg # (127(n),)
     # θを追加
     ant_ex, dammy  = np.meshgrid(ant, sinth, indexing = 'ij') # (127(n), 128(θ))
-    P1Sum = np.sum((n_values_ex + 1) * ant_ex / RSUN_dim * P1n_reduced,axis=0)
-    
+
     # top boundary numerical
-    Aph_num = +Aph_reduced - grid.drr*P1Sum
+    Aph_num = +Aph_reduced - grid.drr * np.sum((n_values_ex + 1) * ant_ex * (grid.rr[grid.ixg-grid.margin-1]/grid.rr[grid.ixg-1])**(n_values_ex + 1) * (1/grid.rr[grid.ixg-1]) * P1n_reduced,axis=0)
     
     # top boundary analytical
-    Aph_ana = np.sum(ant_ex * (grid.rr[grid.jxg-2] / grid.rr[grid.jxg-1])**(n_values_ex + 1) * P1n_reduced,axis=0)
+    Aph_ana = np.sum(ant_ex * (grid.rr[grid.ixg-2] / grid.rr[grid.ixg-1])**(n_values_ex + 1) * P1n_reduced,axis=0)
     
     # top boundary radial
-    Aph_rad = +Aph_reduced / grid.rr[grid.jxg-1] * grid.rr[grid.jxg-2]
+    Aph_rad = +Aph_reduced / grid.rr[grid.ixg-1] * grid.rr[grid.ixg-2]
     
     # 外側のポテンシャル磁場をかく
     for i in range(grid.ix+add):

@@ -157,7 +157,7 @@ def potential_test(Aph,add,types):
             if types == "ana":
                 Aph_expand[i,:] = np.sum(ant_ex * (grid.rr[grid.jxg-2]/rr_ex[i])**(n_values_ex + 1) * P1n_reduced,axis=0)
             elif types == "num":
-                Aph_expand[i,:] = Aph_expand[i-1,:] - grid.drr*np.sum((n_values_ex + 1) * ant_ex * (grid.rr[grid.jxg-2]/rr_ex[i])**(n_values_ex + 1) * (1/rr_ex[i]) * P1n_reduced,axis=0)
+                Aph_expand[i,:] = Aph_expand[i-1,:] - grid.drr*np.sum((n_values_ex + 1) * ant_ex * (grid.rr[grid.ixg-2]/rr_ex[i])**(n_values_ex + 1) * (1/rr_ex[i]) * P1n_reduced,axis=0)
     
     return Aph_expand, X_expand, Y_expand, RR_ex, TH_ex
 

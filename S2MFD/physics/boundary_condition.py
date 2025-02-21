@@ -60,10 +60,9 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
       """
       # for文を用いない。meshgrid
       # (n,θ)に統一
-      """
+      
       # 必要な配列を初期化
       ant = np.zeros(legendre.lmax-1) # (127(n),)
-      RSUN_dim = cfg.RSUN
       sinth = np.sin(grid.th[grid.margin:grid.jxg - grid.margin])  # θのサイン値(128(θ),)
       n_values = np.arange(1, legendre.lmax)  # n のインデックスを作成(1~127)
       Aph_reduced = Aph[grid.ixg - 2, 1:grid.jx+1]  # 太陽表面のAφ(128(θ),)、1~128
@@ -82,15 +81,15 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
       # θを追加
       ant_ex, dammy  = np.meshgrid(ant, sinth, indexing = 'ij') # (127(n), 128(θ))
       P1Sum = np.sum((n_values_ex + 1) * ant_ex / RSUN_dim * P1n_reduced,axis=0)
-      """
+      
       # for文を用いない。not_meshgrid
       # 必要な配列を初期化
+      """
       ant = np.zeros(legendre.lmax-1) # (127(n),)
       sinth = np.sin(grid.th[grid.margin:grid.jxg - grid.margin])  # θのサイン値(128(θ),)
       sinth_ex = np.repeat(sinth[:, np.newaxis], legendre.lmax-1, axis=1)  # (128(θ), 127(n))
       P1Sum = np.zeros_like(sinth)  # 合計用配列(128(θ),)
-      RSUN_dim = cfg.RSUN # 1
-      # Aph, legendre.P1n の一部を事前に切り出し
+      RSUN_dim = cfg.RSUN
       Aph_reduced = Aph[grid.ixg - 2, 1:grid.jx+1]  # 太陽表面のAφ(128(θ),)、1~128
       # n(0~63まで入っている)
       P1n_reduced = legendre.P1n[1:, :].T   # (128(θ),127(n))
@@ -115,14 +114,37 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
       #    axis=0
       # )
       P1Sum = np.sum((n_values_ex + 1) * ant_ex / RSUN_dim * P1n_reduced.T,axis=0)
+      """
+      
+      """
+      ant = np.zeros(legendre.lmax-1) # (127(n),)
+      sinth = np.sin(grid.th[grid.margin:grid.jxg - grid.margin])  # θのサイン値(128(θ),)
+      sinth_ex = np.repeat(sinth[:, np.newaxis], legendre.lmax-1, axis=1)  # (128(θ), 127(n))
+      Aph_reduced = Aph[grid.ixg - 2, 1:grid.jx+1]  # 太陽表面のAφ(128(θ),)、1~128
+      # n(0~63まで入っている)
+      P1n_reduced = legendre.P1n[1:, :].T   # (128(θ),127(n))
+      Aph_ex = np.repeat(Aph_reduced[:, np.newaxis], legendre.lmax-1, axis=1)  # (128(θ),127(n))
+      # a_n(t) の計算をベクトル化
+      # n = 1 から始まるため、スライスで範囲を調整
+      n_values = np.arange(1, legendre.lmax)  # n のインデックスを作成(1~127)
+      n_values_ex = np.repeat(n_values[:, np.newaxis], grid.jx, axis=1) # (127(n),128(θ))
+      coefficients = (2 * n_values + 1) / (2 * n_values * (n_values + 1)) # (127(n),)
+      # Equation 34: ベクトル化された積分計算(nこ出てきてほしい)
+      itg = np.sum(Aph_ex * P1n_reduced * sinth_ex * grid.dth, axis=0) # (127(n),)
+     
+      # ant の計算 (ベクトル化済み)
+      ant = coefficients * itg # (127(n),)
+      ant_ex = np.repeat(ant[:, np.newaxis], grid.jx, axis=1) # (127(n),128(θ))
+      """
       for i in range(0, grid.margin):
          # top boundary condition
          # no electrical current
          # Bph = 0, smoothly match Aph with an exterior potential field solution
          Bph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = -Bph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin]
-         # print(P1Sum) クソデカ
-         Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = +Aph[grid.ixg-i-2,grid.margin:grid.jxg-grid.margin] \
-            -grid.drr*P1Sum
+         # Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = +Aph[grid.ixg-i-2,grid.margin:grid.jxg-grid.margin] \
+         #    -grid.drr*np.sum((n_values_ex + 1) * ant_ex * (grid.rr[grid.ixg-grid.margin-1]/grid.rr[grid.ixg-i-1])**(n_values_ex + 1) * (1/grid.rr[grid.ixg-i-1]) * P1n_reduced,axis=0)
+         Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = np.sum(ant_ex * (grid.rr[grid.jxg - grid.margin - 1]/grid.rr[grid.ixg-i-1])**(n_values_ex + 1) * P1n_reduced.T,axis=0)
+      
          # bottom boundary condition
          # perfect conductor
          # Aph = 0, d(r*Bph)/dr = 0

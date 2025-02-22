@@ -32,6 +32,7 @@ Brrt = np.zeros((grid.ixg,grid.jxg,n1-n0))
 Btht = np.zeros((grid.ixg,grid.jxg,n1-n0))
 Bpht = np.zeros((grid.ixg,grid.jxg,n1-n0))
 for n  in range(n0,n1):
+    print(n)
     data.data_load(n)
     Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
     d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')
@@ -47,6 +48,11 @@ Brrt0 = Brrt[-2,np.argmin(abs(grid.th-60/180*np.pi)),:]
 Bpht0_sign = np.sign(Bpht0)
 Bpht0_sign_diff = np.diff(Bpht0_sign)
 
+Brrt0_sign = np.sign(Brrt0)
+Brrt0_sign_diff = np.diff(Brrt0_sign)
+ne_r = np.where(Brrt0_sign_diff == +2)[0][-1]
+
+
 ns = np.where(Bpht0_sign_diff == +2)[0][-2]
 ne = np.where(Bpht0_sign_diff == +2)[0][-1]
 
@@ -57,6 +63,7 @@ ax1 = fig.add_subplot(2,1,1)
 ax2 = fig.add_subplot(2,1,2)
 
 timeu = (timet[ns:ne]-timet[ns])/tau_diff
+timeur = (timet[ns:ne_r]-timet[ns])/tau_diff
 Bpht0u = Bpht0[ns:ne]
 Brrt0u = Brrt0[ns:ne]
 nw = ne - ns
@@ -73,6 +80,7 @@ ax2.set_xlabel(r't/$\tau_\mathrm{diff}$')
 fig.tight_layout()
 
 print('Cycle time = ',timeu[-1])
+print('Cycle time = ',timeur[-1])
 print('Max(Bph) =',np.max(Bpht0u))
 
     

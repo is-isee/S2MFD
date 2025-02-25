@@ -20,6 +20,9 @@ rrmax = RSUN
 thmin = 0
 thmax = np.pi
 
+# boundary condition
+boundary_condition_type = 'vertical'
+
 # Setup parameters
 ## geometry parameters
 rrc = 0.7*RSUN  # base of the convection zone
@@ -58,4 +61,5 @@ cont_flag = True
 datadir = 'data/'
 gridfile = 'grid.npz'
 setupfile = 'setup.npz'
+legendrefile = 'legendre.npz'
 configfile = 'config.json'

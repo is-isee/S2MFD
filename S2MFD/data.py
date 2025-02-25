@@ -73,8 +73,9 @@ class Data:
         cfg.datadir = datadir
         grid = S2MFD.Grid.load(datadir+cfg.gridfile)
         setup = S2MFD.Setup.load(datadir+cfg.setupfile)
+        legendre = S2MFD.Legendre.load(datadir+cfg.legendrefile)
         
-        return cls(cfg,grid,setup)
+        return cls(cfg,grid,setup,legendre)
     
     def get_data_file_path(self, nd):
         """

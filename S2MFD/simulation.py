@@ -24,7 +24,7 @@ class Simulation(S2MFD.Data):
                )
         if setup is None:
             setup = S2MFD.Setup(cfg, grid)
-        # TODO Legendreも同様、if文はつけない
+            
         legendre = S2MFD.Legendre(grid)
         super().__init__(cfg, grid, setup ,legendre)
 
@@ -45,9 +45,11 @@ class Simulation(S2MFD.Data):
         if self.cfg.cont_flag:
             self.grid = S2MFD.Grid.load(self.cfg.datadir+self.cfg.gridfile)
             self.setup = S2MFD.Setup.load(self.cfg.datadir+self.cfg.setupfile)
+            self.legendre = S2MFD.Legendre.load(self.cfg.datadir+self.cfg.legendrefile)
         else:
             self.grid.save(self.cfg.datadir+self.cfg.gridfile)
             self.setup.save(self.cfg.datadir+self.cfg.setupfile)
+            self.legendre.save(self.cfg.datadir+self.cfg.legendrefile)
         
     def cfl_condition(self):
         """
@@ -141,8 +143,8 @@ class Simulation(S2MFD.Data):
             if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
                 self.nd += 1
                 # ax.clear()
-                # ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,data.Bph,vmax=5.e0,vmin=-5.e0,cmap='bwr',shading='auto')
-                # ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*data.Aph/cfg.RSUN,colors='black',levels=np.linspace(-0.02,0.02,16))
+                # ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,self.Bph,vmax=5.e0,vmin=-5.e0,cmap='bwr',shading='auto')
+                # ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*self.Aph/cfg.RSUN,colors='black',levels=np.linspace(-0.02,0.02,16))
                 # radius = grid.rrmax/cfg.RSUN
                 # ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4)
                 # radius = grid.rrmin/cfg.RSUN         

@@ -4,7 +4,8 @@ import os, sys
 sys.path.append('../')
 import S2MFD
 
-datadir = '../data/'
+# datadir = '../data_flux_transport/'
+datadir = '../data_potential/'
 data = S2MFD.Data.initial_load(datadir)
 
 cfg = data.cfg
@@ -29,6 +30,8 @@ timet = np.zeros(n1-n0)
 Brrt = np.zeros((grid.ixg,grid.jxg,n1-n0))
 Btht = np.zeros((grid.ixg,grid.jxg,n1-n0))
 Bpht = np.zeros((grid.ixg,grid.jxg,n1-n0))
+Apht = np.zeros((grid.ixg,grid.jxg,n1-n0))
+
 for n  in range(n0,n1):
     print(n)
     data.data_load(n)
@@ -38,3 +41,4 @@ for n  in range(n0,n1):
     Brrt[:,:,n-n0] = Brr
     Btht[:,:,n-n0] = Bth
     Bpht[:,:,n-n0] = d['Bph']
+    Apht[:,:,n-n0] = d['Aph']

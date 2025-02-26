@@ -183,10 +183,11 @@ def alpha_effect(Bph, Aph, rr, ibase, so, alpha_type):
    """
    if alpha_type == 'BL':
       Bphso = np.repeat(Bph[ibase, :][np.newaxis, :], len(rr), axis=0)
-      Aph_sour = so*Bphso/(1 + (Bphso)**2)
+      # Aph_sour = so*Bphso/(1 + (Bphso)**2)
+      Aph_sour = so*Bphso
    elif alpha_type == 'normal':
-      Aph_sour = so*Bph/(1 + (Bph)**2)
-      
+      # Aph_sour = so*Bph/(1 + (Bph)**2)
+      Aph_sour = so*Bph
    return Aph_sour
 
 def time_marching(Bph, Aph, dt, cfg, grid, setup):

@@ -53,20 +53,31 @@ Bpht0_sign_diff = np.diff(Bpht0_sign)
 
 ns = np.where(Bpht0_sign_diff == +2)[0][-2]
 ne = np.where(Bpht0_sign_diff == +2)[0][-1]
+# Decide range by hands
+# ns = 700
+# ne = 998
 timeu = (timet[ns:ne]-timet[ns])/tau_diff
 # timeu = (timet[ns:]-timet[ns])/tau_diff
 B_range = 3
 plt.clf()
 plt.close('all')
-fig = plt.figure('Butterfly Diagram',figsize=(6,10))
+fig = plt.figure('Butterfly Diagram',figsize=(10,10))
 ax1 = fig.add_subplot(2,1,1)
 ax2 = fig.add_subplot(2,1,2)
 # Bpht0u = Bpht0[ns:ne]
 # Brrt0u = Brrt0[ns:ne]
 # nw = ne - ns
 # nm = np.argmax(Bpht0u)
+
+# butterfly diagram
 ax1.pcolormesh(timeu,grid.th/np.pi*180,Bpht_7[:,ns:ne],cmap='bwr',shading='auto')
 ax2.pcolormesh(timeu,grid.th/np.pi*180,Brrt_s[:,ns:ne],vmax=B_range*1e-2,vmin=-B_range*1e-2,cmap='bwr',shading='auto')
+# sunspot
+Bpht_lim = Bpht_7[:,ns:ne]
+mask_p = Bpht_lim > 3.5
+mask_m = Bpht_lim < -3.5
+ax1.contourf(timeu, grid.th/np.pi*180, mask_p, levels=[0.5, 1.5], colors=['black'])
+ax1.contourf(timeu, grid.th/np.pi*180, mask_m, levels=[0.5, 1.5], colors=['black'])
 
 ax1.set_ylabel(r'$B_\phi$: $r=0.7R_\odot$')
 ax2.set_ylabel(r'$B_r$: $r=R_\odot$')

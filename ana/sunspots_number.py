@@ -4,9 +4,6 @@ import os, sys
 sys.path.append('../')
 import S2MFD
 
-cfg = S2MFD.Cfg()
-grid = S2MFD.Grid(ix=cfg.ix, jx=cfg.jx, margin=cfg.margin, rrmin=cfg.rrmin, rrmax=cfg.rrmax, thmin=cfg.thmin, thmax=cfg.thmax)
-
 
 # 黒点数の計上
 # TODO 範囲はよく吟味
@@ -33,3 +30,15 @@ for t in range(n1):
 kappa = 0.3
 S_num = kappa * S_num
 N_num = kappa * N_num
+
+n_conv = 4 #移動平均の個数
+conv_f = np.ones(n_conv)/n_conv
+
+S_num2 = np.convolve(S_num, conv_f, mode='same')#移動平均
+N_num2 = np.convolve(N_num, conv_f, mode='same')#移動平均
+
+time_s = np.linspace(0,data.cfg.tend,data.cfg.tend//data.cfg.dtout)
+time_y = time_s/data.cfg.d2s/365
+plt.plot(time_y,S_num2,'r',label = 'sunspots number')
+plt.xlabel('time(year)')
+plt.ylabel('sunspots number')

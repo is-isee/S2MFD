@@ -169,6 +169,7 @@ class Simulation(S2MFD.Data):
                 # mask_m = Bpht_b < -3.5
                 # ax.contourf(time, grid.th/np.pi*180, mask_p, levels=[0.5, 1.5], colors=['black'])
                 # ax.contourf(time, grid.th/np.pi*180, mask_m, levels=[0.5, 1.5], colors=['black'])
+                # plt.xlim(self.time-3600*self.dt,self.time)
                 # plt.pause(0.01)
                 
                 self.save()

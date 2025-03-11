@@ -52,13 +52,23 @@ class Setup:
          Grid object.
       """
       # differential rotation
-      self.om = cfg.omc + 0.5*(1 + erf((grid.RR-cfg.rrc)/cfg.d))*(cfg.ome - cfg.omc - cfg.c2*grid.cosTH**2)
+      # differential rotation(Jouve+2008 Model)
+      if differential_type = "J08":
+         self.om = cfg.omc + 0.5*(1 + erf((grid.RR-cfg.rrc)/cfg.d))*(cfg.ome - cfg.omc - cfg.c2*grid.cosTH**2)
+      # differential rotation (Chatterjee+2004 Model)
+      elif differential_type = "C04":
+         self.om = cfg.omR + 0.5*(1+erf(2*(grid.RR-cfg.rrc)/cfg.d))*(cfg.ome + cfg.a2*grid.cosTH**2 + cfg.a4*grid.cosTH**4)
+      
 
       self.omrr = drr2(self.om, grid.drr)
       self.omth = dth2(self.om, grid.dth)/grid.RR
    
       # diffusivity
-      self.et = cfg.etc + 0.5*(cfg.ett - cfg.etc)*(1 + erf((grid.RR-cfg.rrc)/cfg.d))
+      if diffusive_type = "J08":
+         self.et = cfg.etc + 0.5*(cfg.ett - cfg.etc)*(1 + erf((grid.RR-cfg.rrc)/cfg.d))
+      elif diffusive_type = "C04":
+         self.et = cfg.etR + 0.5*cfg.etS*(1 + erf((grid.RR-cfg.rrc)/cfg.d1))
+         
       self.etrr = drr2(self.et, grid.drr)
 
       #タコクラインのindex
@@ -73,6 +83,10 @@ class Setup:
          self.so = cfg.so0*3*np.sqrt(3)/4 \
             *(1 + erf((grid.RR-cfg.rrc)/cfg.d)) \
                *grid.sinTH**2*grid.cosTH
+      elif cfg.alpha_type == 'C04':
+         self.so = cfg.so0*0.25 \
+            *(1 + erf((grid.RR-cfg.r1)/cfg.d1))*(1 - erf((grid.RR-cfg.RSUN)/cfg.d1)) \
+               *grid.cosTH
       # Meridional flow
       # Meridional flow (Jouve+2008 Model)
       if cfg.meridional_circulation_type == 'J08':

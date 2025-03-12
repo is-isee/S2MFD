@@ -52,13 +52,18 @@ class Setup:
          Grid object.
       """
       # differential rotation
-      self.om = cfg.omc + 0.5*(1 + erf((grid.RR-cfg.rrc)/cfg.d))*(cfg.ome - cfg.omc - cfg.c2*grid.cosTH**2)
-
+      if cfg.differential_type == 'J08':
+         self.om = cfg.omc + 0.5*(1 + erf((grid.RR-cfg.rrc)/cfg.d))*(cfg.ome - cfg.omc - cfg.c2*grid.cosTH**2)
+      elif cfg.differential_type == 'H10':
+         self.om = cfg.omc + 0.5*(1 + erf(2*(grid.RR-cfg.rrc)/cfg.dh1))*(cfg.ome + cfg.a2*grid.cosTH**2 + cfg.a4*grid.cosTH**4 - cfg.omc)
       self.omrr = drr2(self.om, grid.drr)
       self.omth = dth2(self.om, grid.dth)/grid.RR
    
       # diffusivity
-      self.et = cfg.etc + 0.5*(cfg.ett - cfg.etc)*(1 + erf((grid.RR-cfg.rrc)/cfg.d))
+      if cfg.diffusive_type == 'J08':
+         self.et = cfg.etc + 0.5*(cfg.ett - cfg.etc)*(1 + erf((grid.RR-cfg.rrc)/cfg.d))
+      if cfg.diffusive_type == 'H10':
+         self.et = cfg.etc + 0.5*cfg.ett*(1 + erf((grid.RR-cfg.rrc)/cfg.dh1)) + 0.5*cfg.ets*(1 + erf((grid.RR-cfg.r1)/cfg.dh2))
       self.etrr = drr2(self.et, grid.drr)
 
       #タコクラインのindex
@@ -73,6 +78,11 @@ class Setup:
          self.so = cfg.so0*3*np.sqrt(3)/4 \
             *(1 + erf((grid.RR-cfg.rrc)/cfg.d)) \
                *grid.sinTH**2*grid.cosTH
+      elif cfg.alpha_type == 'H10':
+         self.so = cfg.so1*0.25 \
+            *(1+erf((grid.RR-cfg.r4)/cfg.dh4))*(1-erf((grid.RR-cfg.r5)/cfg.dh5)) \
+               *grid.cosTH*grid.sinTH/(1+np.e**(-cfg.gam*(grid.TH-np.pi*0.25))) 
+            
       # Meridional flow
       # Meridional flow (Jouve+2008 Model)
       if cfg.meridional_circulation_type == 'J08':

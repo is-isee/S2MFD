@@ -29,10 +29,12 @@ rrc = 0.7*RSUN  # base of the convection zone
 d   = 0.02*RSUN # width of the tachocline
 
 ## Diffusivity
+diffusive_type = 'J08'
 etc = 1.e9
 ett = 1.e11
 
 ## Differential rotation
+differential_type = 'J08'
 com = 1.4e5
 #ome = 456.e-9*2*np.pi # rotation rate at equator
 ome = com/RSUN**2*ett

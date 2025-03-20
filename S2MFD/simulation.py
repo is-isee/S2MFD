@@ -150,6 +150,8 @@ class Simulation(S2MFD.Data):
             self.n += 1
             if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
                 self.nd += 1
+                
+                # magnetic field
                 # ax.clear()
                 # ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,self.Bph,vmax=5.e0,vmin=-5.e0,cmap='bwr',shading='auto')
                 # ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*self.Aph/cfg.RSUN,colors='black',levels=np.linspace(-0.02,0.02,16))
@@ -169,7 +171,6 @@ class Simulation(S2MFD.Data):
                 # mask_m = Bpht_b < -3.5
                 # y_vals, x_vals = np.where(mask_p)
                 # ax.scatter(time[x_vals], (grid.th / np.pi * 180)[y_vals], color='black', s=1, label='>3.5')
-
                 # y_vals, x_vals = np.where(mask_m)
                 # ax.scatter(time[x_vals], (grid.th / np.pi * 180)[y_vals], color='black', s=1, label='<-3.5')
                 # ax.contourf(time, grid.th/np.pi*180, mask_p, levels=[0.5, 1.5], colors=['black'])

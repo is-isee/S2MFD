@@ -167,6 +167,11 @@ class Simulation(S2MFD.Data):
                 # ax.pcolormesh(time,grid.th/np.pi*180,Bpht_b,cmap='bwr',shading='auto')
                 # mask_p = Bpht_b > 3.5
                 # mask_m = Bpht_b < -3.5
+                # y_vals, x_vals = np.where(mask_p)
+                # ax.scatter(time[x_vals], (grid.th / np.pi * 180)[y_vals], color='black', s=1, label='>3.5')
+
+                # y_vals, x_vals = np.where(mask_m)
+                # ax.scatter(time[x_vals], (grid.th / np.pi * 180)[y_vals], color='black', s=1, label='<-3.5')
                 # ax.contourf(time, grid.th/np.pi*180, mask_p, levels=[0.5, 1.5], colors=['black'])
                 # ax.contourf(time, grid.th/np.pi*180, mask_m, levels=[0.5, 1.5], colors=['black'])
                 # plt.xlim(self.time-3600*self.dt,self.time)

@@ -81,7 +81,7 @@ class Setup:
       elif cfg.alpha_type == 'H10':
          self.so = cfg.so1*0.25 \
             *(1+erf((grid.RR-cfg.r4)/cfg.dh4))*(1-erf((grid.RR-cfg.r5)/cfg.dh5)) \
-               *grid.cosTH*grid.sinTH/(1+np.e**(-cfg.gam*(grid.TH-np.pi*0.25))) 
+               *grid.cosTH*grid.sinTH*(1/(1+np.e**(-cfg.gam*(grid.TH[1,:]-np.pi*0.25)))+1/(1+np.e**(-cfg.gam*(-grid.TH[1,:]+np.pi*0.75)))-1)
             
       # Meridional flow
       # Meridional flow (Jouve+2008 Model)
@@ -108,10 +108,21 @@ class Setup:
          self.uth = cfg.uu0*((cfg.RSUN/grid.RR)**3) \
             *(-1+cfg.c1d*xi**cfg.m - cfg.c2d*xi**(cfg.m+cfg.p)) \
             *grid.sinTH**(cfg.q+1)*grid.cosTH
+      
+      elif cfg.meridional_circulation_type == 'H10':
+         xi  = cfg.RSUN/grid.RR  - 1
+         xi[grid.RR > cfg.RSUN] = 0
+         
+         self.urr = cfg.uu0*(cfg.RSUN/grid.RR)**2 \
+            *(-1/(cfg.m+1) + cfg.c1d/(2*cfg.m + 1)*xi**cfg.m - cfg.c2d/(2*cfg.m+cfg.p+1)*xi**(cfg.m+cfg.p)) \
+            *xi*grid.sinTH**cfg.q*((cfg.q+2)*grid.cosTH**2 - grid.sinTH**2)
+
+         self.uth = cfg.uu0*((cfg.RSUN/grid.RR)**3) \
+            *(-1+cfg.c1d*xi**cfg.m - cfg.c2d*xi**(cfg.m+cfg.p)) \
+            *grid.sinTH**(cfg.q+1)*grid.cosTH
             
       self.urr[grid.RR < cfg.rrb] = 0
       self.uth[grid.RR < cfg.rrb] = 0
-
       #θ＝０(回転軸)(対称性)
       # 境界の外で子午面流の設定
       for i in range(0,grid.margin):

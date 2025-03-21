@@ -3,6 +3,7 @@ import S2MFD
 
 # 確認したいパターンを自分で指定
 cfg = S2MFD.Cfg('parameters/hotta10.py')
+# cfg = S2MFD.Cfg()
 grid = S2MFD.Grid(ix=cfg.ix, jx=cfg.jx, margin=cfg.margin, rrmin=cfg.rrmin, rrmax=cfg.rrmax, thmin=cfg.thmin, thmax=cfg.thmax)
 setup = S2MFD.Setup(cfg,grid)
 
@@ -22,21 +23,25 @@ U_x = setup.urr * grid.cosTH - setup.uth * grid.sinTH
 U_y = setup.urr * grid.sinTH + setup.uth * grid.cosTH
 fig, ax = plt.subplots()
 plt.quiver(grid.Y, grid.X, U_y, U_x)
+# plt.streamplot(grid.RR, grid.RR, U_y, U_x)
 plt.title('The Flow Fields')
 ax.set_aspect('equal')
-plt.xlabel('radius')
+plt.xlabel('length(cm)')
+plt.ylabel('length(cm)')
 plt.ylim(-7e10,7e10)
 plt.xlim(0,7e10)
 plt.show()
 
 # Diffusivity
 plt.figure(figsize=(6, 6))  # 描画領域を正方形にする
-plt.plot(setup.et[:,43])
+plt.xlabel('$r/R$')
+plt.ylabel('$\eta{(cm^2s^{-1})}$')
+plt.plot(grid.RR[:,1],setup.et[:,43])
 ax.set_aspect('equal')
 plt.yscale('log')
 ax.set_box_aspect(1)  # 縦横比を1:1に設定 (Matplotlib v3.3+)
 plt.ylim(1e8,1e13)
-plt.xlim(0,cfg.ix)
+plt.xlim(np.min(grid.RR),np.max(grid.RR))
 plt.show()
 
 # alpha (θ＝60)

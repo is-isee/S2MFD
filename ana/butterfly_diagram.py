@@ -7,7 +7,7 @@ import S2MFD
 # datadir = '../data_alpha_omega_etaconst/'
 # datadir = '../data_alpha_omega/'
 # datadir = '../data_flux_transport/'
-datadir = '../data_potential/'
+datadir = '../data_H10_5e12/'
 data = S2MFD.Data.initial_load(datadir)
 
 cfg = data.cfg
@@ -51,13 +51,13 @@ Brrt0 = Brrt[-2,np.argmin(abs(grid.th-60/180*np.pi)),:]
 Bpht0_sign = np.sign(Bpht0)
 Bpht0_sign_diff = np.diff(Bpht0_sign)
 
-ns = np.where(Bpht0_sign_diff == +2)[0][-2]
-ne = np.where(Bpht0_sign_diff == +2)[0][-1]
+# ns = np.where(Bpht0_sign_diff == +2)[0][-2]
+# ne = np.where(Bpht0_sign_diff == +2)[0][-1]
 # Decide range by hands
-# ns = 700
-# ne = 998
+ns = 3900
+ne = 4400
 timeu = (timet[ns:ne]-timet[ns])/tau_diff
-# timeu = (timet[ns:]-timet[ns])/tau_diff
+time_year = (timet[ns:ne]-timet[ns])/86400/365
 B_range = 3
 plt.clf()
 plt.close('all')
@@ -70,14 +70,21 @@ ax2 = fig.add_subplot(2,1,2)
 # nm = np.argmax(Bpht0u)
 
 # butterfly diagram
-ax1.pcolormesh(timeu,grid.th/np.pi*180,Bpht_7[:,ns:ne],cmap='bwr',shading='auto')
-ax2.pcolormesh(timeu,grid.th/np.pi*180,Brrt_s[:,ns:ne],vmax=B_range*1e-2,vmin=-B_range*1e-2,cmap='bwr',shading='auto')
+B_0 = 4.e4
+c1 = ax1.pcolormesh(time_year, grid.th/np.pi*180, B_0*Bpht_7[:,ns:ne], cmap='bwr', shading='auto')
+c2 = ax2.pcolormesh(time_year, grid.th/np.pi*180, B_0*Brrt_s[:,ns:ne], cmap='bwr', shading='auto')
+# We need when the poler magnetic field is strong
+# c2 = ax2.pcolormesh(timeu,grid.th/np.pi*180,Brrt_s[:,ns:ne],vmax=B_range*1e-2,vmin=-B_range*1e-2,cmap='bwr',shading='auto')
+# カラーバーを追加
+fig.colorbar(c1, ax=ax1, orientation='vertical').set_label(r'$B_\phi$ (G)')
+fig.colorbar(c2, ax=ax2, orientation='vertical').set_label(r'$B_r$ (G)')
+
 # sunspot
 Bpht_lim = Bpht_7[:,ns:ne]
 mask_p = Bpht_lim > 3.5
 mask_m = Bpht_lim < -3.5
-ax1.contourf(timeu, grid.th/np.pi*180, mask_p, levels=[0.5, 1.5], colors=['black'])
-ax1.contourf(timeu, grid.th/np.pi*180, mask_m, levels=[0.5, 1.5], colors=['black'])
+# ax1.contourf(timeu, grid.th/np.pi*180, mask_p, levels=[0.5, 1.5], colors=['black'])
+# ax1.contourf(timeu, grid.th/np.pi*180, mask_m, levels=[0.5, 1.5], colors=['black'])
 
 ax1.set_ylabel(r'$B_\phi$: $r=0.7R_\odot$')
 ax2.set_ylabel(r'$B_r$: $r=R_\odot$')

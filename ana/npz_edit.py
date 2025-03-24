@@ -2,7 +2,7 @@ import numpy as np
 
 # .npz ファイルを開く
 datadir = "../data/"
-d = np.load(datadir + "data.001165.npz")
+d = np.load(datadir + "data.000800.npz")
 
 data = S2MFD.Data.initial_load(datadir)
 
@@ -28,8 +28,10 @@ else:
 
 gamma_s = 0.4
 gamma_n = 0.0
+gamma_t = 0.8
 Aph[base:,:S_equa] = gamma_s * Aph[base:,:S_equa]
 Aph[base:,N_equa:] = gamma_n * Aph[base:,N_equa:]
+Bph[    :,      :] = gamma_t * Bph[    :,      :]
 
 # 修正後のデータを新しい .npz に保存
-np.savez(datadir + "data.001165.npz", Bph=Bph, Aph=Aph, time=time, n=n)
+np.savez(datadir + "data.000800.npz", Bph=Bph, Aph=Aph, time=time, n=n)

@@ -4,11 +4,7 @@ import os, sys
 sys.path.append('../')
 import S2MFD
 
-# datadir = '../data_alpha_omega_etaconst/'
-# datadir = '../data_alpha_omega/'
-# datadir = '../data_flux_transport/'
 datadir = '../data/'
-# datadir = '../data_dikpati99/'
 data = S2MFD.Data.initial_load(datadir)
 
 cfg = data.cfg
@@ -41,7 +37,6 @@ for n  in range(n0,n1):
     Btht[:,:,n-n0] = Bth
     Bpht[:,:,n-n0] = d['Bph']
     
-#
 Bpht0 = Bpht[1+np.argmin(abs(grid.rr-0.7*cfg.RSUN)),np.argmin(abs(grid.th-30/180*np.pi)),:]
 Brrt0 = Brrt[-2,np.argmin(abs(grid.th-60/180*np.pi)),:]
 
@@ -81,6 +76,7 @@ fig.tight_layout()
 
 print('Cycle time = ',timeu[-1])
 print('Cycle time = ',timeur[-1])
+print('Period(year) = ',timeu[-1]*tau_diff/86400/365,'year')
 print('Max(Bph) =',np.max(Bpht0u))
 
     

@@ -35,6 +35,7 @@ gam = 30
 # meridional flow
 meridional_circulation_type = 'H10'
 uu0 = 1000
+f   = 0.497513668231466 # setting the maximum speed of the θ component to u0
 m   = 0.5
 p   = 0.25
 q   = 0

@@ -4,7 +4,6 @@ import os, sys
 sys.path.append('../')
 import S2MFD
 
-# datadir = '../data_flux_transport/'
 datadir = '../data_potential/'
 data = S2MFD.Data.initial_load(datadir)
 

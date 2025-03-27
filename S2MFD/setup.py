@@ -52,13 +52,18 @@ class Setup:
          Grid object.
       """
       # differential rotation
-      self.om = cfg.omc + 0.5*(1 + erf((grid.RR-cfg.rrc)/cfg.d))*(cfg.ome - cfg.omc - cfg.c2*grid.cosTH**2)
-
+      if cfg.differential_type == 'J08':
+         self.om = cfg.omc + 0.5*(1 + erf((grid.RR-cfg.rrc)/cfg.d))*(cfg.ome - cfg.omc - cfg.c2*grid.cosTH**2)
+      elif cfg.differential_type == 'H10':
+         self.om = cfg.omc + 0.5*(1 + erf(2*(grid.RR-cfg.rrc)/cfg.dh1))*(cfg.ome + cfg.a2*grid.cosTH**2 + cfg.a4*grid.cosTH**4 - cfg.omc)
       self.omrr = drr2(self.om, grid.drr)
       self.omth = dth2(self.om, grid.dth)/grid.RR
    
       # diffusivity
-      self.et = cfg.etc + 0.5*(cfg.ett - cfg.etc)*(1 + erf((grid.RR-cfg.rrc)/cfg.d))
+      if cfg.diffusive_type == 'J08':
+         self.et = cfg.etc + 0.5*(cfg.ett - cfg.etc)*(1 + erf((grid.RR-cfg.rrc)/cfg.d))
+      if cfg.diffusive_type == 'H10':
+         self.et = cfg.etc + 0.5*cfg.ett*(1 + erf((grid.RR-cfg.rrc)/cfg.dh1)) + 0.5*cfg.ets*(1 + erf((grid.RR-cfg.r1)/cfg.dh2))
       self.etrr = drr2(self.et, grid.drr)
 
       #タコクラインのindex
@@ -73,6 +78,11 @@ class Setup:
          self.so = cfg.so0*3*np.sqrt(3)/4 \
             *(1 + erf((grid.RR-cfg.rrc)/cfg.d)) \
                *grid.sinTH**2*grid.cosTH
+      elif cfg.alpha_type == 'H10':
+         self.so = cfg.so1*0.25 \
+            *(1+erf((grid.RR-cfg.r4)/cfg.dh4))*(1-erf((grid.RR-cfg.r5)/cfg.dh5)) \
+               *grid.cosTH*grid.sinTH*(1/(1+np.e**(-cfg.gam*(grid.TH[1,:]-np.pi*0.25)))+1/(1+np.e**(-cfg.gam*(-grid.TH[1,:]+np.pi*0.75)))-1)
+            
       # Meridional flow
       # Meridional flow (Jouve+2008 Model)
       if cfg.meridional_circulation_type == 'J08':
@@ -98,10 +108,21 @@ class Setup:
          self.uth = cfg.uu0*((cfg.RSUN/grid.RR)**3) \
             *(-1+cfg.c1d*xi**cfg.m - cfg.c2d*xi**(cfg.m+cfg.p)) \
             *grid.sinTH**(cfg.q+1)*grid.cosTH
+      
+      elif cfg.meridional_circulation_type == 'H10':
+         xi  = cfg.RSUN/grid.RR  - 1
+         xi[grid.RR > cfg.RSUN] = 0
+         
+         self.urr = (cfg.uu0/cfg.f)*(cfg.RSUN/grid.RR)**2 \
+            *(-1/(cfg.m+1) + cfg.c1d/(2*cfg.m + 1)*xi**cfg.m - cfg.c2d/(2*cfg.m+cfg.p+1)*xi**(cfg.m+cfg.p)) \
+            *xi*grid.sinTH**cfg.q*((cfg.q+2)*grid.cosTH**2 - grid.sinTH**2)
+
+         self.uth = (cfg.uu0/cfg.f)*((cfg.RSUN/grid.RR)**3) \
+            *(-1+cfg.c1d*xi**cfg.m - cfg.c2d*xi**(cfg.m+cfg.p)) \
+            *grid.sinTH**(cfg.q+1)*grid.cosTH
             
       self.urr[grid.RR < cfg.rrb] = 0
       self.uth[grid.RR < cfg.rrb] = 0
-
       #θ＝０(回転軸)(対称性)
       # 境界の外で子午面流の設定
       for i in range(0,grid.margin):

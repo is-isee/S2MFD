@@ -137,11 +137,21 @@ class Simulation(S2MFD.Data):
         # fig = plt.figure('dynamo',figsize=(5,10))   
         # ax = fig.add_subplot(111,aspect='equal')
         
+        # Real Time Butterfly Diagram
+        # plt.clf()
+        # plt.close('all')
+        # fig = plt.figure('Butterfly Diagram',figsize=(10,5))
+        # ax = fig.add_subplot(1,1,1)
+        # Bpht_b = np.zeros((grid.jxg,cfg.tend//cfg.dtout))
+        # time = np.linspace(0,cfg.tend,cfg.tend//cfg.dtout)
+        
         while self.time < cfg.tend:
             self.time += self.dt
             self.n += 1
             if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
                 self.nd += 1
+                
+                # magnetic field
                 # ax.clear()
                 # ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,self.Bph,vmax=5.e0,vmin=-5.e0,cmap='bwr',shading='auto')
                 # ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*self.Aph/cfg.RSUN,colors='black',levels=np.linspace(-0.02,0.02,16))
@@ -152,7 +162,22 @@ class Simulation(S2MFD.Data):
                 # ax.set_xlim( 0,1)
                 # ax.set_ylim(-1,1)
                 # plt.pause(0.01)
-                        
+                
+                # Real Time Butterfly Diagram
+                # ax.clear()
+                # Bpht_b[:,self.nd-1] = self.Bph[1+np.argmin(abs(grid.rr-0.7*cfg.RSUN)),:]
+                # ax.pcolormesh(time,grid.th/np.pi*180,Bpht_b,cmap='bwr',shading='auto')
+                # mask_p = Bpht_b > 3.5
+                # mask_m = Bpht_b < -3.5
+                # y_vals, x_vals = np.where(mask_p)
+                # ax.scatter(time[x_vals], (grid.th / np.pi * 180)[y_vals], color='black', s=1, label='>3.5')
+                # y_vals, x_vals = np.where(mask_m)
+                # ax.scatter(time[x_vals], (grid.th / np.pi * 180)[y_vals], color='black', s=1, label='<-3.5')
+                # ax.contourf(time, grid.th/np.pi*180, mask_p, levels=[0.5, 1.5], colors=['black'])
+                # ax.contourf(time, grid.th/np.pi*180, mask_m, levels=[0.5, 1.5], colors=['black'])
+                # plt.xlim(self.time-3600*self.dt,self.time)
+                # plt.pause(0.01)
+                
                 self.save()
 
             self.tvd_runge_kutta()

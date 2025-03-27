@@ -181,7 +181,7 @@ def alpha_effect(Bph, Aph, rr, ibase, so, alpha_type):
    Aph_sour : numpy.ndarray
       Source term due to alpha effect
    """
-   if alpha_type == 'BL':
+   if alpha_type == 'BL' or alpha_type == 'H10':
       Bphso = np.repeat(Bph[ibase, :][np.newaxis, :], len(rr), axis=0)
       Aph_sour = so*Bphso/(1 + (Bphso)**2)
    elif alpha_type == 'normal':

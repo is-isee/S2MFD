@@ -425,3 +425,116 @@ def test_potential_2(grid,legendre):
 
 # ave, sigma = 0, 1e6  # 平均100, 標準偏差100
 # Aph = np.random.normal(ave, sigma, (grid.ixg, grid.jxg))
+
+def survey_simulation(cfg=None, parameter_file=None):
+    so0_list = [5.0, 10.0, 30.0, 50.0, 70.0]
+    uu0_list = [250, 500, 750, 1000, 1500 ,2000]   
+    if cfg is None:
+        if parameter_file is None:
+            cfg = S2MFD.Cfg()
+        else:
+            cfg = S2MFD.Cfg(parameter_file)
+    ii = 0
+    jj = 0
+    print(cfg)
+    for ii in range(0, 5):
+        cfg.so0 = so0_list[ii]
+        for jj in range(0, 5):
+            cfg.uu0 = uu0_list[jj]
+            cfg.datadir = f"data_{ii}{jj}/"
+            sim = S2MFD.Simulation(cfg)
+            sim.initialize_simulation()
+            sim.cfl_condition()
+            sim.initial_condition()
+            sim.main_loop()
+
+def analysis_sample():
+    for ii in range(0, 5):
+        for jj in range(0, 4):
+            datadir = f"data_{ii}{jj}/"
+            data = S2MFD.Data.initial_load(datadir)
+
+            cfg = data.cfg
+            grid = data.grid
+            setup = data.setup
+
+            fig = plt.figure('dynamo',figsize=(10,10)) 
+
+            n1 = 0
+            if os.path.isdir(datadir):
+                # dataディレクトリ内の最も大きな番号を探る
+                # 特定のステップから始めたい場合は、そのステップを手で指定する
+                files = os.listdir(datadir)
+                for file in files:
+                    filel = file.split('.')
+                    if filel[0] == 'data':
+                        n1 = max(n1, int(filel[1]))
+
+            n0 = 2000
+            tau_diff = data.cfg.RSUN**2/data.cfg.ett
+            timet = np.zeros(n1-n0)
+            Brrt = np.zeros((grid.ixg,grid.jxg,n1-n0))
+            Btht = np.zeros((grid.ixg,grid.jxg,n1-n0))
+            Bpht = np.zeros((grid.ixg,grid.jxg,n1-n0))
+            Apht = np.zeros((grid.ixg,grid.jxg,n1-n0))
+
+            for n  in range(n0,n1):
+                # print(n)
+                data.data_load(n)
+                Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+                d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')
+                timet[n-n0] = d['time']
+                Brrt[:,:,n-n0] = Brr
+                Btht[:,:,n-n0] = Bth
+                Bpht[:,:,n-n0] = d['Bph']
+                Apht[:,:,n-n0] = d['Aph']
+
+            Bpht0 = Bpht[1+np.argmin(abs(grid.rr-0.7*cfg.RSUN)),np.argmin(abs(grid.th-30/180*np.pi)),:]
+            Brrt0 = Brrt[-2,np.argmin(abs(grid.th-60/180*np.pi)),:]
+
+            Bpht0_sign = np.sign(Bpht0)
+            Bpht0_sign_diff = np.diff(Bpht0_sign)
+
+            Brrt0_sign = np.sign(Brrt0)
+            Brrt0_sign_diff = np.diff(Brrt0_sign)
+            ne_r = np.where(Brrt0_sign_diff == +2)[0][-1]
+
+
+            ns = np.where(Bpht0_sign_diff == +2)[0][-2]
+            ne = np.where(Bpht0_sign_diff == +2)[0][-1]
+
+            # plt.clf()
+            # plt.close('all')
+            # fig = plt.figure('J08_test',figsize=(6,10))
+            # ax1 = fig.add_subplot(2,1,1)
+            # ax2 = fig.add_subplot(2,1,2)
+
+            timeu = (timet[ns:ne]-timet[ns])/tau_diff
+            timeur = (timet[ns:ne_r]-timet[ns])/tau_diff
+            Bpht0u = Bpht0[ns:ne]
+            Brrt0u = Brrt0[ns:ne]
+            # nw = ne - ns
+            # nm = np.argmax(Bpht0u)
+
+            # ax1.plot(timeu,Bpht0u)
+            # ax2.plot(timeu,Brrt0u)
+
+            # ax1.set_ylabel(r'$B_\phi$: $r=0.7R_\odot$, $\theta=30^\circ$')
+            # ax2.set_ylabel(r'$B_r$: $r=R_\odot$, $\theta=60^\circ$')
+
+            # ax2.set_xlabel(r't/$\tau_\mathrm{diff}$')
+
+            # fig.tight_layout()
+            # plt.savefig("output.png")
+            print(ii,jj)
+            # print('Cycle time = ',timeu[-1])
+            # print('Cycle time = ',timeur[-1])
+            print('Period(year)(surface) = ',timeu[-1]*tau_diff/86400/365,'year')
+            print('Max(Bph(0.7R,30)) =',np.max(Bpht0u))
+            print('Max(Brr(1.0R,60)) =',np.max(Brrt0u))
+            # 以下3つはnp.zeros(())で初期化しておく
+            Period[ii,jj] = timeu[-1]*tau_diff/86400/365
+            BphAmp[ii,jj] = np.max(Bpht0u)
+            BrrAmp[ii,jj] = np.max(Brrt0u) 
+    
+ 

@@ -1,3 +1,6 @@
+sys.path.append('../')
+import S2MFD
+
 # scipy提供のルジャンドル陪関数
 import scipy.special
 def scipy_le():
@@ -536,5 +539,112 @@ def analysis_sample():
             Period[ii,jj] = timeu[-1]*tau_diff/86400/365
             BphAmp[ii,jj] = np.max(Bpht0u)
             BrrAmp[ii,jj] = np.max(Brrt0u) 
+            
+            
+# ========================================================================================== #
+# 並列化解析_worker
+import multiprocessing
+def analysis_worker(ii, jj, Period_shared, BphAmp_shared, BrrAmp_shared):
+    so0_list = [5.0, 10.0, 30.0, 50.0, 70.0]
+    uu0_list = [250, 500, 750, 1000, 1500]
     
- 
+    datadir = f"data_{ii}{jj}/"
+    
+    if not os.path.isdir(datadir):
+        print(f"Skipping {datadir}: Directory does not exist")
+        return
+    
+    data = S2MFD.Data.initial_load(datadir)
+    cfg = data.cfg
+    grid = data.grid
+    setup = data.setup
+
+    fig = plt.figure('dynamo', figsize=(10,10)) 
+
+    n1 = 0
+    files = os.listdir(datadir)
+    for file in files:
+        filel = file.split('.')
+        if filel[0] == 'data':
+            n1 = max(n1, int(filel[1]))
+
+    n0 = 2000
+    tau_diff = data.cfg.RSUN**2 / data.cfg.ett
+    timet = np.zeros(n1 - n0)
+    Brrt = np.zeros((grid.ixg, grid.jxg, n1 - n0))
+    Btht = np.zeros((grid.ixg, grid.jxg, n1 - n0))
+    Bpht = np.zeros((grid.ixg, grid.jxg, n1 - n0))
+    Apht = np.zeros((grid.ixg, grid.jxg, n1 - n0))
+
+    for n in range(n0, n1):
+        data.data_load(n)
+        Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+        d = np.load(file=datadir + 'data.' + str(n).zfill(6) + '.npz')
+        timet[n - n0] = d['time']
+        Brrt[:, :, n - n0] = Brr
+        Btht[:, :, n - n0] = Bth
+        Bpht[:, :, n - n0] = d['Bph']
+        Apht[:, :, n - n0] = d['Aph']
+
+    Bpht0 = Bpht[1 + np.argmin(abs(grid.rr - 0.7 * cfg.RSUN)), np.argmin(abs(grid.th - 30 / 180 * np.pi)), :]
+    Brrt0 = Brrt[-2, np.argmin(abs(grid.th - 60 / 180 * np.pi)), :]
+
+    Bpht0_sign = np.sign(Bpht0)
+    Bpht0_sign_diff = np.diff(Bpht0_sign)
+    Brrt0_sign = np.sign(Brrt0)
+    Brrt0_sign_diff = np.diff(Brrt0_sign)
+
+    ne_r = np.where(Brrt0_sign_diff == +2)[0][-1]
+    ns = np.where(Bpht0_sign_diff == +2)[0][-2]
+    ne = np.where(Bpht0_sign_diff == +2)[0][-1]
+
+    timeu = (timet[ns:ne] - timet[ns]) / tau_diff
+    timeur = (timet[ns:ne_r] - timet[ns]) / tau_diff
+    Bpht0u = Bpht0[ns:ne]
+    Brrt0u = Brrt0[ns:ne]
+
+    print(f"Processed: ii={ii}, jj={jj}")
+    print('Period(year)(surface) = ', timeu[-1] * tau_diff / 86400 / 365, 'year')
+    print('Max(Bph(0.7R,30)) =', np.max(Bpht0u))
+    print('Max(Brr(1.0R,60)) =', np.max(Brrt0u))
+
+    # 共有メモリの配列に書き込み
+    Period_shared[ii][jj] = timeu[-1] * tau_diff / 86400 / 365
+    BphAmp_shared[ii][jj] = np.max(Bpht0u)
+    BrrAmp_shared[ii][jj] = np.max(Brrt0u)
+# ========================================================================================== #
+
+
+# ========================================================================================== #
+# 並列解析メイン関数
+def main_parallel():
+    so0_list = [5.0, 10.0, 30.0, 50.0, 70.0]
+    uu0_list = [250, 500, 750, 1000]
+    num_processes = min(os.cpu_count(), len(so0_list)*len(uu0_list))
+
+    Period = np.zeros((len(so0_list), len(uu0_list)))
+    BphAmp = np.zeros((len(so0_list), len(uu0_list)))
+    BrrAmp = np.zeros((len(so0_list), len(uu0_list)))
+
+    with multiprocessing.Manager() as manager:
+        Period_shared = manager.list([manager.list([0] * len(uu0_list)) for _ in range(len(so0_list))])
+        BphAmp_shared = manager.list([manager.list([0] * len(uu0_list)) for _ in range(len(so0_list))])
+        BrrAmp_shared = manager.list([manager.list([0] * len(uu0_list)) for _ in range(len(so0_list))])
+
+        task_list = [(ii, jj, Period_shared, BphAmp_shared, BrrAmp_shared) for ii in range(len(so0_list)) for jj in range(len(uu0_list))]
+
+        with multiprocessing.Pool(processes=num_processes) as pool:
+            pool.starmap(analysis_worker, task_list)
+
+        for ii in range(len(so0_list)):
+            for jj in range(len(uu0_list)):
+                Period[ii, jj] = Period_shared[ii][jj]
+                BphAmp[ii, jj] = BphAmp_shared[ii][jj]
+                BrrAmp[ii, jj] = BrrAmp_shared[ii][jj]
+
+    print("Period:\n", Period)
+    print("BphAmp:\n", BphAmp)
+    print("BrrAmp:\n", BrrAmp)
+    
+    return Period, BphAmp, BrrAmp
+# ========================================================================================== #

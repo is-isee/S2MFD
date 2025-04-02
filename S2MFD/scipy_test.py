@@ -1,5 +1,8 @@
 sys.path.append('../')
 import S2MFD
+import multiprocessing
+import os
+import numpy as np
 
 # scipy提供のルジャンドル陪関数
 import scipy.special
@@ -614,6 +617,72 @@ def analysis_worker(ii, jj, Period_shared, BphAmp_shared, BrrAmp_shared):
     BrrAmp_shared[ii][jj] = np.max(Brrt0u)
 # ========================================================================================== #
 
+# ========================================================================================== #
+# 1次元の並列化
+def survey_simulation_worker(ii, cfg = None, parameter_file = None):
+    so0_list = [5.0, 10.0, 30.0, 50.0, 70.0]
+    uu0_list = [250, 500, 750, 1000, 1500]
+    
+    if cfg is None:
+        if parameter_file is None:
+            cfg = S2MFD.Cfg()
+        else:
+            cfg = S2MFD.Cfg(parameter_file)
+    
+    cfg.so0 = so0_list[ii]
+    for jj in range(len(uu0_list)):
+        print(ii,jj)
+        cfg.uu0 = uu0_list[jj]
+        cfg.datadir = f"data_{ii}{jj}/"
+        sim = S2MFD.Simulation(cfg)
+        sim.initialize_simulation()
+        sim.cfl_condition()
+        sim.initial_condition()
+        sim.main_loop()
+
+def main_multi(cfg=None, parameter_file=None):
+    num_processes = np.minimum(os.cpu_count(), 5) # 32まで並列化可能
+
+    with multiprocessing.Pool(processes=num_processes) as pool:
+        pool.starmap(survey_simulation_worker, [(ii, cfg, parameter_file) for ii in range(num_processes)])
+# ========================================================================================== #
+
+
+
+# ========================================================================================== #
+# 全並列化
+def survey_simulation_worker_all(ii, jj, cfg=None, parameter_file=None):
+    so0_list = [5.0, 10.0, 30.0, 50.0, 70.0]
+    uu0_list = [250, 500, 750, 1000, 1500]
+    
+    if cfg is None:
+        if parameter_file is None:
+            cfg = S2MFD.Cfg()
+        else:
+            cfg = S2MFD.Cfg(parameter_file)
+    
+    cfg.so0 = so0_list[ii]
+    cfg.uu0 = uu0_list[jj]
+    cfg.datadir = f"data_{ii}{jj}/"
+    
+    print(f"Running simulation for ii={ii}, jj={jj}")
+    
+    sim = S2MFD.Simulation(cfg)
+    sim.initialize_simulation()
+    sim.cfl_condition()
+    sim.initial_condition()
+    sim.main_loop()
+
+def main_multi_all(cfg=None, parameter_file=None):
+    so0_list = [5.0, 10.0, 30.0, 50.0, 70.0]
+    uu0_list = [250, 500, 750, 1000, 1500]
+    num_processes = min(os.cpu_count(), len(so0_list)*len(uu0_list))
+
+    task_list = [(ii, jj, cfg, parameter_file) for ii in range(len(so0_list)) for jj in range(len(uu0_list))]
+
+    with multiprocessing.Pool(processes=num_processes) as pool:
+        pool.starmap(survey_simulation_worker_all, task_list)
+# ========================================================================================== #
 
 # ========================================================================================== #
 # 並列解析メイン関数
@@ -647,4 +716,48 @@ def main_parallel():
     print("BrrAmp:\n", BrrAmp)
     
     return Period, BphAmp, BrrAmp
+# ========================================================================================== #
+
+
+# ========================================================================================== #
+# 二分法サンプルコード
+import math
+import pandas as pd
+obs = 0
+# 関数f(x)=x^2+2x-1
+def f(x):
+    return x*x + 2*x - 1 - obs
+def bisection_method():
+    # f(x)=0の解 (0.41くらい)
+    ans = -1 + math.sqrt(2)
+
+    #　許容残差
+    eps = 0.001
+
+    # 初期値
+    a = 0
+    b = 1000
+
+    # 表の作成
+    col_names = ['n', 'x', 'f(x)', '誤差']
+    df = pd.DataFrame(columns=col_names)
+
+    # 二分法
+    n = 1
+
+    while True:
+        c = (a + b)/2
+        df1 = pd.DataFrame(data=[[n, c, f(c), ans-c]], columns=col_names)
+        df = pd.concat([df, df1], axis=0)
+        if f(a) * f(c) < 0:
+            b = c
+        else:
+            a = c
+        if abs(f(c)) < eps:
+            break
+        n += 1
+
+    print(df.to_string(index=False))
+    return df
+
 # ========================================================================================== #

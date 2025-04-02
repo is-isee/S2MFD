@@ -77,7 +77,7 @@ class Simulation(S2MFD.Data):
         print(f"{self.time/86400:7.1f} [day]; n={self.n:06d}; nd={self.nd:04d}")
         filename = self.get_data_file_path(self.nd)
         np.savez(file=filename \
-                    ,Bph=self.Bph,Aph=self.Aph,time=self.time,n=self.n)
+                    ,Bph=self.Bph,Aph=self.Aph,time=self.time,n=self.n,uu0=self.cfg.uu0,so0=self.cfg.so0)
 
     def initial_condition(self):
         """
@@ -177,7 +177,12 @@ class Simulation(S2MFD.Data):
                 # ax.contourf(time, grid.th/np.pi*180, mask_m, levels=[0.5, 1.5], colors=['black'])
                 # plt.xlim(self.time-3600*self.dt,self.time)
                 # plt.pause(0.01)
+                # print(cfg.boundary_condition_type)
                 
+                # 時間依存の so0 と uu0 を計算
+                self.cfg.so0 = cfg.so0_time_dependent(self.time, cfg.ett, cfg.RSUN)
+                self.cfg.uu0 = cfg.uu0_time_dependent(self.time, cfg.ett, cfg.RSUN)
+                self.setup = S2MFD.Setup(self.cfg, grid)
                 self.save()
 
             self.tvd_runge_kutta()

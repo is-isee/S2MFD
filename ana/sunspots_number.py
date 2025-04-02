@@ -42,3 +42,17 @@ time_y = time_s/data.cfg.d2s/365
 plt.plot(time_y,S_num2,'r',label = 'sunspots number')
 plt.xlabel('time(year)')
 plt.ylabel('sunspots number')
+plt.savefig("sunspots_number.png")
+plt.clf()
+
+plt.plot(time_y,uu0t,'r',label = 'meridional flow speed')
+plt.xlabel('time(year)')
+plt.ylabel('meridional flow speed')
+plt.savefig("meridional_flow_speed.png")
+plt.clf()
+
+plt.plot(time_y,so0t,'r',label = 'alpha effect')
+plt.xlabel('time(year)')
+plt.ylabel('alpha effect')
+plt.savefig("alpha_effect.png")
+plt.clf()

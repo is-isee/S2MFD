@@ -42,5 +42,7 @@ ax1.set_ylabel(r'$B_\phi$: $r=0.7R_\odot$')
 ax2.set_ylabel(r'$B_r$: $r=R_\odot$')
 
 ax2.set_xlabel('t(year)')
-
 plt.savefig("butterfly.png")
+plt.clf()
+plt.close('all')
+

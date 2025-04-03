@@ -130,7 +130,10 @@ class Simulation(S2MFD.Data):
         import matplotlib.pyplot as plt
         
         cfg = self.cfg
+        self.cfg.so0 = cfg.so0_time_dependent(self.time, cfg.ett, cfg.RSUN)
+        self.cfg.uu0 = cfg.uu0_time_dependent(self.time, cfg.ett, cfg.RSUN)
         grid = self.grid
+        self.setup = S2MFD.Setup(self.cfg, grid)
             
         # plt.clf()
         # plt.close('all')

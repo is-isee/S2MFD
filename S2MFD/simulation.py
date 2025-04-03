@@ -103,6 +103,9 @@ class Simulation(S2MFD.Data):
             # data.Bph = np.sin(2*grid.TH)*0.4
             # data.Bph[0:setup.ibase,:] = 0
             
+        self.cfg.so0 = cfg.so0_time_dependent(self.time, cfg.ett, cfg.RSUN)
+        self.cfg.uu0 = cfg.uu0_time_dependent(self.time, cfg.ett, cfg.RSUN)
+        self.setup = S2MFD.Setup(self.cfg, grid)
         self.save()
         
     def tvd_runge_kutta(self):
@@ -130,10 +133,7 @@ class Simulation(S2MFD.Data):
         import matplotlib.pyplot as plt
         
         cfg = self.cfg
-        self.cfg.so0 = cfg.so0_time_dependent(self.time, cfg.ett, cfg.RSUN)
-        self.cfg.uu0 = cfg.uu0_time_dependent(self.time, cfg.ett, cfg.RSUN)
         grid = self.grid
-        self.setup = S2MFD.Setup(self.cfg, grid)
             
         # plt.clf()
         # plt.close('all')

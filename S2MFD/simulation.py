@@ -108,6 +108,24 @@ class Simulation(S2MFD.Data):
         self.setup = S2MFD.Setup(self.cfg, grid)
         self.save()
         
+    def initial_for_bisection(self):
+        """
+        Applies initial condition
+        """
+        cfg = self.cfg
+        grid = self.grid
+        setup = self.setup
+
+        self.nd = 0
+        self.n = 0
+        self.time = 0.0
+        self.Aph = np.zeros((grid.ixg, grid.jxg))
+        self.Bph = np.zeros((grid.ixg, grid.jxg))
+        self.Aph = grid.sinTH/(grid.RR/cfg.RSUN)**2*cfg.RSUN/100
+        self.Aph[0:setup.ibase,:] = 0
+
+        self.save()
+        
     def tvd_runge_kutta(self):
         """
         Applies TVD Runge-Kutta method
@@ -125,6 +143,27 @@ class Simulation(S2MFD.Data):
         
         self.Bph = 0.5*self.Bph + 0.5*Bphn
         self.Aph = 0.5*self.Aph + 0.5*Aphn
+
+    def tvd_runge_kutta_bisection(self,Bph_df, Aph_df):
+        """
+        Applies TVD Runge-Kutta method
+        """
+        cfg = self.cfg
+        grid = self.grid
+        setup = self.setup
+        legendre = self.legendre
+        #### dynamo equation               
+        for _ in range(cfg.dtout//cfg.d2s):
+            Bphm, Aphm = S2MFD.physics.time_marching(Bph_df , Aph_df ,self.dt, cfg, grid, setup)
+            Bphm, Aphm = S2MFD.physics.boundary_condition(Bphm, Aphm, cfg, grid, legendre)
+
+            Bphn, Aphn = S2MFD.physics.time_marching(Bphm, Aphm, self.dt, cfg, grid, setup)
+            Bphn, Aphn = S2MFD.physics.boundary_condition(Bphn, Aphn, cfg, grid, legendre)
+            
+            Bph_df = 0.5*Bph_df + 0.5*Bphn
+            Aph_df = 0.5*Aph_df + 0.5*Aphn
+            
+        return Bph_df, Aph_df
     
     def main_loop(self):
         """
@@ -189,7 +228,101 @@ class Simulation(S2MFD.Data):
                 self.save()
 
             self.tvd_runge_kutta()
-            
+
+    def main_loop_for_bisection(self, Sunspot_N, uu0t):
+        """
+        Runs the main loop of the simulation
+        """
+        import matplotlib.pyplot as plt
+        
+        cfg = self.cfg
+        grid = self.grid
+        
+        #　許容残差
+        eps = 0.001
+        
+        # 初期値
+        umin = 0
+        umax = 3000
+        
+        # 表の作成
+        import pandas as pd
+        col_names = ['u0_ans', 'u0', '誤差']
+        df = pd.DataFrame(columns=col_names)
+
+        # 二分法
+        n = 1
+        while self.time < cfg.tend:
+            self.n += 1
+            obs = Sunspot_N[self.n]
+            def delta(now):
+                return obs - now
+            while True:
+                umid = (umin + umax)/2
+                
+                Bph_dfa = self.Bph
+                Aph_dfa = self.Aph
+                self.cfg.uu0 = umin
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfa, Aph_dfa = self.tvd_runge_kutta_bisection(Bph_dfa, Aph_dfa)
+                a_sim = snumbers_for_bisection(cfg,grid,n1,Bpht)
+                
+                Bph_dfb = self.Bph
+                Aph_dfb = self.Aph
+                self.cfg.uu0 = b
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                self.tvd_runge_kutta_bisection(Bph_dfb, Aph_dfb)
+                
+                Bph_dfc = self.Bph
+                Aph_dfc = self.Aph
+                self.cfg.uu0 = c
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                self.tvd_runge_kutta_bisection(Bph_dfc, Aph_dfc)
+
+                if delta(a_sim) * delta(c_sim) < 0:
+                    b = c
+                else:
+                    a = c
+                if abs(delta(c_sim)) < eps:
+                    break
+                # n += 1
+                
+                self.save()
+    
+    # ========================================================================================== #
+    # 二分法シミュレーションのための黒点数を数えておくコード
+    def snumbers_for_bisection(self,Bpht):
+        # 黒点数の計上
+        thrsh = 3.0
+        base  = 1+np.argmin(abs(self.grid.rr-0.7*self.cfg.RSUN))
+        stat  = 1+np.argmin(abs(self.grid.th- 40/180*np.pi))
+        endd  = 1+np.argmin(abs(self.grid.th-140/180*np.pi))
+        # グリッドに応じた北半球と南半球の分割
+        if self.grid.jxg % 2==0: 
+            S_equa = self.grid.jxg//2 - 1
+            N_equa = S_equa + 1
+        else:
+            S_equa = (self.grid.jxg-1)//2 - 1
+            N_equa = S_equa + 2
+
+        # S_numとN_numは全く同じになる（南北対称だから当たり前）
+        # n1は時間要素の最後の番号
+        S_num = np.sum(Bpht[base,stat:S_equa+1,t]<-thrsh) + np.sum(Bpht[base,stat:S_equa+1,t]>thrsh)
+        N_num = np.sum(Bpht[base,N_equa:endd,t]<-thrsh)   + np.sum(Bpht[base,N_equa:endd,t]>thrsh)
+        # 観測に基づいた調整パラメタ
+        kappa = 0.3
+        S_num = kappa * S_num
+        N_num = kappa * N_num
+
+        n_conv = 4 #移動平均の個数
+        conv_f = np.ones(n_conv)/n_conv
+        S_num2 = np.convolve(S_num, conv_f, mode='same')#移動平均
+        N_num2 = np.convolve(N_num, conv_f, mode='same')#移動平均
+        
+        return S_num
+    # ========================================================================================== #
+
+# TODO __all__の中身に追加した関数を加える 
 __all__ = [
          'initialize',
          'cfl_condition',

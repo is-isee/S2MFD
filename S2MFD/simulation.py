@@ -239,7 +239,7 @@ class Simulation(S2MFD.Data):
         grid = self.grid
         
         #　許容残差
-        eps = 0.001
+        eps = 0.0001
         
         # 初期値
         umin = 0
@@ -298,7 +298,7 @@ class Simulation(S2MFD.Data):
                     break
     
     # ========================================================================================== #
-    # 二分法シミュレーションのための黒点数を数えておくコード
+    # 二分法シミュレーションのための黒点数を数えるコード
     def snumbers_for_bisection(self,Bpht):
         # 黒点数の計上
         thrsh = 3.0
@@ -315,8 +315,8 @@ class Simulation(S2MFD.Data):
 
         # S_numとN_numは全く同じになる（南北対称だから当たり前）
         # n1は時間要素の最後の番号
-        S_num = np.sum(Bpht[base,stat:S_equa+1,t]<-thrsh) + np.sum(Bpht[base,stat:S_equa+1,t]>thrsh)
-        N_num = np.sum(Bpht[base,N_equa:endd,t]<-thrsh)   + np.sum(Bpht[base,N_equa:endd,t]>thrsh)
+        S_num = np.sum(Bpht[base,stat:S_equa+1]<-thrsh) + np.sum(Bpht[base,stat:S_equa+1]>thrsh)
+        N_num = np.sum(Bpht[base,N_equa:endd]<-thrsh)   + np.sum(Bpht[base,N_equa:endd]>thrsh)
         # 観測に基づいた調整パラメタ
         kappa = 0.3
         S_num = kappa * S_num

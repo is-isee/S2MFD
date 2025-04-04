@@ -244,50 +244,58 @@ class Simulation(S2MFD.Data):
         # 初期値
         umin = 0
         umax = 3000
+        obsn = 0
         
         # 表の作成
         import pandas as pd
         col_names = ['u0_ans', 'u0', '誤差']
         df = pd.DataFrame(columns=col_names)
 
-        # 二分法
-        n = 1
         while self.time < cfg.tend:
-            self.n += 1
+            obsn += 1
             obs = Sunspot_N[self.n]
             def delta(now):
                 return obs - now
             while True:
                 umid = (umin + umax)/2
                 
+                # aの計算
                 Bph_dfa = self.Bph
                 Aph_dfa = self.Aph
                 self.cfg.uu0 = umin
                 self.setup = S2MFD.Setup(self.cfg, grid)
                 Bph_dfa, Aph_dfa = self.tvd_runge_kutta_bisection(Bph_dfa, Aph_dfa)
-                a_sim = snumbers_for_bisection(cfg,grid,n1,Bpht)
+                a_sim = self.snumbers_for_bisection(Bph_dfa)
                 
+                # bの計算
                 Bph_dfb = self.Bph
                 Aph_dfb = self.Aph
-                self.cfg.uu0 = b
+                self.cfg.uu0 = umax
                 self.setup = S2MFD.Setup(self.cfg, grid)
-                self.tvd_runge_kutta_bisection(Bph_dfb, Aph_dfb)
+                Bph_dfb, Aph_dfb = self.tvd_runge_kutta_bisection(Bph_dfb, Aph_dfb)
+                b_sim = self.snumbers_for_bisection(Bph_dfb)
                 
+                # cの計算
                 Bph_dfc = self.Bph
                 Aph_dfc = self.Aph
-                self.cfg.uu0 = c
+                self.cfg.uu0 = umid
                 self.setup = S2MFD.Setup(self.cfg, grid)
-                self.tvd_runge_kutta_bisection(Bph_dfc, Aph_dfc)
+                Bph_dfc, Aph_dfc = self.tvd_runge_kutta_bisection(Bph_dfc, Aph_dfc)
+                c_sim = self.snumbers_for_bisection(Bph_dfc)
 
                 if delta(a_sim) * delta(c_sim) < 0:
-                    b = c
+                    umax = umid
                 else:
-                    a = c
+                    umin = umid
                 if abs(delta(c_sim)) < eps:
+                    self.Bph = Bph_dfc
+                    self.Aph = Aph_dfc
+                    self.cfg.uu0 = umid
+                    self.setup = S2MFD.Setup(self.cfg, grid)
+                    self.time += (cfg.dtout//cfg.d2s) * self.dt
+                    self.n += cfg.dtout//cfg.d2s
+                    self.save()
                     break
-                # n += 1
-                
-                self.save()
     
     # ========================================================================================== #
     # 二分法シミュレーションのための黒点数を数えておくコード
@@ -313,11 +321,6 @@ class Simulation(S2MFD.Data):
         kappa = 0.3
         S_num = kappa * S_num
         N_num = kappa * N_num
-
-        n_conv = 4 #移動平均の個数
-        conv_f = np.ones(n_conv)/n_conv
-        S_num2 = np.convolve(S_num, conv_f, mode='same')#移動平均
-        N_num2 = np.convolve(N_num, conv_f, mode='same')#移動平均
         
         return S_num
     # ========================================================================================== #

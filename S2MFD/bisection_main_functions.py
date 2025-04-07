@@ -14,13 +14,13 @@ def bisection_simulation(cfg=None, parameter_file=None, datadir=None):
          cfg = S2MFD.Cfg()
       else:
          cfg = S2MFD.Cfg(parameter_file)
+   cfg.datadir = 'data/'
    
    sim = S2MFD.Simulation(cfg)
    sim.initialize_simulation()
    sim.cfl_condition()
    sim.initial_for_bisection()
-   # sim.main_loop_for_bisection(Sunspot＿N＝Sunspot_N,uu0t=uu0t)
-   return Sunspot_N
+   sim.main_loop_for_bisection(Sunspot_N=Sunspot_N,uu0t=uu0t)
 # ========================================================================================== #
 
 # ========================================================================================== #

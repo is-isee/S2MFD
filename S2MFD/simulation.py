@@ -153,7 +153,7 @@ class Simulation(S2MFD.Data):
         setup = self.setup
         legendre = self.legendre
         #### dynamo equation               
-        for _ in range(cfg.dtout//cfg.d2s):
+        for _ in range(int(cfg.dtout//self.dt)):
             Bphm, Aphm = S2MFD.physics.time_marching(Bph_df , Aph_df ,self.dt, cfg, grid, setup)
             Bphm, Aphm = S2MFD.physics.boundary_condition(Bphm, Aphm, cfg, grid, legendre)
 
@@ -230,30 +230,22 @@ class Simulation(S2MFD.Data):
             self.tvd_runge_kutta()
 
     def main_loop_for_bisection(self, Sunspot_N, uu0t):
-        """
-        Runs the main loop of the simulation
-        """
         import matplotlib.pyplot as plt
         
         cfg = self.cfg
         grid = self.grid
         
         #　許容残差
-        eps = 0.0001
-        
-        # 初期値
-        umin = 0
-        umax = 3000
+        eps = 0.001
         obsn = 0
-        
-        # 表の作成
-        import pandas as pd
-        col_names = ['u0_ans', 'u0', '誤差']
-        df = pd.DataFrame(columns=col_names)
 
         while self.time < cfg.tend:
+            # 初期値
+            umin = 0
+            umax = 3000
+            
             obsn += 1
-            obs = Sunspot_N[self.n]
+            obs = Sunspot_N[obsn]
             def delta(now):
                 return obs - now
             while True:
@@ -292,8 +284,8 @@ class Simulation(S2MFD.Data):
                     self.Aph = Aph_dfc
                     self.cfg.uu0 = umid
                     self.setup = S2MFD.Setup(self.cfg, grid)
-                    self.time += (cfg.dtout//cfg.d2s) * self.dt
-                    self.n += cfg.dtout//cfg.d2s
+                    self.time += cfg.dtout
+                    self.nd += 1
                     self.save()
                     break
     

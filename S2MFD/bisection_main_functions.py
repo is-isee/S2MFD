@@ -9,13 +9,11 @@ def bisection_simulation(cfg=None, parameter_file=None, datadir=None):
       return   
    cfg, grid, n1, Bpht, uu0t = load_for_bisection(datadir)
    Sunspot_N = snumbers_for_bisection(cfg, grid, n1, Bpht)
-   if cfg is None:
-      if parameter_file is None:
-         cfg = S2MFD.Cfg()
-      else:
-         cfg = S2MFD.Cfg(parameter_file)
+   if parameter_file is None:
+      cfg = S2MFD.Cfg()
+   else:
+      cfg = S2MFD.Cfg(parameter_file)
    cfg.datadir = 'data/'
-   
    sim = S2MFD.Simulation(cfg)
    sim.initialize_simulation()
    sim.cfl_condition()

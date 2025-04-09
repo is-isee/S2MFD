@@ -761,3 +761,45 @@ def bisection_method():
     return df
 
 # ========================================================================================== #
+
+
+# ========================================================================================== #
+# 二分法シミュレーションコード
+import math
+import pandas as pd
+obs = sunspots_number[ii]
+
+def delta(past_data,now_data):
+    return past_data - now_data
+def bisection_method(uu0t):
+    ans = uu0t
+
+    #　許容残差
+    eps = 0.001
+
+    # 初期値
+    a = 0
+    b = 3000
+
+    # 表の作成
+    col_names = ['n', 'x', 'f(x)', '誤差']
+    df = pd.DataFrame(columns=col_names)
+
+    # 二分法
+    n = 1
+
+    while True:
+        c = (a + b)/2
+        df1 = pd.DataFrame(data=[[n, c, f(c), ans-c]], columns=col_names)
+        df = pd.concat([df, df1], axis=0)
+        if f(a) * f(c) < 0:
+            b = c
+        else:
+            a = c
+        if abs(delta(c)) < eps:
+            break
+        n += 1
+
+    print(df.to_string(index=False))
+    return df
+# ========================================================================================== #

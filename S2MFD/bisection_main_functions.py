@@ -13,7 +13,6 @@ def bisection_simulation(cfg=None, parameter_file=None, datadir=None):
       cfg = S2MFD.Cfg()
    else:
       cfg = S2MFD.Cfg(parameter_file)
-   cfg.datadir = 'data/'
    sim = S2MFD.Simulation(cfg)
    sim.initialize_simulation()
    sim.cfl_condition()

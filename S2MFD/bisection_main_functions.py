@@ -8,7 +8,7 @@ def bisection_simulation(cfg=None, parameter_file=None, datadir=None):
       print('You need to specify the datadir')
       return   
    cfg, grid, n1, Bpht, uu0t = load_for_bisection(datadir)
-   Sunspot_N = snumbers_for_bisection(cfg, grid, n1, Bpht)
+   Sunspot_N = snumbers_energy(cfg, grid, Bpht)
    if parameter_file is None:
       cfg = S2MFD.Cfg()
    else:
@@ -66,6 +66,21 @@ def load_for_bisection(datadir):
         uu0t[n-n0] = d['uu0']
         
     return cfg, grid, n1, Bpht, uu0t
+# ========================================================================================== #
+
+# ========================================================================================== #
+# 二分法シミュレーションのための黒点数を数えておくコード（磁気エネルギー）
+def snumbers_energy(cfg,grid,Bpht):
+   base  = 1+np.argmin(abs(grid.rr-0.7*cfg.RSUN))
+   loca  =   np.argmin(abs(grid.th- 75/180*np.pi))
+   
+   SN = Bpht[base,loca,:]**2
+
+   n_conv = 4 #移動平均の個数
+   conv_f = np.ones(n_conv)/n_conv
+   SN2 = np.convolve(SN, conv_f, mode='same')#移動平均
+   
+   return SN2
 # ========================================================================================== #
 
 # ========================================================================================== #

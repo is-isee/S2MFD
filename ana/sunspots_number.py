@@ -32,13 +32,19 @@ kappa = 0.3
 S_num = kappa * S_num
 N_num = kappa * N_num
 
-n_conv = 4 #移動平均の個数
-conv_f = np.ones(n_conv)/n_conv
-S_num2 = np.convolve(S_num, conv_f, mode='same')#移動平均
-N_num2 = np.convolve(N_num, conv_f, mode='same')#移動平均
+# 移動平均関数
+def moving_average(SunspotsNum, n_conv):
+    conv_f = np.ones(n_conv)/n_conv
+    SN_smooth = np.convolve(SunspotsNum, conv_f, mode='same')#移動平均
+    
+    return SN_smooth
+
+S_num2 = moving_average(S_num, 4)
+N_num2 = moving_average(N_num, 4)
 
 # 磁場エネルギー密度B^2(toroidal,15°,r_c)を黒点数の指標とする。
-SN = Bpht[1+np.argmin(abs(grid.rr-0.7*cfg.RSUN)),np.argmin(abs(grid.th-15/180*np.pi)),:]**2
+SN = Bpht[1+np.argmin(abs(grid.rr-0.7*cfg.RSUN)),np.argmin(abs(grid.th-75/180*np.pi)),:]**2
+SN2 = moving_average(SN, 4)
 
 # 時間の配列生成
 # time_s = np.linspace(0,data.cfg.tend,data.cfg.tend//data.cfg.dtout)
@@ -47,7 +53,7 @@ time_y = time_s/data.cfg.d2s/365
 
 # グラフの描画
 # plt.plot(time_y,S_num2,'r',label = 'sunspots number')
-plt.plot(time_y,SN,'r',label = 'sunspots number')
+plt.plot(time_y,SN2,'r',label = 'sunspots number')
 plt.xlabel('time(year)')
 plt.ylabel('sunspots number')
 plt.savefig("sunspots_number.png")

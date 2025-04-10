@@ -8,7 +8,7 @@ def bisection_simulation(cfg=None, parameter_file=None, datadir=None):
       print('You need to specify the datadir')
       return   
    cfg, grid, n1, Bpht, uu0t = load_for_bisection(datadir)
-   Sunspot_N = snumbers_energy(cfg, grid, Bpht)
+   Sunspot_N,Sunspot_N2 = snumbers_energy(cfg, grid, Bpht)
    if parameter_file is None:
       cfg = S2MFD.Cfg()
    else:
@@ -80,7 +80,7 @@ def snumbers_energy(cfg,grid,Bpht):
    conv_f = np.ones(n_conv)/n_conv
    SN2 = np.convolve(SN, conv_f, mode='same')#移動平均
    
-   return SN2
+   return SN,SN2
 # ========================================================================================== #
 
 # ========================================================================================== #

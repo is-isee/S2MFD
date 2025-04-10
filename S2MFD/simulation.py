@@ -77,7 +77,7 @@ class Simulation(S2MFD.Data):
         print(f"{self.time/86400:7.1f} [day]; n={self.n:06d}; nd={self.nd:04d}")
         filename = self.get_data_file_path(self.nd)
         np.savez(file=filename \
-                    ,Bph=self.Bph,Aph=self.Aph,time=self.time,n=self.n,uu0=self.cfg.uu0,so0=self.cfg.so0)
+                    ,Bph=self.Bph,Aph=self.Aph,time=self.time,n=self.n,nd=self.nd,uu0=self.cfg.uu0,so0=self.cfg.so0)
 
     def initial_condition(self):
         """
@@ -103,6 +103,39 @@ class Simulation(S2MFD.Data):
             # data.Bph = np.sin(2*grid.TH)*0.4
             # data.Bph[0:setup.ibase,:] = 0
             
+        self.cfg.so0 = cfg.so0_time_dependent(self.time, cfg.ett, cfg.RSUN)
+        self.cfg.uu0 = cfg.uu0_time_dependent(self.time, cfg.ett, cfg.RSUN)
+        self.setup = S2MFD.Setup(self.cfg, grid)
+        self.save()
+        
+    def initial_for_bisection(self):
+        """
+        Applies initial condition
+        """
+        cfg = self.cfg
+        grid = self.grid
+        setup = self.setup
+
+
+        # self.nd = 0
+        # self.n = 0
+        # self.time = 0.0
+        # self.Aph = np.zeros((grid.ixg, grid.jxg))
+        # self.Bph = np.zeros((grid.ixg, grid.jxg))
+        # self.Aph = grid.sinTH/(grid.RR/cfg.RSUN)**2*cfg.RSUN/100
+        # self.Aph[0:setup.ibase,:] = 0
+        
+        loaddir = "data_u0_sin_2/"
+        d = np.load(loaddir + "data.000888.npz")
+        self.nd = d['nd']
+        self.n = d['n']
+        self.time = d['time']
+        self.cfg.so0 = cfg.so0_time_dependent(self.time, cfg.ett, cfg.RSUN)
+        self.cfg.uu0 = cfg.uu0_time_dependent(self.time, cfg.ett, cfg.RSUN)
+        self.Aph = d['Aph']
+        self.Bph = d['Bph']
+
+
         self.save()
         
     def tvd_runge_kutta(self):
@@ -122,6 +155,27 @@ class Simulation(S2MFD.Data):
         
         self.Bph = 0.5*self.Bph + 0.5*Bphn
         self.Aph = 0.5*self.Aph + 0.5*Aphn
+
+    def tvd_runge_kutta_bisection(self,Bph_df, Aph_df):
+        """
+        Applies TVD Runge-Kutta method
+        """
+        cfg = self.cfg
+        grid = self.grid
+        setup = self.setup
+        legendre = self.legendre
+        #### dynamo equation               
+        for _ in range(int(cfg.dtout//self.dt)):
+            Bphm, Aphm = S2MFD.physics.time_marching(Bph_df , Aph_df ,self.dt, cfg, grid, setup)
+            Bphm, Aphm = S2MFD.physics.boundary_condition(Bphm, Aphm, cfg, grid, legendre)
+
+            Bphn, Aphn = S2MFD.physics.time_marching(Bphm, Aphm, self.dt, cfg, grid, setup)
+            Bphn, Aphn = S2MFD.physics.boundary_condition(Bphn, Aphn, cfg, grid, legendre)
+            
+            Bph_df = 0.5*Bph_df + 0.5*Bphn
+            Aph_df = 0.5*Aph_df + 0.5*Aphn
+            
+        return Bph_df, Aph_df
     
     def main_loop(self):
         """
@@ -186,7 +240,102 @@ class Simulation(S2MFD.Data):
                 self.save()
 
             self.tvd_runge_kutta()
+
+    def main_loop_for_bisection(self, Sunspot_N, uu0t):
+        import matplotlib.pyplot as plt
+        
+        cfg = self.cfg
+        grid = self.grid
+        
+        #　許容残差
+        eps = 0.001
+        obsn = self.nd
+
+
+        while self.time < cfg.tend:
+            # 初期値
+            umin = 0
+            umax = 3000
             
+            print(f"Before increment: obsn={obsn}")
+            print(f"eps={eps}")
+            obsn = self.nd+1
+            print(f"After increment: obsn={obsn}")
+            obs = Sunspot_N[obsn]
+            print("目標＝",obs)
+            def delta(now):
+                return obs - now
+            while True:
+                umid = (umin + umax)/2
+                
+                # aの計算
+                Bph_dfa = self.Bph
+                Aph_dfa = self.Aph
+                self.cfg.uu0 = umin
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfa, Aph_dfa = self.tvd_runge_kutta_bisection(Bph_dfa, Aph_dfa)
+                a_sim = self.snumbers_for_bisection(Bph_dfa)
+                print(f"min結果={a_sim}")
+                # bの計算
+                Bph_dfb = self.Bph
+                Aph_dfb = self.Aph
+                self.cfg.uu0 = umax
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfb, Aph_dfb = self.tvd_runge_kutta_bisection(Bph_dfb, Aph_dfb)
+                b_sim = self.snumbers_for_bisection(Bph_dfb)
+                print(f"max結果={b_sim}")
+                # cの計算
+                Bph_dfc = self.Bph
+                Aph_dfc = self.Aph
+                self.cfg.uu0 = umid
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfc, Aph_dfc = self.tvd_runge_kutta_bisection(Bph_dfc, Aph_dfc)
+                c_sim = self.snumbers_for_bisection(Bph_dfc)
+                print(f"mid結果={c_sim}")
+                print(umax,umid,umin)
+                if delta(a_sim) * delta(c_sim) < 0:
+                    umax = umid
+                else:
+                    umin = umid
+                if abs(delta(c_sim)) < eps:
+                    self.Bph = Bph_dfc
+                    self.Aph = Aph_dfc
+                    self.cfg.uu0 = umid
+                    self.setup = S2MFD.Setup(self.cfg, grid)
+                    self.time += cfg.dtout
+                    self.nd += 1
+                    self.save()
+                    break
+    
+    # ========================================================================================== #
+    # 二分法シミュレーションのための黒点数を数えるコード
+    def snumbers_for_bisection(self,Bpht):
+        # 黒点数の計上
+        thrsh = 3.0
+        base  = 1+np.argmin(abs(self.grid.rr-0.7*self.cfg.RSUN))
+        stat  = 1+np.argmin(abs(self.grid.th- 40/180*np.pi))
+        endd  = 1+np.argmin(abs(self.grid.th-140/180*np.pi))
+        # グリッドに応じた北半球と南半球の分割
+        if self.grid.jxg % 2==0: 
+            S_equa = self.grid.jxg//2 - 1
+            N_equa = S_equa + 1
+        else:
+            S_equa = (self.grid.jxg-1)//2 - 1
+            N_equa = S_equa + 2
+
+        # S_numとN_numは全く同じになる（南北対称だから当たり前）
+        # n1は時間要素の最後の番号
+        S_num = np.sum(Bpht[base,stat:S_equa+1]<-thrsh) + np.sum(Bpht[base,stat:S_equa+1]>thrsh)
+        N_num = np.sum(Bpht[base,N_equa:endd]<-thrsh)   + np.sum(Bpht[base,N_equa:endd]>thrsh)
+        # 観測に基づいた調整パラメタ
+        kappa = 0.3
+        S_num = kappa * S_num
+        N_num = kappa * N_num
+        
+        return S_num
+    # ========================================================================================== #
+
+# TODO __all__の中身に追加した関数を加える 
 __all__ = [
          'initialize',
          'cfl_condition',

@@ -71,7 +71,7 @@ ax1.set_ylabel(r'$B_\phi$: $r=0.7R_\odot$, $\theta=30^\circ$')
 ax2.set_ylabel(r'$B_r$: $r=R_\odot$, $\theta=60^\circ$')
 
 ax2.set_xlabel(r't/$\tau_\mathrm{diff}$')
-
+plt.savefig('J08_test.png', dpi=300)
 fig.tight_layout()
 
 print('Cycle time = ',timeu[-1])

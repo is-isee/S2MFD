@@ -34,11 +34,11 @@ N_num = kappa * N_num
 
 n_conv = 4 #移動平均の個数
 conv_f = np.ones(n_conv)/n_conv
-
 S_num2 = np.convolve(S_num, conv_f, mode='same')#移動平均
 N_num2 = np.convolve(N_num, conv_f, mode='same')#移動平均
 
-time_s = np.linspace(0,data.cfg.tend,data.cfg.tend//data.cfg.dtout)
+# time_s = np.linspace(0,data.cfg.tend,data.cfg.tend//data.cfg.dtout)
+time_s = timet
 time_y = time_s/data.cfg.d2s/365
 plt.plot(time_y,S_num2,'r',label = 'sunspots number')
 # plt.xlim(200, 300)

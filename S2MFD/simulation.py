@@ -248,14 +248,14 @@ class Simulation(S2MFD.Data):
         grid = self.grid
         
         #　許容残差
-        eps = 0.001
+        eps = 0.0001
         obsn = self.nd
 
 
         while self.time < cfg.tend:
             # 初期値
-            umin = 0
-            umax = 3000
+            umin = 500
+            umax = 1500
             
             print(f"Before increment: obsn={obsn}")
             print(f"eps={eps}")
@@ -274,7 +274,7 @@ class Simulation(S2MFD.Data):
                 self.cfg.uu0 = umin
                 self.setup = S2MFD.Setup(self.cfg, grid)
                 Bph_dfa, Aph_dfa = self.tvd_runge_kutta_bisection(Bph_dfa, Aph_dfa)
-                a_sim = self.snumbers_for_bisection(Bph_dfa)
+                a_sim = self.snumbers_energy(Bph_dfa)
                 print(f"min結果={a_sim}")
                 # bの計算
                 Bph_dfb = self.Bph
@@ -282,7 +282,7 @@ class Simulation(S2MFD.Data):
                 self.cfg.uu0 = umax
                 self.setup = S2MFD.Setup(self.cfg, grid)
                 Bph_dfb, Aph_dfb = self.tvd_runge_kutta_bisection(Bph_dfb, Aph_dfb)
-                b_sim = self.snumbers_for_bisection(Bph_dfb)
+                b_sim = self.snumbers_energy(Bph_dfb)
                 print(f"max結果={b_sim}")
                 # cの計算
                 Bph_dfc = self.Bph
@@ -290,7 +290,7 @@ class Simulation(S2MFD.Data):
                 self.cfg.uu0 = umid
                 self.setup = S2MFD.Setup(self.cfg, grid)
                 Bph_dfc, Aph_dfc = self.tvd_runge_kutta_bisection(Bph_dfc, Aph_dfc)
-                c_sim = self.snumbers_for_bisection(Bph_dfc)
+                c_sim = self.snumbers_energy(Bph_dfc)
                 print(f"mid結果={c_sim}")
                 print(umax,umid,umin)
                 if delta(a_sim) * delta(c_sim) < 0:
@@ -305,7 +305,23 @@ class Simulation(S2MFD.Data):
                     self.time += cfg.dtout
                     self.nd += 1
                     self.save()
+                    print("=================================")
                     break
+    
+    # ========================================================================================== #
+    # 二分法シミュレーションのための黒点数を数えておくコード（磁気エネルギー）
+    def snumbers_energy(self,Bpht):
+        base  = 1+np.argmin(abs(self.grid.rr-0.7*self.cfg.RSUN))
+        loca  =   np.argmin(abs(self.grid.th- 75/180*np.pi))
+        
+        SN = Bpht[base,loca]**2
+
+        n_conv = 4 #移動平均の個数
+        conv_f = np.ones(n_conv)/n_conv
+        SN2 = np.convolve(SN, conv_f, mode='same')#移動平均
+        
+        return SN
+    # ========================================================================================== # 
     
     # ========================================================================================== #
     # 二分法シミュレーションのための黒点数を数えるコード

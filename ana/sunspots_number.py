@@ -37,11 +37,17 @@ conv_f = np.ones(n_conv)/n_conv
 S_num2 = np.convolve(S_num, conv_f, mode='same')#移動平均
 N_num2 = np.convolve(N_num, conv_f, mode='same')#移動平均
 
+# 磁場エネルギー密度B^2(toroidal,15°,r_c)を黒点数の指標とする。
+SN = Bpht[1+np.argmin(abs(grid.rr-0.7*cfg.RSUN)),np.argmin(abs(grid.th-15/180*np.pi)),:]**2
+
+# 時間の配列生成
 # time_s = np.linspace(0,data.cfg.tend,data.cfg.tend//data.cfg.dtout)
 time_s = timet
 time_y = time_s/data.cfg.d2s/365
-plt.plot(time_y,S_num2,'r',label = 'sunspots number')
-# plt.xlim(200, 300)
+
+# グラフの描画
+# plt.plot(time_y,S_num2,'r',label = 'sunspots number')
+plt.plot(time_y,SN,'r',label = 'sunspots number')
 plt.xlabel('time(year)')
 plt.ylabel('sunspots number')
 plt.savefig("sunspots_number.png")

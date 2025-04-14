@@ -4,7 +4,7 @@ import os, sys
 sys.path.append('../')
 import S2MFD
 
-datadir = '../data/'
+datadir = '../data11/'
 data = S2MFD.Data.initial_load(datadir)
 
 cfg = data.cfg
@@ -26,6 +26,8 @@ if os.path.isdir(datadir):
 n0 = 0
 tau_diff = data.cfg.RSUN**2/data.cfg.ett
 timet = np.zeros(n1-n0)
+nt = np.zeros(n1-n0)
+ndt = np.zeros(n1-n0)
 Brrt = np.zeros((grid.ixg,grid.jxg,n1-n0))
 Btht = np.zeros((grid.ixg,grid.jxg,n1-n0))
 Bpht = np.zeros((grid.ixg,grid.jxg,n1-n0))
@@ -39,6 +41,8 @@ for n  in range(n0,n1):
     Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
     d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')
     timet[n-n0] = d['time']
+    nt[n-n0] = d['n']
+    ndt[n-n0] = d['nd']
     Brrt[:,:,n-n0] = Brr
     Btht[:,:,n-n0] = Bth
     Bpht[:,:,n-n0] = d['Bph']

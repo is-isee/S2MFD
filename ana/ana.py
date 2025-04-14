@@ -4,7 +4,7 @@ import os, sys
 sys.path.append('../')
 import S2MFD
 
-datadir = '../data11/'
+datadir = '../data/'
 data = S2MFD.Data.initial_load(datadir)
 
 cfg = data.cfg

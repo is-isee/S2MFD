@@ -108,7 +108,7 @@ class Simulation(S2MFD.Data):
         self.setup = S2MFD.Setup(self.cfg, grid)
         self.save()
         
-    def initial_for_bisection(self):
+    def initial_for_bisection(self, Bpht, Apht, uu0t, so0t, nt, ndt, timet, index):
         """
         Applies initial condition
         """
@@ -125,16 +125,13 @@ class Simulation(S2MFD.Data):
         # self.Aph = grid.sinTH/(grid.RR/cfg.RSUN)**2*cfg.RSUN/100
         # self.Aph[0:setup.ibase,:] = 0
         
-        loaddir = "data_u0_sin_2/"
-        d = np.load(loaddir + "data.000888.npz")
-        self.nd = d['nd']
-        self.n = d['n']
-        self.time = d['time']
-        self.cfg.so0 = cfg.so0_time_dependent(self.time, cfg.ett, cfg.RSUN)
-        self.cfg.uu0 = cfg.uu0_time_dependent(self.time, cfg.ett, cfg.RSUN)
-        self.Aph = d['Aph']
-        self.Bph = d['Bph']
-
+        self.Bph = Bpht[:,:,index]
+        self.Aph = Apht[:,:,index]
+        self.cfg.uu0 = uu0t[index]
+        self.cfg.so0 = so0t[index]
+        self.n = int(nt[index])
+        self.nd = int(ndt[index])
+        self.time = timet[index]
 
         self.save()
         
@@ -165,7 +162,7 @@ class Simulation(S2MFD.Data):
         setup = self.setup
         legendre = self.legendre
         #### dynamo equation               
-        for _ in range(int(cfg.dtout//self.dt)):
+        for _ in range(20):
             Bphm, Aphm = S2MFD.physics.time_marching(Bph_df , Aph_df ,self.dt, cfg, grid, setup)
             Bphm, Aphm = S2MFD.physics.boundary_condition(Bphm, Aphm, cfg, grid, legendre)
 
@@ -174,6 +171,8 @@ class Simulation(S2MFD.Data):
             
             Bph_df = 0.5*Bph_df + 0.5*Bphn
             Aph_df = 0.5*Aph_df + 0.5*Aphn
+            
+            self.n += 1
             
         return Bph_df, Aph_df
     
@@ -202,7 +201,8 @@ class Simulation(S2MFD.Data):
         while self.time < cfg.tend:
             self.time += self.dt
             self.n += 1
-            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+            # if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+            if self.n % 20 == 0:
                 self.nd += 1
                 
                 # magnetic field
@@ -240,15 +240,94 @@ class Simulation(S2MFD.Data):
                 self.save()
 
             self.tvd_runge_kutta()
-
-    def main_loop_for_bisection(self, Sunspot_N, uu0t):
+    # 磁場を合わせにいく（範囲指定は可変）   
+    def bisection_ver1(self, Sunspot_N, uu0t, Bpht, Apht):
         import matplotlib.pyplot as plt
         
         cfg = self.cfg
         grid = self.grid
         
         #　許容残差
-        eps = 0.0001
+        eps = 0.001
+        obsn = self.nd
+        
+        rs = np.argmin(abs(self.grid.rr-0.6*self.cfg.RSUN))
+        re = np.argmin(abs(self.grid.rr-1.0*self.cfg.RSUN))
+        
+        ts = np.argmin(abs(self.grid.th-0/180*np.pi))
+        te = np.argmin(abs(self.grid.th-180/180*np.pi))
+
+
+        while self.time < cfg.tend:
+            # 初期値
+            umin = 400
+            umax = 1600
+            obsn = self.nd+1
+            B_obs = Bpht[:,:,obsn]
+            A_obs = Apht[:,:,obsn]
+            
+            def delta2(x_obs,now):
+                aa = np.sum((x_obs - now)**2)
+                # upper = np.sqrt(np.sum((x_obs - now)**2*self.grid.rr*self.grid.drr*self.grid.dth))
+                # lower = np.sum(x_obs*self.grid.rr*self.grid.drr*self.grid.dth)
+                # delta_2 = upper/lower
+                print("磁場平均＝",np.mean(x_obs**2))
+                return aa
+            
+            while True:
+                umid = (umin + umax)/2
+                
+                # aの計算
+                Bph_dfa = self.Bph
+                Aph_dfa = self.Aph
+                self.cfg.uu0 = umin
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfa, Aph_dfa = self.tvd_runge_kutta_bisection(Bph_dfa, Aph_dfa)
+                aaa = delta2(B_obs[rs:re,ts:te],Bph_dfa[rs:re,ts:te])
+                print("全体磁場誤差a",aaa)
+                
+                # bの計算
+                Bph_dfb = self.Bph
+                Aph_dfb = self.Aph
+                self.cfg.uu0 = umax
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfb, Aph_dfb = self.tvd_runge_kutta_bisection(Bph_dfb, Aph_dfb)
+                aab = delta2(B_obs[rs:re,ts:te],Bph_dfb[rs:re,ts:te])
+                print("全体磁場誤差b",aab)
+                
+                # cの計算
+                Bph_dfc = self.Bph
+                Aph_dfc = self.Aph
+                self.cfg.uu0 = umid
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfc, Aph_dfc = self.tvd_runge_kutta_bisection(Bph_dfc, Aph_dfc)
+                aac = delta2(B_obs[rs:re,ts:te],Bph_dfc[rs:re,ts:te])
+                print("全体磁場誤差c",aac)
+                
+                print(umax,umid,umin)
+                if aaa - aab < 0:
+                    umax = umid
+                else:
+                    umin = umid
+                if aac < eps:
+                    self.Bph = Bph_dfc
+                    self.Aph = Aph_dfc
+                    self.cfg.uu0 = umid
+                    self.setup = S2MFD.Setup(self.cfg, grid)
+                    self.time += cfg.dtout
+                    self.nd += 1
+                    self.save()
+                    print("=================================")
+                    break
+
+    def main_loop_for_bisection(self, Sunspot_N, uu0t, Bpht, Apht):
+        import matplotlib.pyplot as plt
+        
+        cfg = self.cfg
+        grid = self.grid
+        
+        #　許容残差
+        eps = 0.001
         obsn = self.nd
 
 
@@ -262,9 +341,20 @@ class Simulation(S2MFD.Data):
             obsn = self.nd+1
             print(f"After increment: obsn={obsn}")
             obs = Sunspot_N[obsn]
+            B_obs = Bpht[:,:,obsn]
+            A_obs = Apht[:,:,obsn]
             print("目標＝",obs)
+            
             def delta(now):
                 return obs - now
+            
+            def delta2(x_obs,now):
+                aa = np.sum((x_obs - now)**2)
+                upper = np.sqrt(np.sum((x_obs - now)**2*self.grid.rr*self.grid.drr*self.grid.dth))
+                lower = np.sum(x_obs*self.grid.rr*self.grid.drr*self.grid.dth)
+                delta_2 = upper/lower
+                return aa
+            
             while True:
                 umid = (umin + umax)/2
                 
@@ -276,6 +366,9 @@ class Simulation(S2MFD.Data):
                 Bph_dfa, Aph_dfa = self.tvd_runge_kutta_bisection(Bph_dfa, Aph_dfa)
                 a_sim = self.snumbers_energy(Bph_dfa)
                 print(f"min結果={a_sim}")
+                aaa = delta2(B_obs,Bph_dfa)
+                print("全体磁場誤差a",aaa)
+                
                 # bの計算
                 Bph_dfb = self.Bph
                 Aph_dfb = self.Aph
@@ -284,6 +377,9 @@ class Simulation(S2MFD.Data):
                 Bph_dfb, Aph_dfb = self.tvd_runge_kutta_bisection(Bph_dfb, Aph_dfb)
                 b_sim = self.snumbers_energy(Bph_dfb)
                 print(f"max結果={b_sim}")
+                aab = delta2(B_obs,Bph_dfb)
+                print("全体磁場誤差b",aab)
+                
                 # cの計算
                 Bph_dfc = self.Bph
                 Aph_dfc = self.Aph
@@ -292,6 +388,9 @@ class Simulation(S2MFD.Data):
                 Bph_dfc, Aph_dfc = self.tvd_runge_kutta_bisection(Bph_dfc, Aph_dfc)
                 c_sim = self.snumbers_energy(Bph_dfc)
                 print(f"mid結果={c_sim}")
+                aac = delta2(B_obs,Bph_dfc)
+                print("全体磁場誤差c",aac)
+                
                 print(umax,umid,umin)
                 if delta(a_sim) * delta(c_sim) < 0:
                     umax = umid
@@ -313,9 +412,13 @@ class Simulation(S2MFD.Data):
     def snumbers_energy(self,Bpht):
         base  = 1+np.argmin(abs(self.grid.rr-0.7*self.cfg.RSUN))
         loca  =   np.argmin(abs(self.grid.th- 75/180*np.pi))
+        locap =   np.argmin(abs(self.grid.th- 80/180*np.pi))
+        locam =   np.argmin(abs(self.grid.th- 70/180*np.pi))
+        
         
         SN = Bpht[base,loca]**2
-
+        # SN = np.mean(Bpht[base,locam:locap]**2,axis=0)
+        
         n_conv = 4 #移動平均の個数
         conv_f = np.ones(n_conv)/n_conv
         SN2 = np.convolve(SN, conv_f, mode='same')#移動平均

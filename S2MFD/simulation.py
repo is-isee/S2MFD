@@ -240,8 +240,9 @@ class Simulation(S2MFD.Data):
                 self.save()
 
             self.tvd_runge_kutta()
+            
     # 磁場を合わせにいく（範囲指定は可変）   
-    def bisection_ver1(self, Sunspot_N, uu0t, Bpht, Apht):
+    def bisection_ver1(self, uu0t, Bpht, Apht):
         import matplotlib.pyplot as plt
         
         cfg = self.cfg

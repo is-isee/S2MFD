@@ -3,11 +3,11 @@ import S2MFD
 
 # ========================================================================================== #
 # 二分法シミュレーションコード                          
-def bisection_simulation(cfg=None, parameter_file=None, datadir=None):
+def bisection_simulation(cfg=None, parameter_file=None, datadir=None, startpoint=0):
    if datadir is None:
       print('You need to specify the datadir')
       return   
-   cfg, grid, n1, Bpht, uu0t = load_for_bisection(datadir)
+   cfg, grid, n1, Bpht, Apht, uu0t, so0t, nt, ndt, timet = load_for_bisection(datadir)
    Sunspot_N,Sunspot_N2 = snumbers_energy(cfg, grid, Bpht)
    if parameter_file is None:
       cfg = S2MFD.Cfg()
@@ -16,8 +16,9 @@ def bisection_simulation(cfg=None, parameter_file=None, datadir=None):
    sim = S2MFD.Simulation(cfg)
    sim.initialize_simulation()
    sim.cfl_condition()
-   sim.initial_for_bisection()
-   sim.main_loop_for_bisection(Sunspot_N=Sunspot_N,uu0t=uu0t)
+   sim.initial_for_bisection(Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint)
+   sim.bisection_ver1(uu0t=uu0t,Bpht=Bpht,Apht=Apht)
+   # sim.main_loop_for_bisection(Sunspot_N=Sunspot_N,uu0t=uu0t,Bpht=Bpht,Apht=Apht)
 # ========================================================================================== #
 
 # ========================================================================================== #
@@ -42,9 +43,14 @@ def load_for_bisection(datadir):
             if filel[0] == 'data':
                 n1 = max(n1, int(filel[1]))
 
+   #  最後まで読み取れていなかったので一つ追加
+    n1=n1+1
+    
     n0 = 0
     tau_diff = data.cfg.RSUN**2/data.cfg.ett
     timet = np.zeros(n1-n0)
+    nt = np.zeros(n1-n0)
+    ndt = np.zeros(n1-n0)
     Brrt = np.zeros((grid.ixg,grid.jxg,n1-n0))
     Btht = np.zeros((grid.ixg,grid.jxg,n1-n0))
     Bpht = np.zeros((grid.ixg,grid.jxg,n1-n0))
@@ -58,6 +64,8 @@ def load_for_bisection(datadir):
         Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
         d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')
         timet[n-n0] = d['time']
+        nt[n-n0] = d['n']
+        ndt[n-n0] = d['nd']
         Brrt[:,:,n-n0] = Brr
         Btht[:,:,n-n0] = Bth
         Bpht[:,:,n-n0] = d['Bph']
@@ -65,7 +73,7 @@ def load_for_bisection(datadir):
         so0t[n-n0] = d['so0']
         uu0t[n-n0] = d['uu0']
         
-    return cfg, grid, n1, Bpht, uu0t
+    return cfg, grid, n1, Bpht, Apht, uu0t, so0t, nt, ndt, timet
 # ========================================================================================== #
 
 # ========================================================================================== #
@@ -73,9 +81,11 @@ def load_for_bisection(datadir):
 def snumbers_energy(cfg,grid,Bpht):
    base  = 1+np.argmin(abs(grid.rr-0.7*cfg.RSUN))
    loca  =   np.argmin(abs(grid.th- 75/180*np.pi))
+   locap =   np.argmin(abs(grid.th- 80/180*np.pi))
+   locam =   np.argmin(abs(grid.th- 70/180*np.pi))
    
    SN = Bpht[base,loca,:]**2
-
+   # SN = np.mean(Bpht[base,locam:locap]**2,axis=0)
    n_conv = 4 #移動平均の個数
    conv_f = np.ones(n_conv)/n_conv
    SN2 = np.convolve(SN, conv_f, mode='same')#移動平均

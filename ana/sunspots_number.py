@@ -32,16 +32,42 @@ kappa = 0.3
 S_num = kappa * S_num
 N_num = kappa * N_num
 
-n_conv = 4 #移動平均の個数
-conv_f = np.ones(n_conv)/n_conv
-S_num2 = np.convolve(S_num, conv_f, mode='same')#移動平均
-N_num2 = np.convolve(N_num, conv_f, mode='same')#移動平均
+# 移動平均関数
+def moving_average(SunspotsNum, n_conv):
+    conv_f = np.ones(n_conv)/n_conv
+    SN_smooth = np.convolve(SunspotsNum, conv_f, mode='same')#移動平均
+    
+    return SN_smooth
 
+S_num2 = moving_average(S_num, 4)
+N_num2 = moving_average(N_num, 4)
+
+# 磁場エネルギー密度B^2(toroidal,15°,r_c)を黒点数の指標とする。
+def Karak_deffine(Bpht,base,cfg,grid):
+    SN = Bpht[base,np.argmin(abs(grid.th-75/180*np.pi)),:]**2
+    SN2 = moving_average(SN, 4)
+    return SN2
+
+# 磁場エネルギー密度B^2(toroidal,10°~20°,r_c)を黒点数の指標とする。
+def original_deffine(Bpht,base,cfg,grid):
+    locap =   np.argmin(abs(grid.th- 80/180*np.pi))
+    locam =   np.argmin(abs(grid.th- 70/180*np.pi))
+    SN = np.mean(Bpht[base,locam:locap,:]**2,axis=0)
+    SN2 = moving_average(SN, 4)
+    return SN2
+
+# 関数の実行
+SN2 = original_deffine(Bpht,base,cfg,grid)
+# SN2 = Karak_deffine(Bpht,base,cfg,grid)
+
+# 時間の配列生成
 # time_s = np.linspace(0,data.cfg.tend,data.cfg.tend//data.cfg.dtout)
 time_s = timet
 time_y = time_s/data.cfg.d2s/365
-plt.plot(time_y,S_num2,'r',label = 'sunspots number')
-# plt.xlim(200, 300)
+
+# グラフの描画
+# plt.plot(time_y,S_num2,'r',label = 'sunspots number')
+plt.plot(time_y,SN2,'r',label = 'sunspots number')
 plt.xlabel('time(year)')
 plt.ylabel('sunspots number')
 plt.savefig("sunspots_number.png")

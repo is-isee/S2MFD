@@ -1,5 +1,6 @@
 from S2MFD.parameters.defaults import *
 
+tend = 91000*d2s
 # boundary condition
 boundary_condition_type = 'potential'
 rrmin = 0.60*RSUN

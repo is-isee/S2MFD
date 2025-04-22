@@ -767,7 +767,7 @@ def bisection_method():
 # 二分法シミュレーションコード
 import math
 import pandas as pd
-obs = sunspots_number[ii]
+# obs = sunspots_number[ii]
 
 def delta(past_data,now_data):
     return past_data - now_data
@@ -805,7 +805,7 @@ def bisection_method(uu0t):
 # ========================================================================================== #
 
 # ========================================================================================== #
-# 二分法シミュレーションコード                          
+# 二分法の並列化                         
 def bisection_multi(cfg=None, parameter_file=None, datadir=None, startpoint=0):
    if datadir is None:
       print('You need to specify the datadir')
@@ -815,11 +815,115 @@ def bisection_multi(cfg=None, parameter_file=None, datadir=None, startpoint=0):
       cfg = S2MFD.Cfg()
    else:
       cfg = S2MFD.Cfg(parameter_file)
-   sim = S2MFD.Simulation(cfg)
-   sim.initialize_simulation()
-   sim.cfl_condition()
-   sim.initial_for_bisection(Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint)
    
-   sim.bisection_ver1(uu0t=uu0t,Bpht=Bpht,Apht=Apht)
-   # sim.main_loop_for_bisection(Sunspot_N=Sunspot_N,uu0t=uu0t,Bpht=Bpht,Apht=Apht)
+   rr_minlist = [0.6,0.6,0.6,0.7]
+   rr_maxlist = [1.0,0.9,0.8,0.8]
+   th_minlist = [0.0,10,20,20,30,40]
+   th_maxlist = [90,90,90,85,85,85]
+   
+   rr_manege  = np.zeros((2,len(rr_maxlist)))
+   rr_manege[0,:] = rr_minlist
+   rr_manege[1,:] = rr_maxlist
+   
+   th_manege  = np.zeros((2,len(th_maxlist)))
+   th_manege[0,:] = th_minlist
+   th_manege[1,:] = th_maxlist
+   
+   parallel_bisection(parameter_file, rr_maxlist, th_maxlist, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, rr_manege, th_manege)
+# ========================================================================================== #
+
+# ========================================================================================== #
+# ワーカー関数の定義
+import multiprocessing
+import os
+
+def bisection_worker(ii, jj, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, rr_manege, th_manege):
+    """
+    並列化されたワーカー関数
+    """
+    if parameter_file is None:
+      cfg = S2MFD.Cfg()
+    else:
+      cfg = S2MFD.Cfg(parameter_file)
+      
+    print(f"Processing ii={ii}, jj={jj}")
+    cfg.datadir = f"data_{ii}{jj}/"
+    sim = S2MFD.Simulation(cfg)
+    sim.initialize_simulation()
+    sim.cfl_condition()
+    sim.initial_for_bisection(Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint)
+    sim.bisection_ver1(uu0t=uu0t, Bpht=Bpht, Apht=Apht, rr_manege=rr_manege, th_manege=th_manege, ii=ii, jj=jj)
+# ========================================================================================== #
+
+# ========================================================================================== #
+# タスクリストを作成し、並列処理を実行する関数
+def parallel_bisection(parameter_file, rr_maxlist, th_maxlist, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, rr_manege, th_manege):
+    """
+    並列化された二分法処理
+    """
+    # 並列化のタスクリストを作成
+    task_list = [(ii, jj, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, rr_manege, th_manege)
+                 for ii in range(len(rr_maxlist)) for jj in range(len(th_maxlist))]
+
+    # 利用可能なCPUコア数を取得
+    num_processes = min(multiprocessing.cpu_count(), len(task_list))
+
+    # 並列処理を実行
+    with multiprocessing.Pool(processes=num_processes) as pool:
+        pool.starmap(bisection_worker, task_list)
+# ========================================================================================== #
+
+# ========================================================================================== #
+# 二分法シミュレーションのためのデータを読み込む関数  
+def load_for_bisection(datadir):
+    datadir = datadir+'/'
+    data = S2MFD.Data.initial_load(datadir)
+
+    cfg = data.cfg
+    grid = data.grid
+    setup = data.setup
+
+    fig = plt.figure('dynamo',figsize=(10,10))
+
+    n1 = 0
+    if os.path.isdir(datadir):
+        # dataディレクトリ内の最も大きな番号を探る
+        # 特定のステップから始めたい場合は、そのステップを手で指定する
+        files = os.listdir(datadir)
+        for file in files:
+            filel = file.split('.')
+            if filel[0] == 'data':
+                n1 = max(n1, int(filel[1]))
+
+   #  最後まで読み取れていなかったので一つ追加
+    n1=n1+1
+    
+    n0 = 0
+    tau_diff = data.cfg.RSUN**2/data.cfg.ett
+    timet = np.zeros(n1-n0)
+    nt = np.zeros(n1-n0)
+    ndt = np.zeros(n1-n0)
+    Brrt = np.zeros((grid.ixg,grid.jxg,n1-n0))
+    Btht = np.zeros((grid.ixg,grid.jxg,n1-n0))
+    Bpht = np.zeros((grid.ixg,grid.jxg,n1-n0))
+    Apht = np.zeros((grid.ixg,grid.jxg,n1-n0))
+    so0t = np.zeros(n1-n0)
+    uu0t = np.zeros(n1-n0)
+
+    for n  in range(n0,n1):
+        print(n)
+        data.data_load(n)
+        Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+        d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')
+        timet[n-n0] = d['time']
+        nt[n-n0] = d['n']
+        ndt[n-n0] = d['nd']
+        Brrt[:,:,n-n0] = Brr
+        Btht[:,:,n-n0] = Bth
+        Bpht[:,:,n-n0] = d['Bph']
+        Apht[:,:,n-n0] = d['Aph']
+        so0t[n-n0] = d['so0']
+        uu0t[n-n0] = d['uu0']
+        
+    return cfg, grid, n1, Bpht, Apht, uu0t, so0t, nt, ndt, timet
 # ========================================================================================== #

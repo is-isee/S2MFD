@@ -43,8 +43,22 @@ S_num2 = moving_average(S_num, 4)
 N_num2 = moving_average(N_num, 4)
 
 # 磁場エネルギー密度B^2(toroidal,15°,r_c)を黒点数の指標とする。
-SN = Bpht[1+np.argmin(abs(grid.rr-0.7*cfg.RSUN)),np.argmin(abs(grid.th-75/180*np.pi)),:]**2
-SN2 = moving_average(SN, 4)
+def Karak_deffine(Bpht,base,cfg,grid):
+    SN = Bpht[base,np.argmin(abs(grid.th-75/180*np.pi)),:]**2
+    SN2 = moving_average(SN, 4)
+    return SN2
+
+# 磁場エネルギー密度B^2(toroidal,10°~20°,r_c)を黒点数の指標とする。
+def original_deffine(Bpht,base,cfg,grid):
+    locap =   np.argmin(abs(grid.th- 80/180*np.pi))
+    locam =   np.argmin(abs(grid.th- 70/180*np.pi))
+    SN = np.mean(Bpht[base,locam:locap,:]**2,axis=0)
+    SN2 = moving_average(SN, 4)
+    return SN2
+
+# 関数の実行
+SN2 = original_deffine(Bpht,base,cfg,grid)
+# SN2 = Karak_deffine(Bpht,base,cfg,grid)
 
 # 時間の配列生成
 # time_s = np.linspace(0,data.cfg.tend,data.cfg.tend//data.cfg.dtout)

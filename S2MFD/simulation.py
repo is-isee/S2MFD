@@ -77,7 +77,7 @@ class Simulation(S2MFD.Data):
         print(f"{self.time/86400:7.1f} [day]; n={self.n:06d}; nd={self.nd:04d}")
         filename = self.get_data_file_path(self.nd)
         np.savez(file=filename \
-                    ,Bph=self.Bph,Aph=self.Aph,time=self.time,n=self.n,nd=self.nd,uu0=self.cfg.uu0,so0=self.cfg.so0)
+                    ,Bph=self.Bph,Aph=self.Aph,time=self.time,n=self.n,nd=self.nd,uu0=self.cfg.uu0,so0=self.cfg.so0,dl=self.dl)
 
     def initial_condition(self):
         """
@@ -123,6 +123,7 @@ class Simulation(S2MFD.Data):
         self.n = int(nt[index])
         self.nd = int(ndt[index])
         self.time = timet[index]
+        self.dl = 0.0
 
         self.save()
         
@@ -243,11 +244,11 @@ class Simulation(S2MFD.Data):
         obsn = self.nd
         
         
-        rs = np.argmin(abs(self.grid.rr-0.6*self.cfg.RSUN))
-        re = np.argmin(abs(self.grid.rr-1.0*self.cfg.RSUN))
+        rs = np.argmin(abs(self.grid.rr-(0.7-0.05)*self.cfg.RSUN))
+        re = np.argmin(abs(self.grid.rr-(0.7+0.05)*self.cfg.RSUN))
 
-        ts = np.argmin(abs(self.grid.th-0/180*np.pi))
-        te = np.argmin(abs(self.grid.th-180/180*np.pi))
+        ts = np.argmin(abs(self.grid.th-50/180*np.pi))
+        te = np.argmin(abs(self.grid.th-75/180*np.pi))
         kkk = 0
 
         while self.time < cfg.tend:
@@ -257,6 +258,12 @@ class Simulation(S2MFD.Data):
             obsn = self.nd+1
             B_obs = Bpht[:,:,obsn]
             A_obs = Apht[:,:,obsn]
+            def delta1(x_obs,now):
+                # 規格化
+                upper = np.sqrt(np.sum((x_obs - now)**2*self.grid.RR*self.grid.drr*self.grid.dth))
+                lower = np.sqrt(np.sum(x_obs**2*self.grid.RR*self.grid.drr*self.grid.dth))
+                delta = upper / lower * 100
+                return delta
             def delta2(x_obs,now):
                 # 規格化
                 upper = np.sqrt(np.sum((x_obs - now)**2*self.grid.RR[rs:re,ts:te]*self.grid.drr*self.grid.dth))
@@ -276,7 +283,8 @@ class Simulation(S2MFD.Data):
                 self.setup = S2MFD.Setup(self.cfg, grid)
                 Bph_dfa, Aph_dfa = self.tvd_runge_kutta_bisection(Bph_dfa, Aph_dfa)
                 aaa = delta2(B_obs[rs:re,ts:te],Bph_dfa[rs:re,ts:te])
-                print("全体磁場誤差a",aaa)
+                print("範囲磁場誤差a",aaa)
+                print("全体磁場誤差a",delta1(B_obs,Bph_dfa))
                 
                 # bの計算
                 Bph_dfb = self.Bph
@@ -285,7 +293,8 @@ class Simulation(S2MFD.Data):
                 self.setup = S2MFD.Setup(self.cfg, grid)
                 Bph_dfb, Aph_dfb = self.tvd_runge_kutta_bisection(Bph_dfb, Aph_dfb)
                 aab = delta2(B_obs[rs:re,ts:te],Bph_dfb[rs:re,ts:te])
-                print("全体磁場誤差b",aab)
+                print("範囲磁場誤差b",aab)
+                print("全体磁場誤差b",delta1(B_obs,Bph_dfb))
                 
                 # cの計算
                 Bph_dfc = self.Bph
@@ -294,7 +303,8 @@ class Simulation(S2MFD.Data):
                 self.setup = S2MFD.Setup(self.cfg, grid)
                 Bph_dfc, Aph_dfc = self.tvd_runge_kutta_bisection(Bph_dfc, Aph_dfc)
                 aac = delta2(B_obs[rs:re,ts:te],Bph_dfc[rs:re,ts:te])
-                print("全体磁場誤差c",aac)
+                print("範囲磁場誤差c",aac)
+                print("全体磁場誤差c",delta1(B_obs,Bph_dfc))
                 
                 print(umax,umid,umin)
                 if aaa - aab < 0:
@@ -310,6 +320,7 @@ class Simulation(S2MFD.Data):
                     self.time += 20*self.dt
                     self.nd += 1
                     self.n += 20
+                    self.dl = delta1(B_obs,Bph_dfc)
                     self.save()
                     print("=================================")
                     break
@@ -414,26 +425,23 @@ class Simulation(S2MFD.Data):
     
     # ========================================================================================== #
     # main_loop(黒点数)
-    def main_loop_for_bisection(self, Sunspot_N, uu0t, Bpht, Apht):
+    def main_loop_for_bisection(self, Sunspot_N, Bpht, Apht):
         import matplotlib.pyplot as plt
         
         cfg = self.cfg
         grid = self.grid
         
         #　許容残差
-        eps = 0.001
+        eps = 0.00001
         obsn = self.nd
+        kkk = 0
 
 
         while self.time < cfg.tend:
             # 初期値
-            umin = 500
-            umax = 1500
-            
-            print(f"Before increment: obsn={obsn}")
-            print(f"eps={eps}")
+            umin = 400
+            umax = 1600
             obsn = self.nd+1
-            print(f"After increment: obsn={obsn}")
             obs = Sunspot_N[obsn]
             B_obs = Bpht[:,:,obsn]
             A_obs = Apht[:,:,obsn]
@@ -441,13 +449,15 @@ class Simulation(S2MFD.Data):
             
             def delta(now):
                 return obs - now
+            def deltaB(B_sm,B_bi):
+                upper = np.sqrt(np.sum((B_sm - B_bi)**2*self.grid.RR*self.grid.drr*self.grid.dth))
+                lower = np.sqrt(np.sum(B_sm**2*self.grid.RR*self.grid.drr*self.grid.dth))
+                delta = upper / lower * 100
+                return delta
             
-            def delta2(x_obs,now):
-                aa = np.sum((x_obs - now)**2)
-                upper = np.sqrt(np.sum((x_obs - now)**2*self.grid.rr*self.grid.drr*self.grid.dth))
-                lower = np.sum(x_obs*self.grid.rr*self.grid.drr*self.grid.dth)
-                delta_2 = upper/lower
-                return aa
+            break_p = 0
+            if kkk == 1:
+                break
             
             while True:
                 umid = (umin + umax)/2
@@ -459,9 +469,9 @@ class Simulation(S2MFD.Data):
                 self.setup = S2MFD.Setup(self.cfg, grid)
                 Bph_dfa, Aph_dfa = self.tvd_runge_kutta_bisection(Bph_dfa, Aph_dfa)
                 a_sim = self.snumbers_energy(Bph_dfa)
-                print(f"min結果={a_sim}")
-                aaa = delta2(B_obs,Bph_dfa)
-                print("全体磁場誤差a",aaa)
+                aaa = delta(a_sim)
+                print("黒点誤差a",aaa)
+                print("磁場誤差a",deltaB(B_obs,Bph_dfa))
                 
                 # bの計算
                 Bph_dfb = self.Bph
@@ -470,9 +480,9 @@ class Simulation(S2MFD.Data):
                 self.setup = S2MFD.Setup(self.cfg, grid)
                 Bph_dfb, Aph_dfb = self.tvd_runge_kutta_bisection(Bph_dfb, Aph_dfb)
                 b_sim = self.snumbers_energy(Bph_dfb)
-                print(f"max結果={b_sim}")
-                aab = delta2(B_obs,Bph_dfb)
-                print("全体磁場誤差b",aab)
+                aab = delta(b_sim)
+                print("黒点誤差b",aab)
+                print("磁場誤差b",deltaB(B_obs,Bph_dfb))
                 
                 # cの計算
                 Bph_dfc = self.Bph
@@ -481,9 +491,9 @@ class Simulation(S2MFD.Data):
                 self.setup = S2MFD.Setup(self.cfg, grid)
                 Bph_dfc, Aph_dfc = self.tvd_runge_kutta_bisection(Bph_dfc, Aph_dfc)
                 c_sim = self.snumbers_energy(Bph_dfc)
-                print(f"mid結果={c_sim}")
-                aac = delta2(B_obs,Bph_dfc)
-                print("全体磁場誤差c",aac)
+                aac = delta(c_sim)
+                print("黒点誤差c",aac)
+                print("磁場誤差c",deltaB(B_obs,Bph_dfc))
                 
                 print(umax,umid,umin)
                 if delta(a_sim) * delta(c_sim) < 0:
@@ -495,24 +505,56 @@ class Simulation(S2MFD.Data):
                     self.Aph = Aph_dfc
                     self.cfg.uu0 = umid
                     self.setup = S2MFD.Setup(self.cfg, grid)
-                    self.time += cfg.dtout
+                    self.time += 20*self.dt
                     self.nd += 1
+                    # self.n += 20
+                    self.n = deltaB(B_obs,Bph_dfc)
                     self.save()
                     print("=================================")
                     break
+                if break_p < 100:
+                    break_p += 1
+                else:
+                    print("break")
+                    kkk = 1
+                    break
+                
     # ========================================================================================== #
     
     # ========================================================================================== #
     # 二分法シミュレーションのための黒点数を数えておくコード（磁気エネルギー）
     def snumbers_energy(self,Bpht):
         base  = 1+np.argmin(abs(self.grid.rr-0.7*self.cfg.RSUN))
+        base_1= 1+np.argmin(abs(self.grid.rr-(0.7-0.05)*self.cfg.RSUN))
+        base_2= 1+np.argmin(abs(self.grid.rr-(0.7+0.05)*self.cfg.RSUN))
         loca  =   np.argmin(abs(self.grid.th- 75/180*np.pi))
-        locap =   np.argmin(abs(self.grid.th- 80/180*np.pi))
-        locam =   np.argmin(abs(self.grid.th- 70/180*np.pi))
+        locap =   np.argmin(abs(self.grid.th- 50/180*np.pi))
+        locam =   np.argmin(abs(self.grid.th- 130/180*np.pi))
         
         
         SN = Bpht[base,loca]**2
-        # SN = np.mean(Bpht[base,locam:locap]**2,axis=0)
+        # SN = np.mean(Bpht[base_1:base_2,locap:locam]**2,axis=(0,1))
+        
+        # n_conv = 4 #移動平均の個数
+        # conv_f = np.ones(n_conv)/n_conv
+        # SN2 = np.convolve(SN, conv_f, mode='same')#移動平均
+        
+        return SN
+    # ========================================================================================== # 
+    
+    # ========================================================================================== #
+    # 二分法シミュレーションのための黒点数を数えておくコード（磁気エネルギー）
+    def pre_snumbers_energy(self,Bpht):
+        base  = 1+np.argmin(abs(self.grid.rr-0.7*self.cfg.RSUN))
+        base_1= 1+np.argmin(abs(self.grid.rr-(0.7-0.05)*self.cfg.RSUN))
+        base_2= 1+np.argmin(abs(self.grid.rr-(0.7+0.05)*self.cfg.RSUN))
+        loca  =   np.argmin(abs(self.grid.th- 75/180*np.pi))
+        locap =   np.argmin(abs(self.grid.th- 50/180*np.pi))
+        locam =   np.argmin(abs(self.grid.th- 130/180*np.pi))
+        
+        
+        SN = Bpht[base,loca,:]**2
+        # SN = np.mean(Bpht[base_1:base_2,locap:locam,:]**2,axis=(0,1))
         
         n_conv = 4 #移動平均の個数
         conv_f = np.ones(n_conv)/n_conv

@@ -4,7 +4,7 @@ import os, sys
 sys.path.append('../')
 import S2MFD
 
-
+"""
 # 黒点数の計上
 N_num = np.zeros(n1)
 S_num = np.zeros(n1)
@@ -41,12 +41,20 @@ def moving_average(SunspotsNum, n_conv):
 
 S_num2 = moving_average(S_num, 4)
 N_num2 = moving_average(N_num, 4)
+"""
 
+base  = 1+np.argmin(abs(grid.rr-0.7*cfg.RSUN))
+# 移動平均関数
+def moving_average(SunspotsNum, n_conv):
+    conv_f = np.ones(n_conv)/n_conv
+    SN_smooth = np.convolve(SunspotsNum, conv_f, mode='same')#移動平均
+    
+    return SN_smooth
 # 磁場エネルギー密度B^2(toroidal,15°,r_c)を黒点数の指標とする。
 def Karak_deffine(Bpht,base,cfg,grid):
     SN = Bpht[base,np.argmin(abs(grid.th-75/180*np.pi)),:]**2
     SN2 = moving_average(SN, 4)
-    return SN2
+    return SN
 
 # 磁場エネルギー密度B^2(toroidal,10°~20°,r_c)を黒点数の指標とする。
 def original_deffine(Bpht,base,cfg,grid):
@@ -57,8 +65,8 @@ def original_deffine(Bpht,base,cfg,grid):
     return SN2
 
 # 関数の実行
-SN2 = original_deffine(Bpht,base,cfg,grid)
-# SN2 = Karak_deffine(Bpht,base,cfg,grid)
+# SN2 = original_deffine(Bpht,base,cfg,grid)
+SN2 = Karak_deffine(Bpht,base,cfg,grid)
 
 # 時間の配列生成
 # time_s = np.linspace(0,data.cfg.tend,data.cfg.tend//data.cfg.dtout)

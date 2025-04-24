@@ -34,6 +34,7 @@ Bpht = np.zeros((grid.ixg,grid.jxg,n1-n0))
 Apht = np.zeros((grid.ixg,grid.jxg,n1-n0))
 so0t = np.zeros(n1-n0)
 uu0t = np.zeros(n1-n0)
+dltt = np.zeros(n1-n0)
 
 for n  in range(n0,n1):
     print(n)
@@ -49,3 +50,4 @@ for n  in range(n0,n1):
     Apht[:,:,n-n0] = d['Aph']
     so0t[n-n0] = d['so0']
     uu0t[n-n0] = d['uu0']
+    dltt[n-n0] = d['dl']

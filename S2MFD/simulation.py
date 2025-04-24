@@ -231,6 +231,13 @@ class Simulation(S2MFD.Data):
                 self.save()
 
             self.tvd_runge_kutta()
+    # ========================================================================================= #
+    def delta1(self,x_obs,now):
+        # 規格化
+        upper = np.sqrt(np.sum((x_obs - now)**2*self.grid.RR*self.grid.drr*self.grid.dth))
+        lower = np.sqrt(np.sum(x_obs**2*self.grid.RR*self.grid.drr*self.grid.dth))
+        delta = upper / lower * 100
+        return delta
     # ========================================================================================== #
     # 磁場を合わせにいく二分法関数（範囲指定は非可変）   
     def bisection_ver2(self, uu0t, Bpht, Apht):
@@ -258,12 +265,6 @@ class Simulation(S2MFD.Data):
             obsn = self.nd+1
             B_obs = Bpht[:,:,obsn]
             A_obs = Apht[:,:,obsn]
-            def delta1(x_obs,now):
-                # 規格化
-                upper = np.sqrt(np.sum((x_obs - now)**2*self.grid.RR*self.grid.drr*self.grid.dth))
-                lower = np.sqrt(np.sum(x_obs**2*self.grid.RR*self.grid.drr*self.grid.dth))
-                delta = upper / lower * 100
-                return delta
             def delta2(x_obs,now):
                 # 規格化
                 upper = np.sqrt(np.sum((x_obs - now)**2*self.grid.RR[rs:re,ts:te]*self.grid.drr*self.grid.dth))
@@ -284,7 +285,7 @@ class Simulation(S2MFD.Data):
                 Bph_dfa, Aph_dfa = self.tvd_runge_kutta_bisection(Bph_dfa, Aph_dfa)
                 aaa = delta2(B_obs[rs:re,ts:te],Bph_dfa[rs:re,ts:te])
                 print("範囲磁場誤差a",aaa)
-                print("全体磁場誤差a",delta1(B_obs,Bph_dfa))
+                print("全体磁場誤差a",self.delta1(B_obs,Bph_dfa))
                 
                 # bの計算
                 Bph_dfb = self.Bph
@@ -294,7 +295,7 @@ class Simulation(S2MFD.Data):
                 Bph_dfb, Aph_dfb = self.tvd_runge_kutta_bisection(Bph_dfb, Aph_dfb)
                 aab = delta2(B_obs[rs:re,ts:te],Bph_dfb[rs:re,ts:te])
                 print("範囲磁場誤差b",aab)
-                print("全体磁場誤差b",delta1(B_obs,Bph_dfb))
+                print("全体磁場誤差b",self.delta1(B_obs,Bph_dfb))
                 
                 # cの計算
                 Bph_dfc = self.Bph
@@ -304,7 +305,7 @@ class Simulation(S2MFD.Data):
                 Bph_dfc, Aph_dfc = self.tvd_runge_kutta_bisection(Bph_dfc, Aph_dfc)
                 aac = delta2(B_obs[rs:re,ts:te],Bph_dfc[rs:re,ts:te])
                 print("範囲磁場誤差c",aac)
-                print("全体磁場誤差c",delta1(B_obs,Bph_dfc))
+                print("全体磁場誤差c",self.delta1(B_obs,Bph_dfc))
                 
                 print(umax,umid,umin)
                 if aaa - aab < 0:
@@ -320,7 +321,7 @@ class Simulation(S2MFD.Data):
                     self.time += 20*self.dt
                     self.nd += 1
                     self.n += 20
-                    self.dl = delta1(B_obs,Bph_dfc)
+                    self.dl = self.delta1(B_obs,Bph_dfc)
                     self.save()
                     print("=================================")
                     break
@@ -449,12 +450,7 @@ class Simulation(S2MFD.Data):
             
             def delta(now):
                 return obs - now
-            def deltaB(B_sm,B_bi):
-                upper = np.sqrt(np.sum((B_sm - B_bi)**2*self.grid.RR*self.grid.drr*self.grid.dth))
-                lower = np.sqrt(np.sum(B_sm**2*self.grid.RR*self.grid.drr*self.grid.dth))
-                delta = upper / lower * 100
-                return delta
-            
+
             break_p = 0
             if kkk == 1:
                 break
@@ -471,7 +467,7 @@ class Simulation(S2MFD.Data):
                 a_sim = self.snumbers_energy(Bph_dfa)
                 aaa = delta(a_sim)
                 print("黒点誤差a",aaa)
-                print("磁場誤差a",deltaB(B_obs,Bph_dfa))
+                print("磁場誤差a",self.delta1(B_obs,Bph_dfa))
                 
                 # bの計算
                 Bph_dfb = self.Bph
@@ -482,7 +478,7 @@ class Simulation(S2MFD.Data):
                 b_sim = self.snumbers_energy(Bph_dfb)
                 aab = delta(b_sim)
                 print("黒点誤差b",aab)
-                print("磁場誤差b",deltaB(B_obs,Bph_dfb))
+                print("磁場誤差b",self.delta1(B_obs,Bph_dfb))
                 
                 # cの計算
                 Bph_dfc = self.Bph
@@ -493,7 +489,7 @@ class Simulation(S2MFD.Data):
                 c_sim = self.snumbers_energy(Bph_dfc)
                 aac = delta(c_sim)
                 print("黒点誤差c",aac)
-                print("磁場誤差c",deltaB(B_obs,Bph_dfc))
+                print("磁場誤差c",self.delta1(B_obs,Bph_dfc))
                 
                 print(umax,umid,umin)
                 if delta(a_sim) * delta(c_sim) < 0:
@@ -507,8 +503,8 @@ class Simulation(S2MFD.Data):
                     self.setup = S2MFD.Setup(self.cfg, grid)
                     self.time += 20*self.dt
                     self.nd += 1
-                    # self.n += 20
-                    self.n = deltaB(B_obs,Bph_dfc)
+                    self.n += 20
+                    self.dl = self.delta1(B_obs,Bph_dfc)
                     self.save()
                     print("=================================")
                     break

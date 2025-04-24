@@ -46,7 +46,7 @@ def bisection_simulation(cfg=None, parameter_file=None, datadir=None, startpoint
    sim.initialize_simulation()
    sim.cfl_condition()
    sim.initial_for_bisection(Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint)
-   sim.bisection_ver2(uu0t=uu0t,Bpht=Bpht,Apht=Apht)
-   # sim.main_loop_for_bisection(Sunspot_N=Sunspot_N,Bpht=Bpht,Apht=Apht)
+   # sim.bisection_ver2(uu0t=uu0t,Bpht=Bpht,Apht=Apht)
+   sim.main_loop_for_bisection(Sunspot_N=Sunspot_N,Bpht=Bpht,Apht=Apht)
 
 

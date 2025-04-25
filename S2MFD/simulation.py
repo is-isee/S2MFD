@@ -426,7 +426,7 @@ class Simulation(S2MFD.Data):
     
     # ========================================================================================== #
     # main_loop(黒点数)
-    def main_loop_for_bisection(self, Sunspot_N, Bpht, Apht):
+    def main_loop_for_bisection_prot(self, Sunspot_N, Bpht, Apht):
         import matplotlib.pyplot as plt
         
         cfg = self.cfg
@@ -457,6 +457,30 @@ class Simulation(S2MFD.Data):
             
             while True:
                 umid = (umin + umax)/2
+                
+                ########消す##########
+                """
+                uu0 = np.linspace(400,1600,100)
+                a_sim = np.zeros(100)
+                for ie in range(100):
+                    Bph_df = self.Bph
+                    Aph_df = self.Aph
+                    self.cfg.uu0 = uu0[ie]
+                    self.setup = S2MFD.Setup(self.cfg, grid)
+                    Bph_df, Aph_df = self.tvd_runge_kutta_bisection(Bph_df, Aph_df)
+                    a_sim[ie] = self.snumbers_energy(Bph_df)
+                    aaa = delta(a_sim[ie])
+                    print("黒点誤差a",aaa)
+                    print("黒点数",a_sim[ie])
+                plt.clf()
+                plt.scatter(uu0,a_sim,s=10)
+                plt.savefig("meridional_flow_speed_al.png")
+                plt.clf()
+                print(obsn,'step')
+                print(np.max(a_sim)-np.min(a_sim))
+                break
+                """
+                ########消す##########
                 
                 # aの計算
                 Bph_dfa = self.Bph
@@ -514,9 +538,128 @@ class Simulation(S2MFD.Data):
                     print("break")
                     kkk = 1
                     break
+            ########消す##########
+            """
+            break
+            """
+            ########消す##########
                 
     # ========================================================================================== #
-    
+
+    # ========================================================================================== #
+    # main_loop(黒点数)
+    def main_loop_for_bisection(self, Sunspot_N, Bpht, Apht):
+        import matplotlib.pyplot as plt
+        
+        cfg = self.cfg
+        grid = self.grid
+        
+        #　許容残差
+        eps = 0.00001
+        obsn = self.nd
+        kkk = 0
+
+
+        while self.time < cfg.tend:
+            # 初期値
+            obsn = self.nd+1
+            obs = Sunspot_N[obsn]
+            B_obs = Bpht[:,:,obsn]
+            A_obs = Apht[:,:,obsn]
+            umin = 400
+            umax = 1600
+            ka  = 0
+            # print('umin=',umin,'umax=',umax)
+            
+            def delta(now):
+                return obs - now
+
+            break_p = 0
+            if kkk == 1:
+                break
+            
+            while True:
+                umid = (umin + umax)/2
+                
+                # aの計算
+                Bph_dfa = self.Bph
+                Aph_dfa = self.Aph
+                self.cfg.uu0 = umin
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfa, Aph_dfa = self.tvd_runge_kutta_bisection(Bph_dfa, Aph_dfa)
+                a_sim = self.snumbers_energy(Bph_dfa)
+                aaa = delta(a_sim)
+                print("黒点誤差a",aaa)
+                print("磁場誤差a",self.delta1(B_obs,Bph_dfa))
+                
+                # bの計算
+                Bph_dfb = self.Bph
+                Aph_dfb = self.Aph
+                self.cfg.uu0 = umax
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfb, Aph_dfb = self.tvd_runge_kutta_bisection(Bph_dfb, Aph_dfb)
+                b_sim = self.snumbers_energy(Bph_dfb)
+                aab = delta(b_sim)
+                print("黒点誤差b",aab)
+                print("磁場誤差b",self.delta1(B_obs,Bph_dfb))
+                
+                # cの計算
+                Bph_dfc = self.Bph
+                Aph_dfc = self.Aph
+                self.cfg.uu0 = umid
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfc, Aph_dfc = self.tvd_runge_kutta_bisection(Bph_dfc, Aph_dfc)
+                c_sim = self.snumbers_energy(Bph_dfc)
+                aac = delta(c_sim)
+                print("黒点誤差c",aac)
+                print("磁場誤差c",self.delta1(B_obs,Bph_dfc))
+                
+                print(umax,umid,umin)
+                if delta(a_sim) * delta(c_sim) < 0:
+                    umax = umid
+                else:
+                    umin = umid
+                if abs(delta(c_sim)) < eps or break_p == 75:
+                    self.Bph = Bph_dfc
+                    self.Aph = Aph_dfc
+                    self.cfg.uu0 = umid
+                    self.setup = S2MFD.Setup(self.cfg, grid)
+                    self.time += 20*self.dt
+                    self.nd += 1
+                    self.n += 20
+                    self.dl = self.delta1(B_obs,Bph_dfc)
+                    self.save()
+                    print("=================================")
+                    break
+                if break_p < 50:
+                    break_p += 1
+                for im in range(4,9):
+                    if Sunspot_N[obsn-im]>Sunspot_N[obsn-(im+1)] and Sunspot_N[obsn-im]>Sunspot_N[obsn-(im-1)]:
+                        Bph_df = self.Bph
+                        Aph_df = self.Aph
+                        uu0t = self.maximum_bisection(datadir="data",startpoint=500)
+                        self.cfg.uu0 = 2*uu0t[obsn-(500+2)]-uu0t[obsn-(500+3)]
+                        self.setup = S2MFD.Setup(self.cfg, grid)
+                        Bph_df, Aph_df = self.tvd_runge_kutta_bisection(Bph_df, Aph_df)
+                        sim = self.snumbers_energy(Bph_df)
+                        aa = delta(sim)
+                        print("黒点誤差(特例)",aa)
+                        print("磁場誤差（特例）",self.delta1(B_obs,Bph_df))
+                        self.Bph = Bph_df
+                        self.Aph = Aph_df
+                        self.time += 20*self.dt
+                        self.nd += 1
+                        self.n += 20
+                        self.dl = self.delta1(B_obs,Bph_df)
+                        self.save()
+                        ka=1
+                        print("=================================")
+                        break
+                if ka == 1:
+                    break
+                
+    # ========================================================================================== #
+
     # ========================================================================================== #
     # 二分法シミュレーションのための黒点数を数えておくコード（磁気エネルギー）
     def snumbers_energy(self,Bpht):
@@ -640,6 +783,59 @@ class Simulation(S2MFD.Data):
             uu0t[n-n0] = d['uu0']
             
         return n1, Bpht, Apht, uu0t, so0t, nt, ndt, timet
+    # ========================================================================================== #
+
+
+    # ========================================================================================== #
+    # 極大期後のためのデータ読み込み 
+    def maximum_bisection(self,datadir,startpoint):
+        import os
+        datadir = datadir+'/'
+        data = S2MFD.Data.initial_load(datadir)
+
+        cfg = data.cfg
+        grid = data.grid
+        setup = data.setup
+
+        n1 = 0
+        if os.path.isdir(datadir):
+            # dataディレクトリ内の最も大きな番号を探る
+            # 特定のステップから始めたい場合は、そのステップを手で指定する
+            files = os.listdir(datadir)
+            for file in files:
+                filel = file.split('.')
+                if filel[0] == 'data':
+                    n1 = max(n1, int(filel[1]))
+
+        
+        n0 = startpoint
+        tau_diff = data.cfg.RSUN**2/data.cfg.ett
+        timet = np.zeros(n1-n0)
+        nt = np.zeros(n1-n0)
+        ndt = np.zeros(n1-n0)
+        Brrt = np.zeros((grid.ixg,grid.jxg,n1-n0))
+        Btht = np.zeros((grid.ixg,grid.jxg,n1-n0))
+        Bpht = np.zeros((grid.ixg,grid.jxg,n1-n0))
+        Apht = np.zeros((grid.ixg,grid.jxg,n1-n0))
+        so0t = np.zeros(n1-n0)
+        uu0t = np.zeros(n1-n0)
+
+        for n  in range(n0,n1):
+            print(n)
+            data.data_load(n)
+            Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+            d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')
+            timet[n-n0] = d['time']
+            nt[n-n0] = d['n']
+            ndt[n-n0] = d['nd']
+            Brrt[:,:,n-n0] = Brr
+            Btht[:,:,n-n0] = Bth
+            Bpht[:,:,n-n0] = d['Bph']
+            Apht[:,:,n-n0] = d['Aph']
+            so0t[n-n0] = d['so0']
+            uu0t[n-n0] = d['uu0']
+            
+        return uu0t
     # ========================================================================================== #
 
 # TODO __all__の中身に追加した関数を加える 

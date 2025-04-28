@@ -440,8 +440,8 @@ class Simulation(S2MFD.Data):
 
         while self.time < cfg.tend:
             # 初期値
-            umin = 400
-            umax = 1600
+            umin = 0
+            umax = 2000
             obsn = self.nd+1
             obs = Sunspot_N[obsn]
             B_obs = Bpht[:,:,obsn]
@@ -615,6 +615,31 @@ class Simulation(S2MFD.Data):
                 print("磁場誤差c",self.delta1(B_obs,Bph_dfc))
                 
                 print(umax,umid,umin)
+                
+                for im in range(2,15):
+                    if Sunspot_N[obsn-im]>Sunspot_N[obsn-(im+1)] and Sunspot_N[obsn-im]>Sunspot_N[obsn-(im-1)]:
+                        Bph_df = self.Bph
+                        Aph_df = self.Aph
+                        startpoint = 500
+                        uu0t = self.maximum_bisection(datadir="data",startpoint=startpoint)
+                        self.cfg.uu0 = 2*uu0t[obsn-startpoint-1]-uu0t[obsn-startpoint-2]
+                        self.setup = S2MFD.Setup(self.cfg, grid)
+                        Bph_df, Aph_df = self.tvd_runge_kutta_bisection(Bph_df, Aph_df)
+                        sim = self.snumbers_energy(Bph_df)
+                        aa = delta(sim)
+                        print("黒点誤差(特例)",aa)
+                        print("磁場誤差（特例）",self.delta1(B_obs,Bph_df))
+                        self.Bph = Bph_df
+                        self.Aph = Aph_df
+                        self.time += 20*self.dt
+                        self.nd += 1
+                        self.n += 20
+                        self.dl = self.delta1(B_obs,Bph_df)
+                        self.save()
+                        ka=1
+                        print("=================================")
+                        break
+                
                 if delta(a_sim) * delta(c_sim) < 0:
                     umax = umid
                 else:
@@ -633,28 +658,6 @@ class Simulation(S2MFD.Data):
                     break
                 if break_p < 50:
                     break_p += 1
-                for im in range(4,9):
-                    if Sunspot_N[obsn-im]>Sunspot_N[obsn-(im+1)] and Sunspot_N[obsn-im]>Sunspot_N[obsn-(im-1)]:
-                        Bph_df = self.Bph
-                        Aph_df = self.Aph
-                        uu0t = self.maximum_bisection(datadir="data",startpoint=500)
-                        self.cfg.uu0 = 2*uu0t[obsn-(500+2)]-uu0t[obsn-(500+3)]
-                        self.setup = S2MFD.Setup(self.cfg, grid)
-                        Bph_df, Aph_df = self.tvd_runge_kutta_bisection(Bph_df, Aph_df)
-                        sim = self.snumbers_energy(Bph_df)
-                        aa = delta(sim)
-                        print("黒点誤差(特例)",aa)
-                        print("磁場誤差（特例）",self.delta1(B_obs,Bph_df))
-                        self.Bph = Bph_df
-                        self.Aph = Aph_df
-                        self.time += 20*self.dt
-                        self.nd += 1
-                        self.n += 20
-                        self.dl = self.delta1(B_obs,Bph_df)
-                        self.save()
-                        ka=1
-                        print("=================================")
-                        break
                 if ka == 1:
                     break
                 
@@ -807,7 +810,7 @@ class Simulation(S2MFD.Data):
                 if filel[0] == 'data':
                     n1 = max(n1, int(filel[1]))
 
-        
+        n1 = n1+1
         n0 = startpoint
         tau_diff = data.cfg.RSUN**2/data.cfg.ett
         timet = np.zeros(n1-n0)

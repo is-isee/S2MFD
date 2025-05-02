@@ -595,6 +595,100 @@ class Simulation(S2MFD.Data):
     # ========================================================================================== #
     
     # ========================================================================================== #
+    # 磁場を合わせにいく二分法関数（範囲指定は非可変）   
+    def bisection_sources_mag(self, uu0t, Bpht, Apht):
+        import matplotlib.pyplot as plt
+        
+        cfg = self.cfg
+        grid = self.grid
+        
+        #　許容残差
+        eps = 0.001
+        obsn = self.nd
+        
+        
+        rs = np.argmin(abs(self.grid.rr-0.6*self.cfg.RSUN))
+        re = np.argmin(abs(self.grid.rr-1.0*self.cfg.RSUN))
+
+        ts = np.argmin(abs(self.grid.th-0/180*np.pi))
+        te = np.argmin(abs(self.grid.th-180/180*np.pi))
+        kkk = 0
+
+        while self.time < cfg.tend:
+            # 初期値
+            smin = 30
+            smax = 70
+            obsn = self.nd+1
+            B_obs = Bpht[:,:,obsn]
+            A_obs = Apht[:,:,obsn]
+            def delta2(x_obs,now):
+                # 規格化
+                # upper = np.sqrt(np.sum((x_obs - now)**2*self.grid.RR[rs:re,ts:te]*self.grid.drr*self.grid.dth))
+                upper = np.sum((x_obs - now)*self.grid.RR[rs:re,ts:te]*self.grid.drr*self.grid.dth)
+                lower = np.sqrt(np.sum(x_obs**2*self.grid.RR[rs:re,ts:te]*self.grid.drr*self.grid.dth))
+                delta = upper / lower * 0.001
+                return delta
+            breakpoint = 0
+            if kkk == 1:
+                break
+            while True:
+                smid = (smin + smax)/2
+                
+                # aの計算
+                Bph_dfa = self.Bph
+                Aph_dfa = self.Aph
+                self.cfg.so0 = smin
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfa, Aph_dfa = self.tvd_runge_kutta_bisection(Bph_dfa, Aph_dfa)
+                aaa = delta2(A_obs[rs:re,ts:te],Aph_dfa[rs:re,ts:te])
+                print("全体磁場誤差a",aaa)
+                
+                # bの計算
+                Bph_dfb = self.Bph
+                Aph_dfb = self.Aph
+                self.cfg.so0 = smax
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfb, Aph_dfb = self.tvd_runge_kutta_bisection(Bph_dfb, Aph_dfb)
+                aab = delta2(A_obs[rs:re,ts:te],Aph_dfb[rs:re,ts:te])
+                print("全体磁場誤差b",aab)
+                
+                # cの計算
+                Bph_dfc = self.Bph
+                Aph_dfc = self.Aph
+                self.cfg.so0 = smid
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfc, Aph_dfc = self.tvd_runge_kutta_bisection(Bph_dfc, Aph_dfc)
+                aac = delta2(A_obs[rs:re,ts:te],Aph_dfc[rs:re,ts:te])
+                print("全体磁場誤差c",aac)
+                
+                print(smax,smid,smin)
+                # if aaa - aab < 0:
+                if aab * aac < 0:
+                    smin = smid
+                else:
+                    smax = smid
+                if abs(aac) < eps:
+                    self.Bph = Bph_dfc
+                    self.Aph = Aph_dfc
+                    self.cfg.so0 = smid
+                    self.setup = S2MFD.Setup(self.cfg, grid)
+                    # TODO いずれかはここを適切な形に直したい
+                    self.time += 20*self.dt
+                    self.nd += 1
+                    self.n += 20
+                    self.save()
+                    print("=================================")
+                    break
+                if breakpoint < 50:
+                    breakpoint += 1
+                else:   
+                    print("break")
+                    kkk = 1
+                    break
+    # ========================================================================================== #        
+    
+    
+    # ========================================================================================== #
     # 二分法シミュレーションのための黒点数を数えておくコード（磁気エネルギー）
     def snumbers_energy(self,Bpht):
         base  = 1+np.argmin(abs(self.grid.rr-0.7*self.cfg.RSUN))

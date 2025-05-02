@@ -42,11 +42,13 @@ def bisection_simulation(cfg=None, parameter_file=None, datadir=None, startpoint
          cfg = S2MFD.Cfg(parameter_file)
    sim = S2MFD.Simulation(cfg)
    n1, Bpht, Apht, uu0t, so0t, nt, ndt, timet = sim.load_for_bisection(datadir)
-   Sunspot_N,Sunspot_N2 = sim.snumbers_energy(Bpht)
+   Sunspot_N,Sunspot_N2 = sim.pre_snumbers_energy(Bpht)
    sim.initialize_simulation()
    sim.cfl_condition()
    sim.initial_for_bisection(Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint)
    sim.bisection_sources_mag(uu0t=uu0t,Bpht=Bpht,Apht=Apht)
    # sim.main_loop_for_bisection(Sunspot_N=Sunspot_N,uu0t=uu0t,Bpht=Bpht,Apht=Apht)
    # sim.bisection_sources_mag(uu0t=uu0t,Bpht=Bpht,Apht=Apht)
+   # sim.bisection_ver2(uu0t=uu0t,Bpht=Bpht,Apht=Apht)
+
 

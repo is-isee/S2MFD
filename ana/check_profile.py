@@ -2,7 +2,7 @@ sys.path.append('../')
 import S2MFD
 
 # 確認したいパターンを自分で指定
-cfg = S2MFD.Cfg('parameters/hotta10.py')
+cfg = S2MFD.Cfg('parameters/parameter_sample.py')
 grid = S2MFD.Grid(ix=cfg.ix, jx=cfg.jx, margin=cfg.margin, rrmin=cfg.rrmin, rrmax=cfg.rrmax, thmin=cfg.thmin, thmax=cfg.thmax)
 setup = S2MFD.Setup(cfg,grid)
 
@@ -65,3 +65,16 @@ plt.ylabel(r'$\alpha{(cm s^{-1})}$')
 plt.xlim(0,np.max(grid.th*180/np.pi))
 plt.title("alpha effect(r=0.975R)")
 plt.show()
+plt.clf()
+
+# alpha contour
+fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+contour_1 = ax.contourf(np.pi/2-grid.TH, grid.RR/cfg.RSUN, setup.so, 100, cmap='viridis')
+contour_2 = ax.contour(np.pi/2-grid.TH, grid.RR/cfg.RSUN, setup.so, levels=14, linewidths=1,colors='black')
+cbar = plt.colorbar(contour_1)
+cbar.set_label('source term',fontsize=20)
+plt.title("alpha effect",fontsize=20)
+ax.set_xlim(0, np.pi/2)
+ax.set_ylim(0,1.0)
+plt.savefig("alpha_effect.png")
+plt.clf()

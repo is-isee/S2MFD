@@ -100,12 +100,15 @@ class Simulation(S2MFD.Data):
             self.Bph = np.zeros((grid.ixg, grid.jxg))
             self.Aph = grid.sinTH/(grid.RR/cfg.RSUN)**2*cfg.RSUN/100
             self.Aph[0:setup.ibase,:] = 0
+            self.dl = 0.0
             # data.Bph = np.sin(2*grid.TH)*0.4
             # data.Bph[0:setup.ibase,:] = 0
-            
-        self.cfg.so0 = cfg.so0_time_dependent(self.time, cfg.ett, cfg.RSUN)
-        self.cfg.uu0 = cfg.uu0_time_dependent(self.time, cfg.ett, cfg.RSUN)
-        self.setup = S2MFD.Setup(self.cfg, grid)
+        if hasattr(cfg, 'so0_time_dependent'):
+            self.cfg.so0 = cfg.so0_time_dependent(self.time, cfg.ett, cfg.RSUN)
+            self.setup = S2MFD.Setup(self.cfg, grid)
+        if hasattr(cfg, 'uu0_time_dependent'):
+            self.cfg.uu0 = cfg.uu0_time_dependent(self.time, cfg.ett, cfg.RSUN)
+            self.setup = S2MFD.Setup(self.cfg, grid)
         self.save()
         
     def initial_for_bisection(self, Bpht, Apht, uu0t, so0t, nt, ndt, timet, index):
@@ -225,14 +228,31 @@ class Simulation(S2MFD.Data):
                 # print(cfg.boundary_condition_type)
                 
                 # 時間依存の so0 と uu0 を計算
-                self.cfg.so0 = cfg.so0_time_dependent(self.time, cfg.ett, cfg.RSUN)
-                self.cfg.uu0 = cfg.uu0_time_dependent(self.time, cfg.ett, cfg.RSUN)
-                self.setup = S2MFD.Setup(self.cfg, grid)
+                if hasattr(cfg, 'so0_time_dependent'):
+                    self.cfg.so0 = cfg.so0_time_dependent(self.time, cfg.ett, cfg.RSUN)
+                    self.setup = S2MFD.Setup(self.cfg, grid)
+                if hasattr(cfg, 'uu0_time_dependent'):
+                    self.cfg.uu0 = cfg.uu0_time_dependent(self.time, cfg.ett, cfg.RSUN)
+                    self.setup = S2MFD.Setup(self.cfg, grid)
                 self.save()
 
             self.tvd_runge_kutta()
 
-            
+    """
+    ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+    以下の関数は二分法で磁場を合わせにいく関数
+    ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+    """
+    
+    # ========================================================================================== #
+    def delta1(self,x_obs,now):
+        # 規格化
+        upper = np.sqrt(np.sum((x_obs - now)**2*self.grid.RR*self.grid.drr*self.grid.dth))
+        lower = np.sqrt(np.sum(x_obs**2*self.grid.RR*self.grid.drr*self.grid.dth))
+        delta = upper / lower * 100
+        return delta
+    # ========================================================================================== #
+    
     # ========================================================================================== #
     # 磁場を合わせにいく二分法関数（範囲指定は非可変）   
     def bisection_sources_mag(self, uu0t, Bpht, Apht):
@@ -246,11 +266,11 @@ class Simulation(S2MFD.Data):
         obsn = self.nd
         
         
-        rs = np.argmin(abs(self.grid.rr-0.85*self.cfg.RSUN))
+        rs = np.argmin(abs(self.grid.rr-0.6*self.cfg.RSUN))
         re = np.argmin(abs(self.grid.rr-1.0*self.cfg.RSUN))
 
-        ts = np.argmin(abs(self.grid.th-40/180*np.pi))
-        te = np.argmin(abs(self.grid.th-50/180*np.pi))
+        ts = np.argmin(abs(self.grid.th-0/180*np.pi))
+        te = np.argmin(abs(self.grid.th-180/180*np.pi))
         kkk = 0
 
         while self.time < cfg.tend:
@@ -262,9 +282,9 @@ class Simulation(S2MFD.Data):
             A_obs = Apht[:,:,obsn]
             def delta2(x_obs,now):
                 # 規格化
-                upper = np.sqrt(np.sum((x_obs - now)**2*self.grid.RR[rs:re,ts:te]*self.grid.drr*self.grid.dth))
+                upper = np.sum((x_obs - now)*self.grid.RR[rs:re,ts:te]*self.grid.drr*self.grid.dth)
                 lower = np.sqrt(np.sum(x_obs**2*self.grid.RR[rs:re,ts:te]*self.grid.drr*self.grid.dth))
-                delta = upper / lower * 100
+                delta = upper / lower
                 return delta
             breakpoint = 0
             if kkk == 1:
@@ -300,11 +320,11 @@ class Simulation(S2MFD.Data):
                 print("全体磁場誤差c",aac)
                 
                 print(smax,smid,smin)
-                if aaa - aab < 0:
-                    smax = smid
-                else:
+                if aac * aab < 0:
                     smin = smid
-                if aac < eps:
+                else:
+                    smax = smid
+                if abs(aac) < eps:
                     self.Bph = Bph_dfc
                     self.Aph = Aph_dfc
                     self.cfg.so0 = smid
@@ -326,7 +346,7 @@ class Simulation(S2MFD.Data):
 
     # ========================================================================================== #
     # 磁場を合わせにいく二分法関数（範囲指定は非可変）   
-    def bisection_ver2(self, uu0t, Bpht, Apht):
+    def bisection_meridional_mag_1(self, uu0t, Bpht, Apht):
         import matplotlib.pyplot as plt
         
         cfg = self.cfg
@@ -421,7 +441,7 @@ class Simulation(S2MFD.Data):
     
     # ========================================================================================== #
     # 磁場を合わせにいく二分法関数（範囲指定は可変）       
-    def bisection_ver1(self, uu0t, Bpht, Apht, rr_manege, th_manege, ii, jj):
+    def bisection_meridional_mag_2(self, uu0t, Bpht, Apht, rr_manege, th_manege, ii, jj):
         import matplotlib.pyplot as plt
         
         cfg = self.cfg
@@ -747,7 +767,8 @@ class Simulation(S2MFD.Data):
                 if ka == 1:
                     break
                 
-    # =========================================================================================
+    # ========================================================================================== #
+    
     # ========================================================================================== #
     # 二分法シミュレーションのための黒点数を数えておくコード（磁気エネルギー）
     def snumbers_energy(self,Bpht):

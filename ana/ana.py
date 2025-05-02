@@ -50,4 +50,5 @@ for n  in range(n0,n1):
     Apht[:,:,n-n0] = d['Aph']
     so0t[n-n0] = d['so0']
     uu0t[n-n0] = d['uu0']
-    dltt[n-n0] = d['dl']
+    if 'dl' in d:
+        dltt[n-n0] = d['dl']

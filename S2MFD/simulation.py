@@ -195,8 +195,8 @@ class Simulation(S2MFD.Data):
             self.time += self.dt
             self.n += 1
             # TODO いずれかは記録をdtoutごとにする↓
-            # if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
-            if self.n % 20 == 0:
+            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+            # if self.n % 20 == 0:
                 self.nd += 1
                 
                 # magnetic field
@@ -343,6 +343,96 @@ class Simulation(S2MFD.Data):
                     kkk = 1
                     break
     # ========================================================================================== #        
+    # ========================================================================================== #
+    # 磁場を合わせにいく二分法関数（範囲指定は非可変）   
+    def bisection_sources_SN(self, Sunspot_N, Bpht, Apht):
+        import matplotlib.pyplot as plt
+        
+        cfg = self.cfg
+        grid = self.grid
+        
+        #　許容残差
+        eps = 0.00001
+        obsn = self.nd
+        kkk = 0
+
+
+        while self.time < cfg.tend:
+            smin = 30
+            smax = 70
+            obsn = self.nd+1
+            obs = Sunspot_N[obsn]
+            B_obs = Bpht[:,:,obsn]
+            A_obs = Apht[:,:,obsn]
+            print("目標＝",obs)
+            
+            def delta(now):
+                return obs - now
+
+            break_p = 0
+            if kkk == 1:
+                break
+            
+            while True:
+                smid = (smin + smax)/2
+                
+                # aの計算
+                Bph_dfa = self.Bph
+                Aph_dfa = self.Aph
+                self.cfg.so0 = smin
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfa, Aph_dfa = self.tvd_runge_kutta_bisection(Bph_dfa, Aph_dfa)
+                a_sim = self.snumbers_energy(Bph_dfa)
+                aaa = delta(a_sim)
+                print("黒点誤差a",aaa)
+                print("磁場誤差a",self.delta1(B_obs,Bph_dfa))
+                
+                # bの計算
+                Bph_dfb = self.Bph
+                Aph_dfb = self.Aph
+                self.cfg.so0 = smax
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfb, Aph_dfb = self.tvd_runge_kutta_bisection(Bph_dfb, Aph_dfb)
+                b_sim = self.snumbers_energy(Bph_dfb)
+                aab = delta(b_sim)
+                print("黒点誤差b",aab)
+                print("磁場誤差b",self.delta1(B_obs,Bph_dfb))
+                
+                # cの計算
+                Bph_dfc = self.Bph
+                Aph_dfc = self.Aph
+                self.cfg.so0 = smid
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                Bph_dfc, Aph_dfc = self.tvd_runge_kutta_bisection(Bph_dfc, Aph_dfc)
+                c_sim = self.snumbers_energy(Bph_dfc)
+                aac = delta(c_sim)
+                print("黒点誤差c",aac)
+                print("磁場誤差c",self.delta1(B_obs,Bph_dfc))
+                
+                print(smax,smid,smin)
+                if delta(a_sim) * delta(c_sim) < 0:
+                    smax = smid
+                else:
+                    smin = smid
+                if abs(delta(c_sim)) < eps:
+                    self.Bph = Bph_dfc
+                    self.Aph = Aph_dfc
+                    self.cfg.so0 = smid
+                    self.setup = S2MFD.Setup(self.cfg, grid)
+                    self.time += 20*self.dt
+                    self.nd += 1
+                    self.n += 20
+                    self.dl = self.delta1(B_obs,Bph_dfc)
+                    self.save()
+                    print("=================================")
+                    break
+                if break_p < 100:
+                    break_p += 1
+                else:
+                    print("break")
+                    kkk = 1
+                    break
+    # ========================================================================================== # 
 
     # ========================================================================================== #
     # 磁場を合わせにいく二分法関数（範囲指定は非可変）   

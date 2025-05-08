@@ -61,7 +61,7 @@ def defunction_simulation(cfg=None, parameter_file=None, datadir=None, startpoin
    # A = [10]
    # Omg = [693792000]
    # B = [35]
-   
+   # TODO 以下のfor文の効率化をしたい
    for A_sample, omg_sample, B_sample, C_sample in product(A, Omg, B, C):
       print('A_sample=', A_sample)
       print('omg_sample=', omg_sample)

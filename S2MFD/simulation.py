@@ -195,8 +195,8 @@ class Simulation(S2MFD.Data):
             self.time += self.dt
             self.n += 1
             # TODO いずれかは記録をdtoutごとにする↓
-            # if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
-            if self.n % 20 == 0:
+            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+            # if self.n % 20 == 0:
                 self.nd += 1
                 
                 # magnetic field
@@ -238,6 +238,130 @@ class Simulation(S2MFD.Data):
 
             self.tvd_runge_kutta()
 
+
+    """
+    ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+    以下の関数は関数を定義し、当てにいくコード
+    ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+    """
+    # ========================================================================================== #
+    # main loop
+    def defunction_main_loop(self,A_sample,omg_sample,B_sample,C_sample,timet,index_start,index_end):
+        """
+        Runs the main loop of the simulation
+        """
+        import matplotlib.pyplot as plt
+        
+        cfg = self.cfg
+        grid = self.grid
+            
+        # plt.clf()
+        # plt.close('all')
+        # fig = plt.figure('dynamo',figsize=(5,10))   
+        # ax = fig.add_subplot(111,aspect='equal')
+        
+        # Real Time Butterfly Diagram
+        # plt.clf()
+        # plt.close('all')
+        # fig = plt.figure('Butterfly Diagram',figsize=(10,5))
+        # ax = fig.add_subplot(1,1,1)
+        # Bpht_b = np.zeros((grid.jxg,cfg.tend//cfg.dtout))
+        # time = np.linspace(0,cfg.tend,cfg.tend//cfg.dtout)
+        
+        while self.time < timet[index_end]:
+            self.time += self.dt
+            self.n += 1
+            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+            # if self.n % 20 == 0:
+                self.nd += 1
+                
+                # magnetic field
+                # ax.clear()
+                # ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,self.Bph,vmax=5.e0,vmin=-5.e0,cmap='bwr',shading='auto')
+                # ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*self.Aph/cfg.RSUN,colors='black',levels=np.linspace(-0.02,0.02,16))
+                # radius = grid.rrmax/cfg.RSUN
+                # ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4)
+                # radius = grid.rrmin/cfg.RSUN         
+                # ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4)
+                # ax.set_xlim( 0,1)
+                # ax.set_ylim(-1,1)
+                # plt.pause(0.01)
+                
+                # Real Time Butterfly Diagram
+                # ax.clear()
+                # Bpht_b[:,self.nd-1] = self.Bph[1+np.argmin(abs(grid.rr-0.7*cfg.RSUN)),:]
+                # ax.pcolormesh(time,grid.th/np.pi*180,Bpht_b,cmap='bwr',shading='auto')
+                # mask_p = Bpht_b > 3.5
+                # mask_m = Bpht_b < -3.5
+                # y_vals, x_vals = np.where(mask_p)
+                # ax.scatter(time[x_vals], (grid.th / np.pi * 180)[y_vals], color='black', s=1, label='>3.5')
+                # y_vals, x_vals = np.where(mask_m)
+                # ax.scatter(time[x_vals], (grid.th / np.pi * 180)[y_vals], color='black', s=1, label='<-3.5')
+                # ax.contourf(time, grid.th/np.pi*180, mask_p, levels=[0.5, 1.5], colors=['black'])
+                # ax.contourf(time, grid.th/np.pi*180, mask_m, levels=[0.5, 1.5], colors=['black'])
+                # plt.xlim(self.time-3600*self.dt,self.time)
+                # plt.pause(0.01)
+                # print(cfg.boundary_condition_type)
+                
+                # 時間依存の so0 と uu0 を計算
+                self.cfg.so0 = cfg.so0_time_dependent(A=A_sample,omega=omg_sample,B=B_sample,C=C_sample,time=self.time)
+                self.setup = S2MFD.Setup(self.cfg, grid)
+                # self.cfg.uu0 = cfg.uu0_time_dependent(self.time, cfg.ett, cfg.RSUN)
+                # self.setup = S2MFD.Setup(self.cfg, grid)
+                self.SN[self.nd-(index_start)] = self.snumbers_energy(Bpht=self.Bph)
+                self.save()
+
+            self.tvd_runge_kutta()
+        # ========================================================================================== #
+        
+    # ========================================================================================== #
+    # 初期条件 
+    def initial_for_defunction(self, Bpht, Apht, uu0t, so0t, nt, ndt, timet, index, index_end):
+        """
+        Applies initial condition
+        """
+        cfg = self.cfg
+        grid = self.grid
+        
+        self.Bph = Bpht[:,:,index]
+        self.Aph = Apht[:,:,index]
+        self.cfg.uu0 = uu0t[index]
+        self.cfg.so0 = so0t[index]
+        self.setup = S2MFD.Setup(self.cfg, grid)
+        setup = self.setup
+        self.n = int(nt[index])
+        self.nd = int(ndt[index])
+        self.time = timet[index]
+        self.dl = 0.0
+        self.SN = np.zeros_like(timet[index:index_end+1])
+        self.SN[self.nd-index] = self.snumbers_energy(Bpht=self.Bph)
+        print(self.nd-index)
+
+        self.save()
+    # ========================================================================================== #
+    # 判定関数
+    def judge(self, Sunspot_N):
+        import matplotlib.pyplot as plt
+        thre = 0.0
+        thre = np.sqrt(np.sum((Sunspot_N - self.SN)**2))
+        # print(Sunspot_N)
+        # print(self.SN)
+        plt.plot(Sunspot_N)
+        plt.plot(self.SN)
+        plt.savefig("P_sunspot.png")
+        plt.clf()
+        plt.close('all')
+        
+        print(thre)
+        judge = 0
+        if thre < 20:
+            judge = 1
+        return judge
+        
+    # ========================================================================================== #
+
+    
+        
     """
     ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
     以下の関数は二分法で磁場を合わせにいく関数

@@ -1,5 +1,5 @@
 import S2MFD
-                              
+               
 def run_simulation(cfg=None, parameter_file=None):
    """
    Launches the simulation

@@ -3,7 +3,7 @@ import numpy as np
 import os, sys
 sys.path.append('../')
 import S2MFD
-
+"""
 datadir = '../data/'
 data = S2MFD.Data.initial_load(datadir)
 
@@ -36,7 +36,7 @@ for n  in range(n0,n1):
     Brrt[:,:,n-n0] = Brr
     Btht[:,:,n-n0] = Bth
     Bpht[:,:,n-n0] = d['Bph']
-    
+"""
 Bpht0 = Bpht[1+np.argmin(abs(grid.rr-0.7*cfg.RSUN)),np.argmin(abs(grid.th-30/180*np.pi)),:]
 Brrt0 = Brrt[-2,np.argmin(abs(grid.th-60/180*np.pi)),:]
 

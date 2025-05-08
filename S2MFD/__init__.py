@@ -12,6 +12,7 @@ paramdir = 'parameters/'
 
 from .main_functions import run_simulation
 from .bisection_main_functions import bisection_simulation
+from .defunction_main_functions import defunction_simulation
 from .cfg import Cfg
 from .grid import Grid
 from .legendre import Legendre
@@ -30,7 +31,8 @@ __all__ = [ 'Cfg',
             'physics',
             'tools',
             'run_simulation',
-            'bisection_simulation'
+            'bisection_simulation',
+            'defunction_simulation'
             ]
 
 try:

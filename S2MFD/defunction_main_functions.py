@@ -55,7 +55,7 @@ def defunction_simulation(cfg=None, parameter_file=None, datadir=None, startpoin
    sim.cfl_condition()
    # ============================================================================= #   
    A = [10, 12.0]
-   Omg = [693792000, 693793000]
+   Omg = [1/693792000, 1/693793000]
    B = [35]
    C = [0, np.pi/6, np.pi/3, np.pi/2, np.pi, 2*np.pi/3, 5*np.pi/6]
    # A = [10]

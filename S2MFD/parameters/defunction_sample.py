@@ -27,12 +27,12 @@ def so0_time_dependent(time, ett, RSUN):
 
 def so0_time_dependent(A,omega,B,C,time):
     """時間 t に応じて so0 を変化させる関数"""
-    return A * ett / RSUN * (np.sin((2 * np.pi * time / (omega))-C)) + B * ett / RSUN
+    return (A * (np.sin((2 * np.pi * omega * time)-C)) + B) * ett / RSUN
 
 
 # def uu0_time_dependent(A,omega,B,time):
 #     """時間 t に応じて uu0 を変化させる関数"""
-#     return A*np.sin(omega*time) + B
+#     return (A * (np.sin((2 * np.pi * omega * time)-C)) + B) * ett / RSUN
 
 # 時間依存の so0 と uu0 を計算
 # if 'simulation' not in globals():

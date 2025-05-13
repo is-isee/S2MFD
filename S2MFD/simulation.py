@@ -304,10 +304,12 @@ class Simulation(S2MFD.Data):
                 # print(cfg.boundary_condition_type)
                 
                 # 時間依存の so0 と uu0 を計算
-                self.cfg.so0 = cfg.so0_time_dependent(A=A_sample,omega=omg_sample,B=B_sample,C=C_sample,time=self.time)
-                self.setup = S2MFD.Setup(self.cfg, grid)
-                # self.cfg.uu0 = cfg.uu0_time_dependent(self.time, cfg.ett, cfg.RSUN)
-                # self.setup = S2MFD.Setup(self.cfg, grid)
+                if hasattr(cfg, 'so0_time_dependent'):
+                    self.cfg.so0 = cfg.so0_time_dependent(A=A_sample,omega=omg_sample,B=B_sample,C=C_sample,time=self.time)
+                    self.setup = S2MFD.Setup(self.cfg, grid)
+                if hasattr(cfg, 'uu0_time_dependent'):
+                    self.cfg.uu0 = cfg.uu0_time_dependent(A=A_sample,omega=omg_sample,B=B_sample,C=C_sample,time=self.time)
+                    self.setup = S2MFD.Setup(self.cfg, grid)
                 self.SN[self.nd-(index_start)] = self.snumbers_energy(Bpht=self.Bph)
                 self.save()
 

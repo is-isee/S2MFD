@@ -54,14 +54,16 @@ def defunction_simulation(cfg=None, parameter_file=None, datadir=None, startpoin
    sim.initialize_simulation()
    sim.cfl_condition()
    # ============================================================================= #   
-   A = [10, 12.0]
-   Omg = [693792000, 693793000]
-   B = [35]
-   C = [0, np.pi/6, np.pi/3, np.pi/2, np.pi, 2*np.pi/3, 5*np.pi/6]
-   # A = [10]
-   # Omg = [693792000]
-   # B = [35]
-   
+   # A = [60.0,70.0, 80.0]
+   # Omg = [1/693792000, 1/693793000]
+   # B = [700]
+   # C = [0, np.pi/6, np.pi/3, np.pi/2, np.pi, 2*np.pi/3, 5*np.pi/6]
+   A = [90]
+   Omg = [1/694792000]
+   B = [750]
+   C = [np.pi/4]
+
+   # TODO 以下のfor文の効率化をしたい
    for A_sample, omg_sample, B_sample, C_sample in product(A, Omg, B, C):
       print('A_sample=', A_sample)
       print('omg_sample=', omg_sample)

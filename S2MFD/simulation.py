@@ -310,6 +310,9 @@ class Simulation(S2MFD.Data):
                 if hasattr(cfg, 'uu0_time_dependent'):
                     self.cfg.uu0 = cfg.uu0_time_dependent(A=A_sample,omega=omg_sample,B=B_sample,C=C_sample,time=self.time)
                     self.setup = S2MFD.Setup(self.cfg, grid)
+                    
+                self.cfl_condition()
+                print("dt=",self.dt)
                 self.SN[self.nd-(index_start)] = self.snumbers_energy(Bpht=self.Bph)
                 self.save()
 

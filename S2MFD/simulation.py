@@ -36,13 +36,16 @@ class Simulation(S2MFD.Data):
         
         # make data directory
         if not os.path.isdir(self.cfg.datadir):
+            print("できとるやん")
             self.cfg.cont_flag = False
             os.makedirs(self.cfg.datadir,exist_ok=True)
 
         self.cfg.save()
-
+        print(f"cont_flag: {self.cfg.cont_flag}")  # デバッグ用
+        print(f"datadir: {self.cfg.datadir}")  # デバッグ用
         # create grid and setup
         if self.cfg.cont_flag:
+            print("あらら")
             self.grid = S2MFD.Grid.load(self.cfg.datadir+self.cfg.gridfile)
             self.setup = S2MFD.Setup.load(self.cfg.datadir+self.cfg.setupfile)
             self.legendre = S2MFD.Legendre.load(self.cfg.datadir+self.cfg.legendrefile)
@@ -349,6 +352,7 @@ class Simulation(S2MFD.Data):
         import matplotlib.pyplot as plt
         thre = 0.0
         thre = np.sqrt(np.sum((Sunspot_N - self.SN)**2))
+        cc   = np.sum((Sunspot_N-np.mean(Sunspot_N))*(self.SN-np.mean(self.SN)))/np.sqrt(np.sum((Sunspot_N-np.mean(Sunspot_N))**2)*np.sum((self.SN-np.mean(self.SN))**2))
         # print(Sunspot_N)
         # print(self.SN)
         plt.plot(Sunspot_N)
@@ -357,9 +361,10 @@ class Simulation(S2MFD.Data):
         plt.clf()
         plt.close('all')
         
-        print(thre)
+        print(cc)
         judge = 0
-        if thre < 20:
+        # if thre < 20:
+        if abs(cc) > 0.90:
             judge = 1
         return judge
         

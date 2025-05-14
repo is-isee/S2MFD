@@ -27,10 +27,10 @@ def uu0_time_dependent(time, ett, RSUN):
     # return rey * ett / RSUN
 """
 
-# def so0_time_dependent(A,omega,B,C,time):
-#     """時間 t に応じて so0 を変化させる関数"""
-#     return (A * (np.sin((2 * np.pi * omega * time)-C)) + B) * ett / RSUN
+def so0_time_dependent(A,omega,B,C,time):
+    """時間 t に応じて so0 を変化させる関数"""
+    return (A * (np.sin((2 * np.pi * omega * time)-C)) + B) * ett / RSUN
 
-def uu0_time_dependent(A,omega,B,C,time):
-    """時間 t に応じて uu0 を変化させる関数"""
-    return A * ett / RSUN * (np.sin(2 * np.pi * time * (omega))) + B * ett / RSUN
+# def uu0_time_dependent(A,omega,B,C,time):
+#     """時間 t に応じて uu0 を変化させる関数"""
+#     return (A * (np.sin((2 * np.pi * omega * time)-C)) + B) * ett / RSUN

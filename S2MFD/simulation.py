@@ -177,7 +177,7 @@ class Simulation(S2MFD.Data):
         
         cfg = self.cfg
         grid = self.grid
-            
+        self.cfl_condition()
         # plt.clf()
         # plt.close('all')
         # fig = plt.figure('dynamo',figsize=(5,10))   
@@ -234,6 +234,8 @@ class Simulation(S2MFD.Data):
                 if hasattr(cfg, 'uu0_time_dependent'):
                     self.cfg.uu0 = cfg.uu0_time_dependent(self.time, cfg.ett, cfg.RSUN)
                     self.setup = S2MFD.Setup(self.cfg, grid)
+                self.cfl_condition()
+                print("dt=",self.dt)
                 self.save()
 
             self.tvd_runge_kutta()

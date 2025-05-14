@@ -361,7 +361,7 @@ class Simulation(S2MFD.Data):
         print("相関係数＝",cc)
         judge = 0
         # if thre < 20:
-        if abs(cc) > 0.90:
+        if abs(cc) > 0.95:
             judge = 1
         return judge
         

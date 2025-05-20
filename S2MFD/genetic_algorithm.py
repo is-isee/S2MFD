@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import TypeVar, List, Dict
 from random import choices, random, randrange, shuffle
 from heapq import nlargest
@@ -9,12 +8,13 @@ from datetime import datetime
 import random
 import S2MFD
 import numpy as np
+from itertools import product
+from concurrent.futures import ProcessPoolExecutor
 
 def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0):
-    from itertools import product
-    import numpy as np
-    from concurrent.futures import ProcessPoolExecutor
-
+    """
+    観測データのインプット
+    """
     if datadir is None:
         print('You need to specify the datadir')
         return
@@ -26,14 +26,19 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     sim = S2MFD.Simulation(cfg)
     n1, Bpht, Apht, uu0t, so0t, nt, ndt, timet = sim.load_for_bisection(datadir)
     Sunspot_N, Sunspot_N2 = sim.pre_snumbers_energy(Bpht)
-
+    
+    """
+    初期世代の生成、観測データをGAにインプット
+    """
     defunction_initial_population: List[DefunctionProblem] = [
     DefunctionProblem.make_random_instance(
         parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N
-    ) for _ in range(30)
+    ) for _ in range(2)
     ]
-    # defunction_initial_population: List[DefunctionProblem] = \
-    #     [DefunctionProblem.make_random_instance() for _ in range(30)]
+    
+    """
+    GAの設定と実行
+    """
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
         threshold=0.95,
@@ -42,10 +47,6 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
         crossover_probability=0.5,
         selection_type=GeneticAlgorithm.SELECTION_TYPE_TOURNAMENT)
     _ = ga.run_algorithm()
-    
-    
-    # return n1, Bpht, Apht, uu0t, so0t, nt, ndt, timet, Sunspot_N
-
 class Chromosome(ABC):
     """
     染色体（遺伝的アルゴリズムの要素1つ分）を扱う抽象クラス。
@@ -245,13 +246,13 @@ class GeneticAlgorithm:
         next_generation_chromosomes : list of Chromosome
             次世代として設定される、2つの個体を格納したリスト。
         """
-        random_val: float = random()
+        random_val: float = random.random()
         next_generation_chromosomes: List[Chromosome] = parents
         if random_val < self._crossover_probability:
             next_generation_chromosomes = parents[0].exec_crossover(
                 other=parents[1])
 
-        random_val = random()
+        random_val = random.random()
         if random_val < self._mutation_probability:
             for chromosome in next_generation_chromosomes:
                 chromosome.mutate()
@@ -382,9 +383,10 @@ class DefunctionProblem(Chromosome):
         if hasattr(self, '_fitness'):  # すでに計算済みの場合はキャッシュを利用
             return self._fitness
         print(self.A, self.Omg, self.B, self.C,self.parameter_file)
-        judge = self.run_defunction_simulation(parameter_file=self.parameter_file, A_sample=self.A, omg_sample=self.Omg, B_sample=self.B, C_sample=self.C, Bpht=self.Bpht, Apht=self.Apht, uu0t=self.uu0t, so0t=self.so0t, nt=self.nt, ndt=self.ndt, timet=self.timet, startpoint=self.startpoint, endpoint=self.endpoint, Sunspot_N=self.Sunspot_N)
-        self._fitness = judge
-        return judge
+        cc = self.run_defunction_simulation(parameter_file=self.parameter_file, A_sample=self.A, omg_sample=self.Omg, B_sample=self.B, C_sample=self.C, Bpht=self.Bpht, Apht=self.Apht, uu0t=self.uu0t, so0t=self.so0t, nt=self.nt, ndt=self.ndt, timet=self.timet, startpoint=self.startpoint, endpoint=self.endpoint, Sunspot_N=self.Sunspot_N)
+        self._fitness = cc
+        print(cc)
+        return cc
     
     @classmethod
     def make_random_instance(cls, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N) -> DefunctionProblem:
@@ -403,7 +405,6 @@ class DefunctionProblem(Chromosome):
         Omg: float = random.uniform(1/7e8, 1/6.9e8)
         B:   float = random.uniform(29,40)
         C:   float = random.uniform(0,2*np.pi)
-        # problem = DefunctionProblem(A=A, Omg=Omg, B=B, C=C)
         problem = DefunctionProblem(A, Omg, B, C, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N)
         return problem
     
@@ -474,207 +475,7 @@ class DefunctionProblem(Chromosome):
         sim.cfl_condition()
         sim.initial_for_defunction(Bpht=Bpht, Apht=Apht, uu0t=uu0t, so0t=so0t, nt=nt, ndt=ndt, timet=timet, index=startpoint, index_end=endpoint)
         sim.defunction_main_loop(A_sample=A_sample, omg_sample=omg_sample, B_sample=B_sample, C_sample=C_sample, timet=timet, index_start=startpoint, index_end=endpoint)
-        judge = sim.judge(Sunspot_N[startpoint:endpoint+1])
+        judge,cc = sim.judge(Sunspot_N[startpoint:endpoint+1])
         
-        return judge
-# LetterDict = Dict[str, float]
-# class DefunctionProblem(Chromosome):
-
-#     LETTERS: List[str] = ['A', 'B', 'C', 'Omg']
-
-#     def __init__(self, letters_dict: LetterDict) -> None:
-#         """
-#         SEND + MORE = MONEYの覆面算の問題を遺伝的アルゴリズムで
-#         解くためのクラス。
-
-#         Parameters
-#         ----------
-#         letters_dict : LetterDict
-#             問題で利用する8個の各文字（キー）と割り振られた数値（値）
-#             の初期値を格納した辞書。
-#         """
-#         self.letters_dict: LetterDict = letters_dict
-#     # =================================================================== #
-#     """ 評価関数 """
-#     def get_fitness(self) -> float:
-#         """
-#         現在の各文字に割り振られた数値によるSEND + MOREの数値と
-#         MONEYの数値の差分による評価関数用のメソッド。
-
-#         Notes
-#         -----
-#         遺伝的アルゴリズムの評価関数の値が評価が高い形となるため、
-#         誤差が大きい程数値が低くなるように調整された状態で値が
-#         返却される。
-
-#         Returns
-#         -------
-#         fitness : int
-#             SEND + MOREの数値とMONEYの数値の差分による評価値。
-#             差分が小さいほど大きな値が設定される。
-#         """
-#         send_val: int = self._get_send_val()
-#         more_val: int = self._get_more_val()
-#         money_val: int = self._get_money_val()
-#         difference: int = abs(money_val - (send_val + more_val))
-#         return 1 / (difference + 1)
-
- 
-#     # =================================================================== #
-#     # =================================================================== #
-#     @classmethod
-#     def make_random_instance(cls) -> SendMoreMoneyProblem:
-#         """
-#         ランダムな初期値を与えた SendMoreMoneyProblem クラスの
-#         インスタンスを生成する。
-
-#         Returns
-#         -------
-#         problem : SendMoreMoneyProblem
-#             生成されたインスタンス。各文字には0～9までの範囲で
-#             数値が重複しない形で値が設定される。
-#         """
-#         num_list: List[int] = list(range(10))
-#         shuffle(num_list)
-#         num_list = num_list[:len(cls.LETTERS)]
-#         letters_dict: LetterDict = {
-#             char: num for (char, num) in zip(cls.LETTERS, num_list)}
-
-#         problem: SendMoreMoneyProblem = SendMoreMoneyProblem(
-#             letters_dict=letters_dict)
-#         return problem
-#     # =================================================================== #
-#     def mutate(self) -> None:
-#         """
-#         個体を（突然）変異させる（ランダムに特定の文字の値を割り振られて
-#         いない数値で差し替える）。
-#         """
-#         # ランダムに変異させるターゲットを決定
-#         target_char: str = choices(self.LETTERS, k=1)[0]
-#         # 変異させるターゲットに与える数値を取得
-#         not_assigned_num: int = self._get_not_assigned_num()
-#         # 変異させるターゲットの文字に、割り振られていない数値を代入
-#         self.letters_dict[target_char] = not_assigned_num
-
-#     def _get_not_assigned_num(self) -> int:
-#         """
-#         各文字に割り振られていない数字を取得する。
-
-#         Returns
-#         -------
-#         not_assigned_num : int
-#             各文字に割り振られていない数字。文字は8文字な一方で、
-#             数字は0～9の10個なので、2個割り振られていない数値が存在し、
-#             その中から1つが設定される。
-#         """
-#         values: list = list(self.letters_dict.values())
-#         not_assigned_num: int = -1
-#         for num in range(10):
-#             if num in values:
-#                 continue
-#             not_assigned_num = num
-#             break
-#         return not_assigned_num
-#     # =================================================================== #
-#     """ 交叉 """
-#     def exec_crossover(
-#             self,
-#             other: SendMoreMoneyProblem) -> List[SendMoreMoneyProblem]:
-#         """
-#         引数に指定された別の個体を参照し交叉を実行する。
-
-#         Parameters
-#         ----------
-#         other : SendMoreMoneyProblem
-#             交叉で利用する別の個体。
-
-#         Returns
-#         -------
-#         result_chromosomes : list of SendMoreMoneyProblem
-#             交叉実行後に生成された2つの個体を格納したリスト。
-#         """
-#         child_1: SendMoreMoneyProblem = deepcopy(self)
-#         child_2: SendMoreMoneyProblem = deepcopy(other)
-
-#         for char in ('S', 'E', 'N', 'D'):
-#             child_2.letters_dict[char] = self.\
-#                 _get_not_assigned_num_from_parent(
-#                     child=child_2,
-#                     parent=self,
-#                 )
-#         for char in ('M', 'O', 'R', 'Y'):
-#             child_1.letters_dict[char] = \
-#                 self._get_not_assigned_num_from_parent(
-#                     child=child_1,
-#                     parent=other,
-#                 )
-
-#         result_chromosomes = [child_1, child_2]
-#         return result_chromosomes
-
-#     def _get_not_assigned_num_from_parent(
-#             self, child: SendMoreMoneyProblem,
-#             parent: SendMoreMoneyProblem) -> int:
-#         """
-#         親に設定されている数値の中で、まだ子に設定されていない数値を
-#         取得する。
-
-#         Notes
-#         -----
-#         親と子の数値の組み合わせ次第では選択できる値が見つからないケース
-#         があるので、その場合は0～9の値の中で割り振られていない数値が
-#         設定される。
-
-#         Parameters
-#         ----------
-#         child : SendMoreMoneyProblem
-#             子の個体。
-#         parent : SendMoreMoneyProblem
-#             親の個体。
-
-#         Returns
-#         -------
-#         not_assigned_num : int
-#             算出されたまだ割り振られていない数値。
-#         """
-#         not_assigned_num: int = -1
-#         for parent_num in parent.letters_dict.values():
-#             child_nums: list = list(child.letters_dict.values())
-#             if parent_num in child_nums:
-#                 continue
-#             not_assigned_num = parent_num
-#         if not_assigned_num == -1:
-#             not_assigned_num = self._get_not_assigned_num()
-#         return not_assigned_num
-#     def __str__(self) -> str:
-#         """
-#         個体情報の文字列を返却する。
-
-#         Returns
-#         -------
-#         info : str
-#             個体情報の文字列。
-#         """
-#         send_val: int = self._get_send_val()
-#         more_val: int = self._get_more_val()
-#         money_val: int = self._get_money_val()
-#         difference: int = abs(money_val - (send_val + more_val))
-#         info: str = (
-#             f"\nS = {self.letters_dict['S']}"
-#             f" E = {self.letters_dict['E']}"
-#             f" N = {self.letters_dict['N']}"
-#             f" D = {self.letters_dict['D']}"
-#             f"\nM = {self.letters_dict['M']}"
-#             f" O = {self.letters_dict['O']}"
-#             f" R = {self.letters_dict['R']}"
-#             f" Y = {self.letters_dict['Y']}"
-#             f'\nSEND = {send_val}'
-#             f' MORE = {more_val}'
-#             f' MONEY = {money_val}'
-#             f' difference : {difference}'
-#             '\n--------------------------------'
-#         )
-#         return info
-
-
+        return cc
 

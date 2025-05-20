@@ -33,7 +33,7 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     defunction_initial_population: List[DefunctionProblem] = [
     DefunctionProblem.make_random_instance(
         parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N
-    ) for _ in range(30)
+    ) for _ in range(6)
     ]
     
     """
@@ -251,11 +251,13 @@ class GeneticAlgorithm:
         if random_val < self._crossover_probability:
             next_generation_chromosomes = parents[0].exec_crossover(
                 other=parents[1])
+            print("交叉は機能している")
 
         random_val = random.random()
         if random_val < self._mutation_probability:
             for chromosome in next_generation_chromosomes:
                 chromosome.mutate()
+            print("突然変異は機能している")
         return next_generation_chromosomes
 
     def _get_parents_by_selection_type(self) -> List[Chromosome]:
@@ -310,7 +312,7 @@ class GeneticAlgorithm:
             deepcopy(self._get_best_chromosome_from_population())
         for generation_idx in range(self._max_generations):
             # 並列計算
-            self._evaluate_population_parallel()
+            # self._evaluate_population_parallel()
             print(
                 datetime.now(),
                 f'世代数 : {generation_idx}'

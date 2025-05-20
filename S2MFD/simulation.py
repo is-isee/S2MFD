@@ -74,7 +74,7 @@ class Simulation(S2MFD.Data):
         """
         grid = self.grid
         Brr, Bth = S2MFD.physics.poloidal_mag(self.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
-        print(f"{self.time/86400:7.1f} [day]; n={self.n:06d}; nd={self.nd:04d}")
+        # print(f"{self.time/86400:7.1f} [day]; n={self.n:06d}; nd={self.nd:04d}")
         filename = self.get_data_file_path(self.nd)
         np.savez(file=filename \
                     ,Bph=self.Bph,Aph=self.Aph,time=self.time,n=self.n,nd=self.nd,uu0=self.cfg.uu0,so0=self.cfg.so0,dl=self.dl)
@@ -314,7 +314,7 @@ class Simulation(S2MFD.Data):
                     self.setup = S2MFD.Setup(self.cfg, grid)
                     
                 self.cfl_condition()
-                print("dt=",self.dt)
+                # print("dt=",self.dt)
                 self.SN[self.nd-(index_start)] = self.snumbers_energy(Bpht=self.Bph)
                 self.save()
 
@@ -342,7 +342,7 @@ class Simulation(S2MFD.Data):
         self.dl = 0.0
         self.SN = np.zeros_like(timet[index:index_end+1])
         self.SN[self.nd-index] = self.snumbers_energy(Bpht=self.Bph)
-        print(self.nd-index)
+        # print(self.nd-index)
 
         self.save()
     # ========================================================================================== #
@@ -365,7 +365,7 @@ class Simulation(S2MFD.Data):
         # if thre < 20:
         if abs(cc) > 0.95:
             judge = 1
-        return judge
+        return judge,cc
         
     # ========================================================================================== #
 

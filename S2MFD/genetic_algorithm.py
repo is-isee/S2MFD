@@ -33,7 +33,7 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     defunction_initial_population: List[DefunctionProblem] = [
     DefunctionProblem.make_random_instance(
         parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N
-    ) for _ in range(2)
+    ) for _ in range(30)
     ]
     
     """
@@ -282,6 +282,16 @@ class GeneticAlgorithm:
                 % self._selection_type)
         return parents
     # =================================================================== #
+    """ 並列化計算のための関数 """
+    def _evaluate_population_parallel(self):
+        """
+        個体群の評価値を並列で計算し、各個体にキャッシュする
+        """
+        with ProcessPoolExecutor() as executor:
+            fitness_list = list(executor.map(lambda chrom: chrom.get_fitness(), self._population))
+        for chrom, fit in zip(self._population, fitness_list):
+            chrom._fitness = fit  # キャッシュ
+    
     # =================================================================== #
     """ Run Algorithm """
     def run_algorithm(self) -> Chromosome:
@@ -299,6 +309,8 @@ class GeneticAlgorithm:
         best_chromosome: Chromosome = \
             deepcopy(self._get_best_chromosome_from_population())
         for generation_idx in range(self._max_generations):
+            # 並列計算
+            self._evaluate_population_parallel()
             print(
                 datetime.now(),
                 f'世代数 : {generation_idx}'
@@ -382,10 +394,13 @@ class DefunctionProblem(Chromosome):
         """
         if hasattr(self, '_fitness'):  # すでに計算済みの場合はキャッシュを利用
             return self._fitness
-        print(self.A, self.Omg, self.B, self.C,self.parameter_file)
-        cc = self.run_defunction_simulation(parameter_file=self.parameter_file, A_sample=self.A, omg_sample=self.Omg, B_sample=self.B, C_sample=self.C, Bpht=self.Bpht, Apht=self.Apht, uu0t=self.uu0t, so0t=self.so0t, nt=self.nt, ndt=self.ndt, timet=self.timet, startpoint=self.startpoint, endpoint=self.endpoint, Sunspot_N=self.Sunspot_N)
+        print("A=",self.A,"ω=", self.Omg, "B=",self.B, "C=",self.C,"パラメタファイル(確認用)",self.parameter_file)
+        cc = self.run_defunction_simulation(parameter_file=self.parameter_file, A_sample=self.A,
+                                            omg_sample=self.Omg, B_sample=self.B, C_sample=self.C, Bpht=self.Bpht,
+                                            Apht=self.Apht, uu0t=self.uu0t, so0t=self.so0t, nt=self.nt, ndt=self.ndt,
+                                            timet=self.timet, startpoint=self.startpoint, endpoint=self.endpoint,
+                                            Sunspot_N=self.Sunspot_N) #こいつが死ぬほど重い
         self._fitness = cc
-        print(cc)
         return cc
     
     @classmethod
@@ -401,9 +416,9 @@ class DefunctionProblem(Chromosome):
             値が設定される。
         """
         import numpy as np
-        A:   float = random.uniform(8,15)
+        A:   float = random.uniform(14,15)
         Omg: float = random.uniform(1/7e8, 1/6.9e8)
-        B:   float = random.uniform(29,40)
+        B:   float = random.uniform(23,26)
         C:   float = random.uniform(0,2*np.pi)
         problem = DefunctionProblem(A, Omg, B, C, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N)
         return problem

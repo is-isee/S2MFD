@@ -21,6 +21,7 @@ from .data import Data
 from .simulation import Simulation
 from . import physics
 from . import tools
+from .genetic_algorithm import GA_defunction
 
 __all__ = [ 'Cfg',
             'Grid',
@@ -32,7 +33,8 @@ __all__ = [ 'Cfg',
             'tools',
             'run_simulation',
             'bisection_simulation',
-            'defunction_simulation'
+            'defunction_simulation',
+            'GA_defunction'
             ]
 
 try:

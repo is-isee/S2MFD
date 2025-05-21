@@ -251,13 +251,11 @@ class GeneticAlgorithm:
         if random_val < self._crossover_probability:
             next_generation_chromosomes = parents[0].exec_crossover(
                 other=parents[1])
-            print("交叉は機能している")
 
         random_val = random.random()
         if random_val < self._mutation_probability:
             for chromosome in next_generation_chromosomes:
                 chromosome.mutate()
-            print("突然変異は機能している")
         return next_generation_chromosomes
 
     def _get_parents_by_selection_type(self) -> List[Chromosome]:
@@ -431,11 +429,16 @@ class DefunctionProblem(Chromosome):
         """
         # ランダムに変異させるターゲットを決定
         target: str = choices(['A', 'Omg', 'B', 'C'], k=1)[0]
+        before = getattr(self, target)
         # 5%増減させる
         if random.random() > 0.5:
             setattr(self, target, getattr(self, target) * 1.05)
         else:
             setattr(self, target, getattr(self, target) * 0.95)
+        after = getattr(self, target)
+        print(f"mutate: {target} {before} -> {after}")
+        if hasattr(self, '_fitness'):
+            del self._fitness  # キャッシュ削除
 
     def exec_crossover(
             self, other: DefunctionProblem
@@ -454,16 +457,19 @@ class DefunctionProblem(Chromosome):
             交叉実行後に生成された2つの個体を格納したリスト。親となる
             個体それぞれから、半分ずつ受け継いだ個体となる。
         """
-        child_1: DefunctionProblem = deepcopy(self)
-        child_2: DefunctionProblem = deepcopy(other)
+        from copy import deepcopy
+        child_1 = deepcopy(self)
+        child_2 = deepcopy(other)
         child_1.B = other.B
         child_1.C = other.C
-        child_2.A = self.A
-        child_2.Omg = self.Omg
-        result_chromosomes: List[DefunctionProblem] = [
-            child_1, child_2,
-        ]
-        return result_chromosomes
+        child_2.B = self.B
+        child_2.C = self.C
+        if hasattr(child_1, '_fitness'):
+            del child_1._fitness
+        if hasattr(child_2, '_fitness'):
+            del child_2._fitness
+        print(f"crossover: child_1 {[getattr(child_1, a) for a in ['A','Omg','B','C']]}, child_2 {[getattr(child_2, a) for a in ['A','Omg','B','C']]}")
+        return [child_1, child_2]        
 
     def __str__(self) -> str:
         """

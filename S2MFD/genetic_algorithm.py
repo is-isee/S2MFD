@@ -8,7 +8,6 @@ from datetime import datetime
 import random
 import S2MFD
 import numpy as np
-from itertools import product
 from concurrent.futures import ProcessPoolExecutor
 
 def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0):
@@ -424,7 +423,7 @@ class DefunctionProblem(Chromosome):
     @classmethod
     def make_random_instance(cls, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N) -> DefunctionProblem:
         """
-        ランダムな初期値を与えた SimpleEquationProblem クラスの
+        ランダムな初期値を与えた DefunctionProblem クラスの
         インスタンスを生成する。
 
         Returns
@@ -466,12 +465,12 @@ class DefunctionProblem(Chromosome):
 
         Parameters
         ----------
-        other : SimpleEquationProblem
+        other :DefunctionProblem
             交叉で利用する別の個体。
 
         Returns
         -------
-        result_chromosomes : list of SimpleEquationProblem
+        result_chromosomes : list of DefunctionProblem
             交叉実行後に生成された2つの個体を格納したリスト。親となる
             個体それぞれから、半分ずつ受け継いだ個体となる。
         """

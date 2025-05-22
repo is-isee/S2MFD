@@ -33,7 +33,7 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     defunction_initial_population: List[DefunctionProblem] = [
     DefunctionProblem.make_random_instance(
         parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N
-    ) for _ in range(6)
+    ) for _ in range(30)
     ]
     
     """
@@ -287,10 +287,32 @@ class GeneticAlgorithm:
         """
         個体群の評価値を並列で計算し、各個体にキャッシュする
         """
+        # 各個体のパラメータをdict化
+        args_list = []
+        for chrom in self._population:
+            args = dict(
+                parameter_file=chrom.parameter_file,
+                A_sample=chrom.A,
+                omg_sample=chrom.Omg,
+                B_sample=chrom.B,
+                C_sample=chrom.C,
+                Bpht=chrom.Bpht,
+                Apht=chrom.Apht,
+                uu0t=chrom.uu0t,
+                so0t=chrom.so0t,
+                nt=chrom.nt,
+                ndt=chrom.ndt,
+                timet=chrom.timet,
+                startpoint=chrom.startpoint,
+                endpoint=chrom.endpoint,
+                Sunspot_N=chrom.Sunspot_N
+            )
+            args_list.append(args)
+        # 並列実行
         with ProcessPoolExecutor() as executor:
-            fitness_list = list(executor.map(lambda chrom: chrom.get_fitness(), self._population))
+            fitness_list = list(executor.map(DefunctionProblem.get_fitness_static, args_list))
         for chrom, fit in zip(self._population, fitness_list):
-            chrom._fitness = fit  # キャッシュ
+            chrom._fitness = fit
     
     # =================================================================== #
     """ Run Algorithm """
@@ -306,11 +328,12 @@ class GeneticAlgorithm:
             もしくはしきい値を超えない場合は指定された世代数に達した
             時点で一番評価関数の値が高い個体が設定される。
         """
+        # 0世代の生成
+        self._evaluate_population_parallel()
         best_chromosome: Chromosome = \
             deepcopy(self._get_best_chromosome_from_population())
+        
         for generation_idx in range(self._max_generations):
-            # 並列計算
-            # self._evaluate_population_parallel()
             print(
                 datetime.now(),
                 f'世代数 : {generation_idx}'
@@ -321,7 +344,8 @@ class GeneticAlgorithm:
                 return best_chromosome
 
             self._to_next_generation()
-
+            self._evaluate_population_parallel()
+            
             currrent_generation_best_chromosome: Chromosome = \
                 self._get_best_chromosome_from_population()
             current_gen_best_fitness: float = \
@@ -395,13 +419,7 @@ class DefunctionProblem(Chromosome):
         if hasattr(self, '_fitness'):  # すでに計算済みの場合はキャッシュを利用
             return self._fitness
         print("A=",self.A,"ω=", self.Omg, "B=",self.B, "C=",self.C,"パラメタファイル(確認用)",self.parameter_file)
-        cc = self.run_defunction_simulation(parameter_file=self.parameter_file, A_sample=self.A,
-                                            omg_sample=self.Omg, B_sample=self.B, C_sample=self.C, Bpht=self.Bpht,
-                                            Apht=self.Apht, uu0t=self.uu0t, so0t=self.so0t, nt=self.nt, ndt=self.ndt,
-                                            timet=self.timet, startpoint=self.startpoint, endpoint=self.endpoint,
-                                            Sunspot_N=self.Sunspot_N) #こいつが死ぬほど重い
-        self._fitness = cc
-        return cc
+        raise RuntimeError("get_fitnessは並列評価後に呼んでください")
     
     @classmethod
     def make_random_instance(cls, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N) -> DefunctionProblem:
@@ -416,9 +434,9 @@ class DefunctionProblem(Chromosome):
             値が設定される。
         """
         import numpy as np
-        A:   float = random.uniform(14,15)
-        Omg: float = random.uniform(1/7e8, 1/6.9e8)
-        B:   float = random.uniform(23,26)
+        A:   float = random.uniform(9,14)
+        Omg: float = random.uniform(1/7e8, 1/6.8e8)
+        B:   float = random.uniform(30,40)
         C:   float = random.uniform(0,2*np.pi)
         problem = DefunctionProblem(A, Omg, B, C, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N)
         return problem
@@ -492,6 +510,7 @@ class DefunctionProblem(Chromosome):
         """
         実行するシミュレーション
         """
+        print("A=", A_sample, "ω=", omg_sample, "B=", B_sample, "C=", C_sample, "パラメタファイル(確認用)", parameter_file)
         cfg = S2MFD.Cfg(parameter_file)
         sim = S2MFD.Simulation(cfg)
         sim.initialize_simulation()
@@ -501,4 +520,11 @@ class DefunctionProblem(Chromosome):
         judge,cc = sim.judge(Sunspot_N[startpoint:endpoint+1])
         
         return cc
+    @staticmethod
+    def get_fitness_static(args):
+        """
+        並列化用。引数はタプルまたはdictで個体のパラメータを渡す
+        """
+        # 必要なパラメータを展開
+        return DefunctionProblem.run_defunction_simulation(**args)
 

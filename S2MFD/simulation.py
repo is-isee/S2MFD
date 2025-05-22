@@ -319,11 +319,11 @@ class Simulation(S2MFD.Data):
                 self.save()
 
             self.tvd_runge_kutta()
-        # ========================================================================================== #
+    # ========================================================================================== #
         
     # ========================================================================================== #
     # 初期条件 
-    def initial_for_defunction(self, Bpht, Apht, uu0t, so0t, nt, ndt, timet, index, index_end):
+    def initial_for_defunction(self,A_sample,omg_sample,B_sample,C_sample,Bpht,Apht,uu0t,so0t,nt,ndt,timet,index,index_end):
         """
         Applies initial condition
         """
@@ -334,11 +334,15 @@ class Simulation(S2MFD.Data):
         self.Aph = Apht[:,:,index]
         self.cfg.uu0 = uu0t[index]
         self.cfg.so0 = so0t[index]
+        self.time = timet[index]
+        if hasattr(cfg, 'so0_time_dependent'):
+            self.cfg.so0 = cfg.so0_time_dependent(A=A_sample,omega=omg_sample,B=B_sample,C=C_sample,time=self.time)
+        if hasattr(cfg, 'uu0_time_dependent'):
+            self.cfg.uu0 = cfg.uu0_time_dependent(A=A_sample,omega=omg_sample,B=B_sample,C=C_sample,time=self.time)
         self.setup = S2MFD.Setup(self.cfg, grid)
         setup = self.setup
         self.n = int(nt[index])
         self.nd = int(ndt[index])
-        self.time = timet[index]
         self.dl = 0.0
         self.SN = np.zeros_like(timet[index:index_end+1])
         self.SN[self.nd-index] = self.snumbers_energy(Bpht=self.Bph)

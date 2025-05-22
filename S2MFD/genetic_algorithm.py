@@ -514,7 +514,7 @@ class DefunctionProblem(Chromosome):
         sim = S2MFD.Simulation(cfg)
         sim.initialize_simulation()
         sim.cfl_condition()
-        sim.initial_for_defunction(Bpht=Bpht, Apht=Apht, uu0t=uu0t, so0t=so0t, nt=nt, ndt=ndt, timet=timet, index=startpoint, index_end=endpoint)
+        sim.initial_for_defunction(A_sample=A_sample, omg_sample=omg_sample, B_sample=B_sample, C_sample=C_sample, Bpht=Bpht, Apht=Apht, uu0t=uu0t, so0t=so0t, nt=nt, ndt=ndt, timet=timet, index=startpoint, index_end=endpoint)
         sim.defunction_main_loop(A_sample=A_sample, omg_sample=omg_sample, B_sample=B_sample, C_sample=C_sample, timet=timet, index_start=startpoint, index_end=endpoint)
         cc = sim.judge(Sunspot_N[startpoint:endpoint+1])
         

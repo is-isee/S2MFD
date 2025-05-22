@@ -74,7 +74,7 @@ class Simulation(S2MFD.Data):
         """
         grid = self.grid
         Brr, Bth = S2MFD.physics.poloidal_mag(self.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
-        print(f"{self.time/86400:7.1f} [day]; n={self.n:06d}; nd={self.nd:04d}")
+        # print(f"{self.time/86400:7.1f} [day]; n={self.n:06d}; nd={self.nd:04d}")
         filename = self.get_data_file_path(self.nd)
         np.savez(file=filename \
                     ,Bph=self.Bph,Aph=self.Aph,time=self.time,n=self.n,nd=self.nd,uu0=self.cfg.uu0,so0=self.cfg.so0,dl=self.dl)
@@ -177,7 +177,7 @@ class Simulation(S2MFD.Data):
         
         cfg = self.cfg
         grid = self.grid
-            
+        self.cfl_condition()
         # plt.clf()
         # plt.close('all')
         # fig = plt.figure('dynamo',figsize=(5,10))   
@@ -234,6 +234,8 @@ class Simulation(S2MFD.Data):
                 if hasattr(cfg, 'uu0_time_dependent'):
                     self.cfg.uu0 = cfg.uu0_time_dependent(self.time, cfg.ett, cfg.RSUN)
                     self.setup = S2MFD.Setup(self.cfg, grid)
+                self.cfl_condition()
+                print("dt=",self.dt)
                 self.save()
 
             self.tvd_runge_kutta()
@@ -312,7 +314,7 @@ class Simulation(S2MFD.Data):
                     self.setup = S2MFD.Setup(self.cfg, grid)
                     
                 self.cfl_condition()
-                print("dt=",self.dt)
+                # print("dt=",self.dt)
                 self.SN[self.nd-(index_start)] = self.snumbers_energy(Bpht=self.Bph)
                 self.save()
 
@@ -340,7 +342,7 @@ class Simulation(S2MFD.Data):
         self.dl = 0.0
         self.SN = np.zeros_like(timet[index:index_end+1])
         self.SN[self.nd-index] = self.snumbers_energy(Bpht=self.Bph)
-        print(self.nd-index)
+        # print(self.nd-index)
 
         self.save()
     # ========================================================================================== #
@@ -349,6 +351,7 @@ class Simulation(S2MFD.Data):
         import matplotlib.pyplot as plt
         thre = 0.0
         thre = np.sqrt(np.sum((Sunspot_N - self.SN)**2))
+        cc   = np.sum((Sunspot_N-np.mean(Sunspot_N))*(self.SN-np.mean(self.SN)))/np.sqrt(np.sum((Sunspot_N-np.mean(Sunspot_N))**2)*np.sum((self.SN-np.mean(self.SN))**2))
         # print(Sunspot_N)
         # print(self.SN)
         plt.plot(Sunspot_N)
@@ -357,11 +360,12 @@ class Simulation(S2MFD.Data):
         plt.clf()
         plt.close('all')
         
-        print(thre)
+        print("相関係数＝",cc)
         judge = 0
-        if thre < 20:
+        # if thre < 20:
+        if abs(cc) > 0.95:
             judge = 1
-        return judge
+        return judge,cc
         
     # ========================================================================================== #
 

@@ -516,7 +516,7 @@ class DefunctionProblem(Chromosome):
         sim.cfl_condition()
         sim.initial_for_defunction(Bpht=Bpht, Apht=Apht, uu0t=uu0t, so0t=so0t, nt=nt, ndt=ndt, timet=timet, index=startpoint, index_end=endpoint)
         sim.defunction_main_loop(A_sample=A_sample, omg_sample=omg_sample, B_sample=B_sample, C_sample=C_sample, timet=timet, index_start=startpoint, index_end=endpoint)
-        judge,cc = sim.judge(Sunspot_N[startpoint:endpoint+1])
+        cc = sim.judge(Sunspot_N[startpoint:endpoint+1])
         
         return cc
     @staticmethod

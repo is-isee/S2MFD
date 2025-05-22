@@ -243,7 +243,7 @@ class Simulation(S2MFD.Data):
 
     """
     ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-    以下の関数は関数を定義し、当てにいくコード
+    Defunction用コード
     ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
     """
     # ========================================================================================== #
@@ -342,7 +342,6 @@ class Simulation(S2MFD.Data):
         self.dl = 0.0
         self.SN = np.zeros_like(timet[index:index_end+1])
         self.SN[self.nd-index] = self.snumbers_energy(Bpht=self.Bph)
-        # print(self.nd-index)
 
         self.save()
     # ========================================================================================== #
@@ -352,8 +351,6 @@ class Simulation(S2MFD.Data):
         thre = 0.0
         thre = np.sqrt(np.sum((Sunspot_N - self.SN)**2))
         cc   = np.sum((Sunspot_N-np.mean(Sunspot_N))*(self.SN-np.mean(self.SN)))/np.sqrt(np.sum((Sunspot_N-np.mean(Sunspot_N))**2)*np.sum((self.SN-np.mean(self.SN))**2))
-        # print(Sunspot_N)
-        # print(self.SN)
         plt.plot(Sunspot_N)
         plt.plot(self.SN)
         plt.savefig("P_sunspot.png")
@@ -361,11 +358,7 @@ class Simulation(S2MFD.Data):
         plt.close('all')
         
         print("相関係数＝",cc)
-        judge = 0
-        # if thre < 20:
-        if abs(cc) > 0.95:
-            judge = 1
-        return judge,cc
+        return cc
         
     # ========================================================================================== #
 

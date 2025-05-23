@@ -119,7 +119,6 @@ class Chromosome(ABC):
         result_bool : bool
             小なり条件を満たすかどうかの真偽値。
         """
-        # TODO
         return self.get_fitness() < other.get_fitness()
 C = TypeVar('C', bound=Chromosome)
 class GeneticAlgorithm:

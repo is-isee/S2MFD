@@ -40,7 +40,7 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     """
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.95,
+        threshold=0.99,
         max_generations=1000,
         mutation_probability=0.2,
         crossover_probability=0.5,
@@ -119,6 +119,7 @@ class Chromosome(ABC):
         result_bool : bool
             小なり条件を満たすかどうかの真偽値。
         """
+        # TODO
         return self.get_fitness() < other.get_fitness()
 C = TypeVar('C', bound=Chromosome)
 class GeneticAlgorithm:
@@ -199,6 +200,13 @@ class GeneticAlgorithm:
         """
         participants_num: int = len(self._population) // 2
         participants: List[Chromosome] = choices(self._population, k=participants_num)
+        # ====
+        # ★ fitnessが未計算の場合に例外を防ぐ
+        for participant in participants:
+            if not hasattr(participant, '_fitness'):
+                raise RuntimeError("参加者のfitnessが未計算です。")
+        # ====
+        
         selected_chromosomes: List[Chromosome] = nlargest(n=2, iterable=participants)
         return selected_chromosomes
     # =================================================================== #
@@ -255,6 +263,9 @@ class GeneticAlgorithm:
         if random_val < self._mutation_probability:
             for chromosome in next_generation_chromosomes:
                 chromosome.mutate()
+        # for chromosome in next_generation_chromosomes:
+        #     if hasattr(chromosome, '_fitness'):
+        #         del chromosome._fitness
         return next_generation_chromosomes
 
     def _get_parents_by_selection_type(self) -> List[Chromosome]:
@@ -340,6 +351,26 @@ class GeneticAlgorithm:
             )
 
             if best_chromosome.get_fitness() >= self._threshold:
+                print("=== 閾値到達個体で再シミュレーション ===")
+                args = dict(
+                    parameter_file=best_chromosome.parameter_file,
+                    A_sample=best_chromosome.A,
+                    omg_sample=best_chromosome.Omg,
+                    B_sample=best_chromosome.B,
+                    C_sample=best_chromosome.C,
+                    Bpht=best_chromosome.Bpht,
+                    Apht=best_chromosome.Apht,
+                    uu0t=best_chromosome.uu0t,
+                    so0t=best_chromosome.so0t,
+                    nt=best_chromosome.nt,
+                    ndt=best_chromosome.ndt,
+                    timet=best_chromosome.timet,
+                    startpoint=best_chromosome.startpoint,
+                    endpoint=best_chromosome.endpoint,
+                    Sunspot_N=best_chromosome.Sunspot_N
+                )
+                result = DefunctionProblem.run_defunction_simulation(**args)
+                print("再シミュレーション結果（相関係数）:", result)
                 return best_chromosome
 
             self._to_next_generation()
@@ -433,9 +464,9 @@ class DefunctionProblem(Chromosome):
             値が設定される。
         """
         import numpy as np
-        A:   float = random.uniform(9,14)
-        Omg: float = random.uniform(1/7e8, 1/6.8e8)
-        B:   float = random.uniform(30,40)
+        A:   float = random.uniform(60,100)
+        Omg: float = random.uniform(1/7e8, 1/6.5e8)
+        B:   float = random.uniform(300,1000)
         C:   float = random.uniform(0,2*np.pi)
         problem = DefunctionProblem(A, Omg, B, C, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N)
         return problem
@@ -454,8 +485,8 @@ class DefunctionProblem(Chromosome):
             setattr(self, target, getattr(self, target) * 0.95)
         after = getattr(self, target)
         print(f"mutate: {target} {before} -> {after}")
-        if hasattr(self, '_fitness'):
-            del self._fitness  # キャッシュ削除
+        # if hasattr(self, '_fitness'):
+        #     del self._fitness  # キャッシュ削除
 
     def exec_crossover(
             self, other: DefunctionProblem
@@ -481,10 +512,10 @@ class DefunctionProblem(Chromosome):
         child_1.C = other.C
         child_2.B = self.B
         child_2.C = self.C
-        if hasattr(child_1, '_fitness'):
-            del child_1._fitness
-        if hasattr(child_2, '_fitness'):
-            del child_2._fitness
+        # if hasattr(child_1, '_fitness'):
+        #     del child_1._fitness
+        # if hasattr(child_2, '_fitness'):
+        #     del child_2._fitness
         print(f"crossover: child_1 {[getattr(child_1, a) for a in ['A','Omg','B','C']]}, child_2 {[getattr(child_2, a) for a in ['A','Omg','B','C']]}")
         return [child_1, child_2]        
 

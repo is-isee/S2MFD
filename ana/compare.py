@@ -5,10 +5,16 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir1 = '../data_test_s0/'
+datadir1 = '../data_test_u0/'
 datadir2 = '../data/'
 n0 = 1040
 n1 = 1610
+
+data = S2MFD.Data.initial_load(datadir1)
+
+cfg = data.cfg
+grid = data.grid
+setup = data.setup
 
 # ============================================================================== #
 # 黒点などを割り出すための関数

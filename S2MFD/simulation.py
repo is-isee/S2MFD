@@ -349,7 +349,7 @@ class Simulation(S2MFD.Data):
 
         self.save()
     # ========================================================================================== #
-    # 判定関数
+    # 判定関数①（相関係数）
     def judge(self, Sunspot_N):
         import matplotlib.pyplot as plt
         thre = 0.0
@@ -364,6 +364,19 @@ class Simulation(S2MFD.Data):
         print("相関係数＝",cc)
         return cc
         
+    # ========================================================================================== #
+    # 判定関数②（黒点総数の誤差）
+    def judge2(self, Sunspot_N):
+        """
+        Compares the number of sunspots with the simulation results
+        """
+        # TODO: 相関係数に合わせて評価してあげるときどの程度重要視するのかを確認しよう。
+        import matplotlib.pyplot as plt
+        sd = 0.0
+        sd = (np.sum(Sunspot_N)- np.sum(self.SN)) / np.sum(Sunspot_N)
+        print("黒点総数の誤差=",sd)
+        
+        return sd
     # ========================================================================================== #
 
     

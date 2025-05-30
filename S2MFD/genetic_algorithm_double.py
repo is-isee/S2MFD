@@ -42,8 +42,8 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
         initial_population=defunction_initial_population,
         threshold=0.99,
         max_generations=1000,
-        mutation_probability=0.2,
-        crossover_probability=0.5,
+        mutation_probability=0.3,
+        crossover_probability=0.8,
         selection_type=GeneticAlgorithm.SELECTION_TYPE_TOURNAMENT)
     _ = ga.run_algorithm()
 class Chromosome(ABC):
@@ -426,10 +426,6 @@ class DefunctionProblem(Chromosome):
         C : float
             sin関数の初期位相。
         """
-        # self.A = A
-        # self.Omg = Omg
-        # self.B = B
-        # self.C = C
         self.A_s = A_s
         self.omg_s = omg_s
         self.B_s = B_s
@@ -464,7 +460,7 @@ class DefunctionProblem(Chromosome):
         """
         if hasattr(self, '_fitness'):  # すでに計算済みの場合はキャッシュを利用
             return self._fitness
-        print("A=",self.A_s,"ω=", self.omg_s, "B=",self.B_s, "C=",self.C_s)
+        # print("A=",self.A_s,"ω=", self.omg_s, "B=",self.B_s, "C=",self.C_s)
         raise RuntimeError("get_fitnessは並列評価後に呼んでください")
     
     @classmethod
@@ -480,11 +476,6 @@ class DefunctionProblem(Chromosome):
             値が設定される。
         """
         import numpy as np
-        # A:   float = random.uniform(60,100)
-        # Omg: float = random.uniform(1/7e8, 1/6.5e8)
-        # B:   float = random.uniform(300,1000)
-        # C:   float = random.uniform(0,2*np.pi)
-        # problem = DefunctionProblem(A, Omg, B, C, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N)
         A_s:   float = random.uniform(10,50)
         omg_s: float = random.uniform(1/7e8, 1/6.5e8)
         B_s:   float = random.uniform(10,50)
@@ -565,18 +556,12 @@ class DefunctionProblem(Chromosome):
         omg_u: float = self.omg_u
         B_u:   float = self.B_u
         C_u:   float = self.C_u
-        # A:   float = self.A
-        # Omg: float = self.Omg
-        # B:   float = self.B
-        # C:   float = self.C
         fitness: float = self.get_fitness()
-        # info: str = f'A = {A}, Omg = {Omg}, B = {B}, C = {C}, fitness = {fitness}'
         info: str = f'A_s = {A_s}, omg_s = {omg_s}, B_s = {B_s}, C_s = {C_s}, A_u = {A_u}, omg_u = {omg_u}, B_u = {B_u}, C_u = {C_u}, fitness = {fitness}'
         return info
     
     # パラメタの種類はここで編集
     @staticmethod
-    # def run_defunction_simulation(parameter_file, A_sample, omg_sample, B_sample, C_sample, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N):
     def run_defunction_simulation(parameter_file, A_s, omg_s, B_s, C_s, A_u, omg_u, B_u, C_u, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N):
         """
         実行するシミュレーション
@@ -588,11 +573,6 @@ class DefunctionProblem(Chromosome):
         sim = S2MFD.Simulation(cfg)
         sim.initialize_simulation()
         sim.cfl_condition()
-        """
-        # 片方パターン
-        sim.initial_for_defunction(A_sample=A_sample, omg_sample=omg_sample, B_sample=B_sample, C_sample=C_sample, Bpht=Bpht, Apht=Apht, uu0t=uu0t, so0t=so0t, nt=nt, ndt=ndt, timet=timet, index=startpoint, index_end=endpoint)
-        sim.defunction_main_loop(A_sample=A_sample, omg_sample=omg_sample, B_sample=B_sample, C_sample=C_sample, timet=timet, index_start=startpoint, index_end=endpoint)
-        """
         # 両方パターン
         sim.initial_for_defunction(A_s=A_s, omg_s=omg_s, B_s=B_s, C_s=C_s, A_u=A_u, omg_u=omg_u, B_u=B_u, C_u=C_u, Bpht=Bpht, Apht=Apht, uu0t=uu0t, so0t=so0t, nt=nt, ndt=ndt, timet=timet, index=startpoint, index_end=endpoint)
         sim.defunction_main_loop(A_s=A_s, omg_s=omg_s, B_s=B_s, C_s=C_s, A_u=A_u, omg_u=omg_u, B_u=B_u, C_u=C_u, timet=timet, index_start=startpoint, index_end=endpoint)

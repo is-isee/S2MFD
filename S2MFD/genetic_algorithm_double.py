@@ -44,7 +44,10 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
         max_generations=1000,
         mutation_probability=0.3,
         crossover_probability=0.8,
-        selection_type=GeneticAlgorithm.SELECTION_TYPE_TOURNAMENT)
+        selection_type=GeneticAlgorithm.SELECTION_TYPE_TOURNAMENT,  # 選択方式
+        crossover_type=GeneticAlgorithm.CROSSOVER_TYPE_SINGLE_POINT,  # 交叉方式
+        mutation_type=GeneticAlgorithm.MUTATION_TYPE_UNIFORM  # 突然変異方式
+    )
     _ = ga.run_algorithm()
 class Chromosome(ABC):
     """
@@ -80,30 +83,6 @@ class Chromosome(ABC):
         """
         ...
 
-    @abstractmethod
-    def mutate(self) -> None:
-        """
-        染色体を突然変異させる処理の抽象メソッド。
-        インスタンスの属性などのランダムな別値の設定などが実行される。
-        """
-        ...
-
-    @abstractmethod
-    def exec_crossover(self, other: Chromosome) -> List[Chromosome]:
-        """
-        引数に指定された別の個体を参照し交叉を実行する。
-
-        Parameters
-        ----------
-        other : Chromosome
-            交叉で利用する別の個体。
-
-        Returns
-        -------
-        result_chromosomes : list of Chromosome
-            交叉実行後に生成された2つの個体（染色体）。
-        """
-        ...
 
     def __lt__(self, other: Chromosome) -> bool:
         """
@@ -126,13 +105,27 @@ class GeneticAlgorithm:
     SelectionType = int
     SELECTION_TYPE_ROULETTE_WHEEL: SelectionType = 1
     SELECTION_TYPE_TOURNAMENT: SelectionType = 2
+    SELECTION_TYPE_VARIABLE_TOURNAMENT: SelectionType = 3
+    
+    # 交叉タイプの指定
+    CrossoverType = int
+    CROSSOVER_TYPE_SINGLE_POINT: CrossoverType = 1
+    CROSSOVER_TYPE_UNIFORM: CrossoverType = 2
 
+    # 突然変異タイプの指定
+    MutationType = int
+    MUTATION_TYPE_UNIFORM: MutationType = 1
+    MUTATION_TYPE_GAUSSIAN: MutationType = 2
+
+    # コンストラクタの書き方
     def __init__(
             self, initial_population: List[C],
             threshold: float,
             max_generations: int, mutation_probability: float,
             crossover_probability: float,
-            selection_type: SelectionType) -> None:
+            selection_type: SelectionType,
+            crossover_type: CrossoverType,
+            mutation_type: MutationType) -> None:
         """
         遺伝的アルゴリズムを扱うクラス。
 
@@ -153,6 +146,14 @@ class GeneticAlgorithm:
             選択方式。以下のいずれかの定数値を指定する。
             - SELECTION_TYPE_ROULETTE_WHEEL
             - SELECTION_TYPE_TOURNAMENT
+        crossover_type : int
+            交叉方式。以下のいずれかの定数値を指定する。
+            - CROSSOVER_TYPE_SINGLE_POINT
+            - CROSSOVER_TYPE_UNIFORM
+        mutation_type : int
+            突然変異方式。以下のいずれかの定数値を指定する。
+            - MUTATION_TYPE_UNIFORM
+            - MUTATION_TYPE_GAUSSIAN
         """
         self._population: List[Chromosome] = initial_population
         self._threshold: float = threshold
@@ -160,6 +161,8 @@ class GeneticAlgorithm:
         self._mutation_probability: float = mutation_probability
         self._crossover_probability: float = crossover_probability
         self._selection_type: int = selection_type
+        self._crossover_type: int = crossover_type
+        self._mutation_type: int = mutation_type
     # =================================================================== #
     """ Def_Selection Methods """
     """ Roulette_Wheel_Selection """
@@ -208,9 +211,94 @@ class GeneticAlgorithm:
         
         selected_chromosomes: List[Chromosome] = nlargest(n=2, iterable=participants)
         return selected_chromosomes
+    """ Variable Tournament_Selection """
+    def _exec_variable_tournament_selection(self) -> List[Chromosome]:
+        """
+        可変的トーナメント選択を行い、交叉などで利用するための2つの個体
+        （染色体）を入手する。
+        
+        Parameters
+        ----------
+        generation_idx : int
+            現在の世代数。選択する個体の件数を世代数に応じて変化させる。
+            
+        Returns
+        -------
+        selected_chromosomes : list of Chromosome
+            選択された2つの個体（染色体）を格納したリスト。トーナメント
+            用に引数で指定された件数分抽出された中から上位の2つの個体が
+            設定される。
+        
+        """
+        generation_idx = len(self._population)  # 世代数を取得（仮定）
+        base_size = len(self._population) // 4  # 初期サイズ（集団の1/4）
+        max_size = len(self._population) // 2  # 最大サイズ（集団の1/2）
+        tournament_size = min(base_size + generation_idx, max_size)
+    
+        # トーナメント参加者をランダムに選択
+        participants: List[Chromosome] = choices(self._population, k=tournament_size)
+
+        # fitnessが未計算の場合に例外を防ぐ
+        for participant in participants:
+            if not hasattr(participant, '_fitness'):
+                raise RuntimeError("参加者のfitnessが未計算です。")
+
+        # トーナメント内で最良の2個体を選択
+        selected_chromosomes: List[Chromosome] = nlargest(n=2, iterable=participants)
+        return selected_chromosomes
+    # =================================================================== #
+    """ def execute_crossover methods """
+    def _exec_single_point_crossover(self, parents: List[Chromosome]) -> List[Chromosome]:
+        """
+        一点交叉を実行する。
+        """
+        from copy import deepcopy
+        child_1 = deepcopy(parents[0])
+        child_2 = deepcopy(parents[1])
+        # 一点交叉の例: A_s, B_sを交換
+        child_1.B_s, child_2.B_s = child_2.B_s, child_1.B_s
+        child_1.C_s, child_2.C_s = child_2.C_s, child_1.C_s
+        print(f"single_point_crossover: child_1 {[getattr(child_1, a) for a in ['A_s','omg_s','B_s','C_s','A_u','omg_u','B_u','C_u']]}, child_2 {[getattr(child_2, a) for a in ['A_s','omg_s','B_s','C_s','A_u','omg_u','B_u','C_u']]}")
+        return [child_1, child_2]
+
+    def _exec_uniform_crossover(self, parents: List[Chromosome]) -> List[Chromosome]:
+        """
+        一様交叉を実行する。
+        """
+        from copy import deepcopy
+        child_1 = deepcopy(parents[0])
+        child_2 = deepcopy(parents[1])
+        # 一様交叉の例: ランダムに属性を交換
+        for attr in ['A_s', 'B_s', 'C_s', 'A_u', 'B_u', 'C_u']:
+            if random.random() > 0.5:
+                setattr(child_1, attr, getattr(parents[1], attr))
+                setattr(child_2, attr, getattr(parents[0], attr))
+        print(f"uniform_crossover: child_1 {[getattr(child_1, a) for a in ['A_s','omg_s','B_s','C_s','A_u','omg_u','B_u','C_u']]}, child_2 {[getattr(child_2, a) for a in ['A_s','omg_s','B_s','C_s','A_u','omg_u','B_u','C_u']]}")
+        return [child_1, child_2]
+    # =================================================================== #
+    # =================================================================== #
+    """ def mutation methods """
+    def _exec_uniform_mutation(self, chromosome: Chromosome) -> None:
+        """
+        一様突然変異を実行する。
+        """
+        target: str = random.choice(['A_s', 'omg_s', 'B_s', 'C_s', 'A_u', 'omg_u', 'B_u', 'C_u'])
+        before = getattr(chromosome, target)  # 変異前の値を取得
+        setattr(chromosome, target, getattr(chromosome, target) * random.uniform(0.9, 1.1))
+        after = getattr(chromosome, target)  # 変異後の値を取得
+        print(f"uniform_mutation: {target} {before} -> {after}")
+
+    def _exec_gaussian_mutation(self, chromosome: Chromosome) -> None:
+        """
+        ガウス分布に基づく突然変異を実行する。
+        """
+        target: str = random.choice(['A_s', 'omg_s', 'B_s', 'C_s', 'A_u', 'omg_u', 'B_u', 'C_u'])
+        before = getattr(chromosome, target)  # 変異前の値を取得
+        setattr(chromosome, target, getattr(chromosome, target) + random.gauss(0, 1))
+        after = getattr(chromosome, target)  # 変異後の値を取得
+        print(f"gaussian_mutation: {target} {before} -> {after}")
     # =================================================================== #
     
-    # =================================================================== #
     """ Next_Generation """
     def _to_next_generation(self) -> None:
         """
@@ -254,17 +342,25 @@ class GeneticAlgorithm:
         """
         random_val: float = random.random()
         next_generation_chromosomes: List[Chromosome] = parents
+        
         if random_val < self._crossover_probability:
-            next_generation_chromosomes = parents[0].exec_crossover(
-                other=parents[1])
-
-        random_val = random.random()
+            if self._crossover_type == self.CROSSOVER_TYPE_SINGLE_POINT:
+                next_generation_chromosomes = self._exec_single_point_crossover(parents)
+            elif self._crossover_type == self.CROSSOVER_TYPE_UNIFORM:
+                next_generation_chromosomes = self._exec_uniform_crossover(parents)
+            else:
+                raise ValueError(f"対応していない交叉方式が指定されています: {self._crossover_type}")
+        
+        random_val: float = random.random()
         if random_val < self._mutation_probability:
             for chromosome in next_generation_chromosomes:
-                chromosome.mutate()
-        # for chromosome in next_generation_chromosomes:
-        #     if hasattr(chromosome, '_fitness'):
-        #         del chromosome._fitness
+                if self._mutation_type == self.MUTATION_TYPE_UNIFORM:
+                    self._exec_uniform_mutation(chromosome)
+                elif self._mutation_type == self.MUTATION_TYPE_GAUSSIAN:
+                    self._exec_gaussian_mutation(chromosome)
+                else:
+                    raise ValueError(f"対応していない突然変異方式が指定されています: {self._mutation_type}")
+                
         return next_generation_chromosomes
 
     def _get_parents_by_selection_type(self) -> List[Chromosome]:
@@ -285,6 +381,8 @@ class GeneticAlgorithm:
             parents: List[Chromosome] = self._exec_roulette_wheel_selection()
         elif self._selection_type == self.SELECTION_TYPE_TOURNAMENT:
             parents = self._exec_tournament_selection()
+        elif self._selection_type == self.SELECTION_TYPE_VARIABLE_TOURNAMENT:
+            parents = self._exec_variable_tournament_selection()
         else:
             raise ValueError(
                 '対応していない選択方式が指定されています : %s'
@@ -487,57 +585,6 @@ class DefunctionProblem(Chromosome):
         problem = DefunctionProblem(A_s, omg_s, B_s, C_s, A_u, omg_u, B_u, C_u, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N)
         return problem
     
-    def mutate(self) -> None:
-        """
-        ランダムに一つの変数を選択し、変異させる。
-        """
-        # ランダムに変異させるターゲットを決定
-        target: str = choices(['A_s', 'omg_s', 'B_s', 'C_s', 'A_u', 'omg_u', 'B_u', 'C_u'], k=2)[0]
-        before = getattr(self, target)
-        # 5%増減させる
-        if random.random() > 0.5:
-            setattr(self, target, getattr(self, target) * 1.05)
-        else:
-            setattr(self, target, getattr(self, target) * 0.95)
-        after = getattr(self, target)
-        print(f"mutate: {target} {before} -> {after}")
-        # if hasattr(self, '_fitness'):
-        #     del self._fitness  # キャッシュ削除
-
-    def exec_crossover(
-            self, other: DefunctionProblem
-            ) -> List[DefunctionProblem]:
-        """
-        引数に指定された別の個体を参照し交叉を実行する。
-
-        Parameters
-        ----------
-        other :DefunctionProblem
-            交叉で利用する別の個体。
-
-        Returns
-        -------
-        result_chromosomes : list of DefunctionProblem
-            交叉実行後に生成された2つの個体を格納したリスト。親となる
-            個体それぞれから、半分ずつ受け継いだ個体となる。
-        """
-        from copy import deepcopy
-        child_1 = deepcopy(self)
-        child_2 = deepcopy(other)
-        child_1.B_s = other.B_s
-        child_1.C_s = other.C_s
-        child_1.B_u = other.B_u
-        child_1.C_u = other.C_u
-        child_2.B_s = self.B_s
-        child_2.C_s = self.C_s
-        child_2.B_u = self.B_u
-        child_2.C_u = self.C_u
-        # if hasattr(child_1, '_fitness'):
-        #     del child_1._fitness
-        # if hasattr(child_2, '_fitness'):
-        #     del child_2._fitness
-        print(f"crossover: child_1 {[getattr(child_1, a) for a in ['A_s','omg_s','B_s','C_s','A_u','omg_u','B_u','C_u']]}, child_2 {[getattr(child_2, a) for a in ['A_s','omg_s','B_s','C_s','A_u','omg_u','B_u','C_u']]}")
-        return [child_1, child_2]        
 
     def __str__(self) -> str:
         """

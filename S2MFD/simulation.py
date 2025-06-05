@@ -248,7 +248,8 @@ class Simulation(S2MFD.Data):
     """
     # ========================================================================================== #
     # main loop
-    def defunction_main_loop(self,A_sample,omg_sample,B_sample,C_sample,timet,index_start,index_end):
+    # def defunction_main_loop(self,A_sample,omg_sample,B_sample,C_sample,timet,index_start,index_end):
+    def defunction_main_loop(self,A_s,omg_s,B_s,C_s,A_u,omg_u,B_u,C_u,timet,index_start,index_end):
         """
         Runs the main loop of the simulation
         """
@@ -307,10 +308,10 @@ class Simulation(S2MFD.Data):
                 
                 # 時間依存の so0 と uu0 を計算
                 if hasattr(cfg, 'so0_time_dependent'):
-                    self.cfg.so0 = cfg.so0_time_dependent(A=A_sample,omega=omg_sample,B=B_sample,C=C_sample,time=self.time)
+                    self.cfg.so0 = cfg.so0_time_dependent(A=A_s,omega=omg_s,B=B_s,C=C_s,time=self.time)
                     self.setup = S2MFD.Setup(self.cfg, grid)
                 if hasattr(cfg, 'uu0_time_dependent'):
-                    self.cfg.uu0 = cfg.uu0_time_dependent(A=A_sample,omega=omg_sample,B=B_sample,C=C_sample,time=self.time)
+                    self.cfg.uu0 = cfg.uu0_time_dependent(A=A_u,omega=omg_u,B=B_u,C=C_u,time=self.time)
                     self.setup = S2MFD.Setup(self.cfg, grid)
                     
                 self.cfl_condition()
@@ -323,7 +324,8 @@ class Simulation(S2MFD.Data):
         
     # ========================================================================================== #
     # 初期条件 
-    def initial_for_defunction(self,A_sample,omg_sample,B_sample,C_sample,Bpht,Apht,uu0t,so0t,nt,ndt,timet,index,index_end):
+    # def initial_for_defunction(self,A_sample,omg_sample,B_sample,C_sample,Bpht,Apht,uu0t,so0t,nt,ndt,timet,index,index_end):
+    def initial_for_defunction(self,A_s,omg_s,B_s,C_s,A_u,omg_u,B_u,C_u,Bpht,Apht,uu0t,so0t,nt,ndt,timet,index,index_end):
         """
         Applies initial condition
         """
@@ -336,9 +338,9 @@ class Simulation(S2MFD.Data):
         self.cfg.so0 = so0t[index]
         self.time = timet[index]
         if hasattr(cfg, 'so0_time_dependent'):
-            self.cfg.so0 = cfg.so0_time_dependent(A=A_sample,omega=omg_sample,B=B_sample,C=C_sample,time=self.time)
+            self.cfg.so0 = cfg.so0_time_dependent(A=A_s,omega=omg_s,B=B_s,C=C_s,time=self.time)
         if hasattr(cfg, 'uu0_time_dependent'):
-            self.cfg.uu0 = cfg.uu0_time_dependent(A=A_sample,omega=omg_sample,B=B_sample,C=C_sample,time=self.time)
+            self.cfg.uu0 = cfg.uu0_time_dependent(A=A_u,omega=omg_u,B=B_u,C=C_u,time=self.time)
         self.setup = S2MFD.Setup(self.cfg, grid)
         setup = self.setup
         self.n = int(nt[index])
@@ -373,7 +375,7 @@ class Simulation(S2MFD.Data):
         # TODO: 相関係数に合わせて評価してあげるときどの程度重要視するのかを確認しよう。
         import matplotlib.pyplot as plt
         sd = 0.0
-        sd = (np.sum(Sunspot_N)- np.sum(self.SN)) / np.sum(Sunspot_N)
+        sd = np.sqrt((np.sum(Sunspot_N) - np.sum(self.SN))**2) / np.sum(Sunspot_N)
         print("黒点総数の誤差=",sd)
         
         return sd

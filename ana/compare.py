@@ -5,7 +5,7 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir1 = '../data_test_u0/'
+datadir1 = '../data_test_s0u0/'
 datadir2 = '../data/'
 n0 = 1040
 n1 = 1610
@@ -146,4 +146,5 @@ plt.savefig("P_s0.png")
 plt.clf()
 # ============================================================================== #
 cc   = np.sum((SN1-np.mean(SN1))*(SN2-np.mean(SN2)))/np.sqrt(np.sum((SN1-np.mean(SN1))**2)*np.sum((SN2-np.mean(SN2))**2))
-print("相関係数＝",cc)
+sd   = np.sqrt((np.sum(SN1) - np.sum(SN2))**2) / np.sum(SN1)
+print("相関係数＝",cc,"誤差割合＝",sd)

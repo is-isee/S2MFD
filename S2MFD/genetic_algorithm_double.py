@@ -45,7 +45,7 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
         mutation_probability=0.3,
         crossover_probability=0.8,
         selection_type=GeneticAlgorithm.SELECTION_TYPE_TOURNAMENT,  # 選択方式
-        crossover_type=GeneticAlgorithm.CROSSOVER_TYPE_SINGLE_POINT,  # 交叉方式
+        crossover_type=GeneticAlgorithm.CROSSOVER_TYPE_UNIFORM,  # 交叉方式
         mutation_type=GeneticAlgorithm.MUTATION_TYPE_UNIFORM  # 突然変異方式
     )
     _ = ga.run_algorithm()
@@ -269,7 +269,7 @@ class GeneticAlgorithm:
         child_1 = deepcopy(parents[0])
         child_2 = deepcopy(parents[1])
         # 一様交叉の例: ランダムに属性を交換
-        for attr in ['A_s', 'B_s', 'C_s', 'A_u', 'B_u', 'C_u']:
+        for attr in ['A_s', 'omg_s', 'B_s', 'C_s', 'A_u', 'omg_u', 'B_u', 'C_u']:
             if random.random() > 0.5:
                 setattr(child_1, attr, getattr(parents[1], attr))
                 setattr(child_2, attr, getattr(parents[0], attr))
@@ -284,7 +284,19 @@ class GeneticAlgorithm:
         """
         target: str = random.choice(['A_s', 'omg_s', 'B_s', 'C_s', 'A_u', 'omg_u', 'B_u', 'C_u'])
         before = getattr(chromosome, target)  # 変異前の値を取得
-        setattr(chromosome, target, getattr(chromosome, target) * random.uniform(0.9, 1.1))
+
+        # 変異を適用
+        if target in ['C_s', 'C_u']:
+            # C_s, C_uは0〜2πの範囲で変異
+            new_value = before * random.uniform(0.9, 1.1)
+            if new_value > 2 * np.pi:
+                new_value = before * random.uniform(0.9, 1.0)
+            setattr(chromosome, target, new_value)
+        else:
+            # 他の属性は±10%の範囲で変異
+            new_value = before * random.uniform(0.9, 1.1)
+            setattr(chromosome, target, new_value)
+
         after = getattr(chromosome, target)  # 変異後の値を取得
         print(f"uniform_mutation: {target} {before} -> {after}")
 

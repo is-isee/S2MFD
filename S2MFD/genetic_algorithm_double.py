@@ -42,9 +42,12 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
         initial_population=defunction_initial_population,
         threshold=0.99,
         max_generations=1000,
-        mutation_probability=0.2,
-        crossover_probability=0.5,
-        selection_type=GeneticAlgorithm.SELECTION_TYPE_TOURNAMENT)
+        mutation_probability=0.3,
+        crossover_probability=0.8,
+        selection_type=GeneticAlgorithm.SELECTION_TYPE_TOURNAMENT,  # 選択方式
+        crossover_type=GeneticAlgorithm.CROSSOVER_TYPE_UNIFORM,  # 交叉方式
+        mutation_type=GeneticAlgorithm.MUTATION_TYPE_UNIFORM  # 突然変異方式
+    )
     _ = ga.run_algorithm()
 class Chromosome(ABC):
     """
@@ -80,30 +83,6 @@ class Chromosome(ABC):
         """
         ...
 
-    @abstractmethod
-    def mutate(self) -> None:
-        """
-        染色体を突然変異させる処理の抽象メソッド。
-        インスタンスの属性などのランダムな別値の設定などが実行される。
-        """
-        ...
-
-    @abstractmethod
-    def exec_crossover(self, other: Chromosome) -> List[Chromosome]:
-        """
-        引数に指定された別の個体を参照し交叉を実行する。
-
-        Parameters
-        ----------
-        other : Chromosome
-            交叉で利用する別の個体。
-
-        Returns
-        -------
-        result_chromosomes : list of Chromosome
-            交叉実行後に生成された2つの個体（染色体）。
-        """
-        ...
 
     def __lt__(self, other: Chromosome) -> bool:
         """
@@ -126,13 +105,27 @@ class GeneticAlgorithm:
     SelectionType = int
     SELECTION_TYPE_ROULETTE_WHEEL: SelectionType = 1
     SELECTION_TYPE_TOURNAMENT: SelectionType = 2
+    SELECTION_TYPE_VARIABLE_TOURNAMENT: SelectionType = 3
+    
+    # 交叉タイプの指定
+    CrossoverType = int
+    CROSSOVER_TYPE_SINGLE_POINT: CrossoverType = 1
+    CROSSOVER_TYPE_UNIFORM: CrossoverType = 2
 
+    # 突然変異タイプの指定
+    MutationType = int
+    MUTATION_TYPE_UNIFORM: MutationType = 1
+    MUTATION_TYPE_GAUSSIAN: MutationType = 2
+
+    # コンストラクタの書き方
     def __init__(
             self, initial_population: List[C],
             threshold: float,
             max_generations: int, mutation_probability: float,
             crossover_probability: float,
-            selection_type: SelectionType) -> None:
+            selection_type: SelectionType,
+            crossover_type: CrossoverType,
+            mutation_type: MutationType) -> None:
         """
         遺伝的アルゴリズムを扱うクラス。
 
@@ -153,6 +146,14 @@ class GeneticAlgorithm:
             選択方式。以下のいずれかの定数値を指定する。
             - SELECTION_TYPE_ROULETTE_WHEEL
             - SELECTION_TYPE_TOURNAMENT
+        crossover_type : int
+            交叉方式。以下のいずれかの定数値を指定する。
+            - CROSSOVER_TYPE_SINGLE_POINT
+            - CROSSOVER_TYPE_UNIFORM
+        mutation_type : int
+            突然変異方式。以下のいずれかの定数値を指定する。
+            - MUTATION_TYPE_UNIFORM
+            - MUTATION_TYPE_GAUSSIAN
         """
         self._population: List[Chromosome] = initial_population
         self._threshold: float = threshold
@@ -160,6 +161,8 @@ class GeneticAlgorithm:
         self._mutation_probability: float = mutation_probability
         self._crossover_probability: float = crossover_probability
         self._selection_type: int = selection_type
+        self._crossover_type: int = crossover_type
+        self._mutation_type: int = mutation_type
     # =================================================================== #
     """ Def_Selection Methods """
     """ Roulette_Wheel_Selection """
@@ -208,9 +211,106 @@ class GeneticAlgorithm:
         
         selected_chromosomes: List[Chromosome] = nlargest(n=2, iterable=participants)
         return selected_chromosomes
+    """ Variable Tournament_Selection """
+    def _exec_variable_tournament_selection(self) -> List[Chromosome]:
+        """
+        可変的トーナメント選択を行い、交叉などで利用するための2つの個体
+        （染色体）を入手する。
+        
+        Parameters
+        ----------
+        generation_idx : int
+            現在の世代数。選択する個体の件数を世代数に応じて変化させる。
+            
+        Returns
+        -------
+        selected_chromosomes : list of Chromosome
+            選択された2つの個体（染色体）を格納したリスト。トーナメント
+            用に引数で指定された件数分抽出された中から上位の2つの個体が
+            設定される。
+        
+        """
+        generation_idx = len(self._population)  # 世代数を取得（仮定）
+        base_size = len(self._population) // 4  # 初期サイズ（集団の1/4）
+        max_size = len(self._population) // 2  # 最大サイズ（集団の1/2）
+        tournament_size = min(base_size + generation_idx, max_size)
+    
+        # トーナメント参加者をランダムに選択
+        participants: List[Chromosome] = choices(self._population, k=tournament_size)
+
+        # fitnessが未計算の場合に例外を防ぐ
+        for participant in participants:
+            if not hasattr(participant, '_fitness'):
+                raise RuntimeError("参加者のfitnessが未計算です。")
+
+        # トーナメント内で最良の2個体を選択
+        selected_chromosomes: List[Chromosome] = nlargest(n=2, iterable=participants)
+        return selected_chromosomes
+    # =================================================================== #
+    """ def execute_crossover methods """
+    def _exec_single_point_crossover(self, parents: List[Chromosome]) -> List[Chromosome]:
+        """
+        一点交叉を実行する。
+        """
+        from copy import deepcopy
+        child_1 = deepcopy(parents[0])
+        child_2 = deepcopy(parents[1])
+        # 一点交叉の例: A_s, B_sを交換
+        child_1.B_s, child_2.B_s = child_2.B_s, child_1.B_s
+        child_1.C_s, child_2.C_s = child_2.C_s, child_1.C_s
+        print(f"single_point_crossover: child_1 {[getattr(child_1, a) for a in ['A_s','omg_s','B_s','C_s','A_u','omg_u','B_u','C_u']]}, child_2 {[getattr(child_2, a) for a in ['A_s','omg_s','B_s','C_s','A_u','omg_u','B_u','C_u']]}")
+        return [child_1, child_2]
+
+    def _exec_uniform_crossover(self, parents: List[Chromosome]) -> List[Chromosome]:
+        """
+        一様交叉を実行する。
+        """
+        from copy import deepcopy
+        child_1 = deepcopy(parents[0])
+        child_2 = deepcopy(parents[1])
+        # 一様交叉の例: ランダムに属性を交換
+        for attr in ['A_s', 'omg_s', 'B_s', 'C_s', 'A_u', 'omg_u', 'B_u', 'C_u']:
+            if random.random() > 0.5:
+                setattr(child_1, attr, getattr(parents[1], attr))
+                setattr(child_2, attr, getattr(parents[0], attr))
+        print(f"uniform_crossover: child_1 {[getattr(child_1, a) for a in ['A_s','omg_s','B_s','C_s','A_u','omg_u','B_u','C_u']]}, child_2 {[getattr(child_2, a) for a in ['A_s','omg_s','B_s','C_s','A_u','omg_u','B_u','C_u']]}")
+        return [child_1, child_2]
+    # =================================================================== #
+    # =================================================================== #
+    """ def mutation methods """
+    def _exec_uniform_mutation(self, chromosome: Chromosome) -> None:
+        """
+        一様突然変異を実行する。
+        """
+        target: str = random.choice(['A_s', 'omg_s', 'B_s', 'C_s', 'A_u', 'omg_u', 'B_u', 'C_u'])
+        before = getattr(chromosome, target)  # 変異前の値を取得
+
+        # 変異を適用
+        if target in ['C_s', 'C_u']:
+            # C_s, C_uは0〜2πの範囲で変異
+            new_value = before * random.uniform(0.9, 1.1)
+            if new_value > 2 * np.pi:
+                new_value = before * random.uniform(0.9, 1.0)
+            setattr(chromosome, target, new_value)
+        else:
+            # 他の属性は±10%の範囲で変異
+            new_value = before * random.uniform(0.9, 1.1)
+            setattr(chromosome, target, new_value)
+
+        after = getattr(chromosome, target)  # 変異後の値を取得
+        print(f"uniform_mutation: {target} {before} -> {after}")
+
+    def _exec_gaussian_mutation(self, chromosome: Chromosome) -> None:
+        """
+        ガウス分布に基づく突然変異を実行する。
+        """
+        target: str = random.choice(['A_s', 'omg_s', 'B_s', 'C_s', 'A_u', 'omg_u', 'B_u', 'C_u'])
+        before = getattr(chromosome, target)  # 変異前の値を取得
+        setattr(chromosome, target, getattr(chromosome, target) + random.gauss(0, 1))
+        after = getattr(chromosome, target)  # 変異後の値を取得
+        print(f"gaussian_mutation: {target} {before} -> {after}")
     # =================================================================== #
     
-    # =================================================================== #
     """ Next_Generation """
     def _to_next_generation(self) -> None:
         """
@@ -254,17 +354,25 @@ class GeneticAlgorithm:
         """
         random_val: float = random.random()
         next_generation_chromosomes: List[Chromosome] = parents
+        
         if random_val < self._crossover_probability:
-            next_generation_chromosomes = parents[0].exec_crossover(
-                other=parents[1])
-
-        random_val = random.random()
+            if self._crossover_type == self.CROSSOVER_TYPE_SINGLE_POINT:
+                next_generation_chromosomes = self._exec_single_point_crossover(parents)
+            elif self._crossover_type == self.CROSSOVER_TYPE_UNIFORM:
+                next_generation_chromosomes = self._exec_uniform_crossover(parents)
+            else:
+                raise ValueError(f"対応していない交叉方式が指定されています: {self._crossover_type}")
+        
+        random_val: float = random.random()
         if random_val < self._mutation_probability:
             for chromosome in next_generation_chromosomes:
-                chromosome.mutate()
-        # for chromosome in next_generation_chromosomes:
-        #     if hasattr(chromosome, '_fitness'):
-        #         del chromosome._fitness
+                if self._mutation_type == self.MUTATION_TYPE_UNIFORM:
+                    self._exec_uniform_mutation(chromosome)
+                elif self._mutation_type == self.MUTATION_TYPE_GAUSSIAN:
+                    self._exec_gaussian_mutation(chromosome)
+                else:
+                    raise ValueError(f"対応していない突然変異方式が指定されています: {self._mutation_type}")
+                
         return next_generation_chromosomes
 
     def _get_parents_by_selection_type(self) -> List[Chromosome]:
@@ -285,6 +393,8 @@ class GeneticAlgorithm:
             parents: List[Chromosome] = self._exec_roulette_wheel_selection()
         elif self._selection_type == self.SELECTION_TYPE_TOURNAMENT:
             parents = self._exec_tournament_selection()
+        elif self._selection_type == self.SELECTION_TYPE_VARIABLE_TOURNAMENT:
+            parents = self._exec_variable_tournament_selection()
         else:
             raise ValueError(
                 '対応していない選択方式が指定されています : %s'
@@ -301,10 +411,14 @@ class GeneticAlgorithm:
         for chrom in self._population:
             args = dict(
                 parameter_file=chrom.parameter_file,
-                A_sample=chrom.A,
-                omg_sample=chrom.Omg,
-                B_sample=chrom.B,
-                C_sample=chrom.C,
+                A_s=chrom.A_s,
+                omg_s=chrom.omg_s,
+                B_s=chrom.B_s,
+                C_s=chrom.C_s,
+                A_u=chrom.A_u,
+                omg_u=chrom.omg_u,
+                B_u=chrom.B_u,
+                C_u=chrom.C_u,
                 Bpht=chrom.Bpht,
                 Apht=chrom.Apht,
                 uu0t=chrom.uu0t,
@@ -353,10 +467,14 @@ class GeneticAlgorithm:
                 print("=== 閾値到達個体で再シミュレーション ===")
                 args = dict(
                     parameter_file=best_chromosome.parameter_file,
-                    A_sample=best_chromosome.A,
-                    omg_sample=best_chromosome.Omg,
-                    B_sample=best_chromosome.B,
-                    C_sample=best_chromosome.C,
+                    A_s=best_chromosome.A_s,
+                    omg_s=best_chromosome.omg_s,
+                    B_s=best_chromosome.B_s,
+                    C_s=best_chromosome.C_s,
+                    A_u=best_chromosome.A_u,
+                    omg_u=best_chromosome.omg_u,
+                    B_u=best_chromosome.B_u,
+                    C_u=best_chromosome.C_u,
                     Bpht=best_chromosome.Bpht,
                     Apht=best_chromosome.Apht,
                     uu0t=best_chromosome.uu0t,
@@ -401,7 +519,8 @@ class GeneticAlgorithm:
     # =================================================================== #
 class DefunctionProblem(Chromosome):
 
-    def __init__(self, A: float, Omg: float, B: float, C: float,
+    # def __init__(self, A: float, Omg: float, B: float, C: float,
+    def __init__(self, A_s: float, omg_s: float, B_s: float, C_s: float, A_u: float, omg_u: float, B_u: float, C_u: float,
                  parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N) -> None:
         """
         sin関数のパラメタを定義する。
@@ -417,11 +536,15 @@ class DefunctionProblem(Chromosome):
         C : float
             sin関数の初期位相。
         """
-        self.A = A
-        self.Omg = Omg
-        self.B = B
-        self.C = C
+        self.A_s = A_s
+        self.omg_s = omg_s
+        self.B_s = B_s
+        self.C_s = C_s
         
+        self.A_u = A_u
+        self.omg_u = omg_u
+        self.B_u = B_u
+        self.C_u = C_u
         # ========== #
         """ 以下初期条件にのみ使用"""
         self.parameter_file = parameter_file
@@ -447,7 +570,7 @@ class DefunctionProblem(Chromosome):
         """
         if hasattr(self, '_fitness'):  # すでに計算済みの場合はキャッシュを利用
             return self._fitness
-        print("A=",self.A,"ω=", self.Omg, "B=",self.B, "C=",self.C,"パラメタファイル(確認用)",self.parameter_file)
+        # print("A=",self.A_s,"ω=", self.omg_s, "B=",self.B_s, "C=",self.C_s)
         raise RuntimeError("get_fitnessは並列評価後に呼んでください")
     
     @classmethod
@@ -463,60 +586,17 @@ class DefunctionProblem(Chromosome):
             値が設定される。
         """
         import numpy as np
-        A:   float = random.uniform(60,100)
-        Omg: float = random.uniform(1/7e8, 1/6.5e8)
-        B:   float = random.uniform(300,1000)
-        C:   float = random.uniform(0,2*np.pi)
-        problem = DefunctionProblem(A, Omg, B, C, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N)
+        A_s:   float = random.uniform(10,50)
+        omg_s: float = random.uniform(1/7e8, 1/6.5e8)
+        B_s:   float = random.uniform(10,50)
+        C_s:   float = random.uniform(0,2*np.pi)
+        A_u:   float = random.uniform(50,100)
+        omg_u: float = random.uniform(1/7e8, 1/6.5e8)
+        B_u:   float = random.uniform(300,1000)
+        C_u:   float = random.uniform(0,2*np.pi)
+        problem = DefunctionProblem(A_s, omg_s, B_s, C_s, A_u, omg_u, B_u, C_u, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N)
         return problem
     
-    def mutate(self) -> None:
-        """
-        ランダムに一つの変数を選択し、変異させる。
-        """
-        # ランダムに変異させるターゲットを決定
-        target: str = choices(['A', 'Omg', 'B', 'C'], k=1)[0]
-        before = getattr(self, target)
-        # 5%増減させる
-        if random.random() > 0.5:
-            setattr(self, target, getattr(self, target) * 1.05)
-        else:
-            setattr(self, target, getattr(self, target) * 0.95)
-        after = getattr(self, target)
-        print(f"mutate: {target} {before} -> {after}")
-        # if hasattr(self, '_fitness'):
-        #     del self._fitness  # キャッシュ削除
-
-    def exec_crossover(
-            self, other: DefunctionProblem
-            ) -> List[DefunctionProblem]:
-        """
-        引数に指定された別の個体を参照し交叉を実行する。
-
-        Parameters
-        ----------
-        other :DefunctionProblem
-            交叉で利用する別の個体。
-
-        Returns
-        -------
-        result_chromosomes : list of DefunctionProblem
-            交叉実行後に生成された2つの個体を格納したリスト。親となる
-            個体それぞれから、半分ずつ受け継いだ個体となる。
-        """
-        from copy import deepcopy
-        child_1 = deepcopy(self)
-        child_2 = deepcopy(other)
-        child_1.B = other.B
-        child_1.C = other.C
-        child_2.B = self.B
-        child_2.C = self.C
-        # if hasattr(child_1, '_fitness'):
-        #     del child_1._fitness
-        # if hasattr(child_2, '_fitness'):
-        #     del child_2._fitness
-        print(f"crossover: child_1 {[getattr(child_1, a) for a in ['A','Omg','B','C']]}, child_2 {[getattr(child_2, a) for a in ['A','Omg','B','C']]}")
-        return [child_1, child_2]        
 
     def __str__(self) -> str:
         """
@@ -527,25 +607,35 @@ class DefunctionProblem(Chromosome):
         info : str
             個体情報の文字列。
         """
-        A:   float = self.A
-        Omg: float = self.Omg
-        B:   float = self.B
-        C:   float = self.C
+        A_s:   float = self.A_s
+        omg_s: float = self.omg_s
+        B_s:   float = self.B_s
+        C_s:   float = self.C_s
+        A_u:   float = self.A_u
+        omg_u: float = self.omg_u
+        B_u:   float = self.B_u
+        C_u:   float = self.C_u
         fitness: float = self.get_fitness()
-        info: str = f'A = {A}, Omg = {Omg}, B = {B}, C = {C}, fitness = {fitness}'
+        info: str = f'A_s = {A_s}, omg_s = {omg_s}, B_s = {B_s}, C_s = {C_s}, A_u = {A_u}, omg_u = {omg_u}, B_u = {B_u}, C_u = {C_u}, fitness = {fitness}'
         return info
+    
+    # パラメタの種類はここで編集
     @staticmethod
-    def run_defunction_simulation(parameter_file, A_sample, omg_sample, B_sample, C_sample, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N):
+    def run_defunction_simulation(parameter_file, A_s, omg_s, B_s, C_s, A_u, omg_u, B_u, C_u, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N):
         """
         実行するシミュレーション
         """
-        print("A=", A_sample, "ω=", omg_sample, "B=", B_sample, "C=", C_sample, "パラメタファイル(確認用)", parameter_file)
+        # print("A=", A_sample, "ω=", omg_sample, "B=", B_sample, "C=", C_sample, "パラメタファイル(確認用)", parameter_file)
+        print("A_s=", A_s, "ω_s=", omg_s, "B_s=", B_s, "C_s=", C_s)
+        print("A_u=", A_u, "ω_u=", omg_u, "B_u=", B_u, "C_u=", C_u)
         cfg = S2MFD.Cfg(parameter_file)
         sim = S2MFD.Simulation(cfg)
         sim.initialize_simulation()
         sim.cfl_condition()
-        sim.initial_for_defunction(A_sample=A_sample, omg_sample=omg_sample, B_sample=B_sample, C_sample=C_sample, Bpht=Bpht, Apht=Apht, uu0t=uu0t, so0t=so0t, nt=nt, ndt=ndt, timet=timet, index=startpoint, index_end=endpoint)
-        sim.defunction_main_loop(A_sample=A_sample, omg_sample=omg_sample, B_sample=B_sample, C_sample=C_sample, timet=timet, index_start=startpoint, index_end=endpoint)
+        # 両方パターン
+        sim.initial_for_defunction(A_s=A_s, omg_s=omg_s, B_s=B_s, C_s=C_s, A_u=A_u, omg_u=omg_u, B_u=B_u, C_u=C_u, Bpht=Bpht, Apht=Apht, uu0t=uu0t, so0t=so0t, nt=nt, ndt=ndt, timet=timet, index=startpoint, index_end=endpoint)
+        sim.defunction_main_loop(A_s=A_s, omg_s=omg_s, B_s=B_s, C_s=C_s, A_u=A_u, omg_u=omg_u, B_u=B_u, C_u=C_u, timet=timet, index_start=startpoint, index_end=endpoint)
+        
         cc = sim.judge(Sunspot_N[startpoint:endpoint+1])
         
         return cc

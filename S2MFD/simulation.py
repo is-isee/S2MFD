@@ -243,12 +243,13 @@ class Simulation(S2MFD.Data):
 
     """
     ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-    以下の関数は関数を定義し、当てにいくコード
+    Defunction用コード
     ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
     """
     # ========================================================================================== #
     # main loop
-    def defunction_main_loop(self,A_sample,omg_sample,B_sample,C_sample,timet,index_start,index_end):
+    # def defunction_main_loop(self,A_sample,omg_sample,B_sample,C_sample,timet,index_start,index_end):
+    def defunction_main_loop(self,A_s,omg_s,B_s,C_s,A_u,omg_u,B_u,C_u,timet,index_start,index_end):
         """
         Runs the main loop of the simulation
         """
@@ -307,10 +308,10 @@ class Simulation(S2MFD.Data):
                 
                 # 時間依存の so0 と uu0 を計算
                 if hasattr(cfg, 'so0_time_dependent'):
-                    self.cfg.so0 = cfg.so0_time_dependent(A=A_sample,omega=omg_sample,B=B_sample,C=C_sample,time=self.time)
+                    self.cfg.so0 = cfg.so0_time_dependent(A=A_s,omega=omg_s,B=B_s,C=C_s,time=self.time)
                     self.setup = S2MFD.Setup(self.cfg, grid)
                 if hasattr(cfg, 'uu0_time_dependent'):
-                    self.cfg.uu0 = cfg.uu0_time_dependent(A=A_sample,omega=omg_sample,B=B_sample,C=C_sample,time=self.time)
+                    self.cfg.uu0 = cfg.uu0_time_dependent(A=A_u,omega=omg_u,B=B_u,C=C_u,time=self.time)
                     self.setup = S2MFD.Setup(self.cfg, grid)
                     
                 self.cfl_condition()
@@ -319,11 +320,12 @@ class Simulation(S2MFD.Data):
                 self.save()
 
             self.tvd_runge_kutta()
-        # ========================================================================================== #
+    # ========================================================================================== #
         
     # ========================================================================================== #
     # 初期条件 
-    def initial_for_defunction(self, Bpht, Apht, uu0t, so0t, nt, ndt, timet, index, index_end):
+    # def initial_for_defunction(self,A_sample,omg_sample,B_sample,C_sample,Bpht,Apht,uu0t,so0t,nt,ndt,timet,index,index_end):
+    def initial_for_defunction(self,A_s,omg_s,B_s,C_s,A_u,omg_u,B_u,C_u,Bpht,Apht,uu0t,so0t,nt,ndt,timet,index,index_end):
         """
         Applies initial condition
         """
@@ -334,26 +336,27 @@ class Simulation(S2MFD.Data):
         self.Aph = Apht[:,:,index]
         self.cfg.uu0 = uu0t[index]
         self.cfg.so0 = so0t[index]
+        self.time = timet[index]
+        if hasattr(cfg, 'so0_time_dependent'):
+            self.cfg.so0 = cfg.so0_time_dependent(A=A_s,omega=omg_s,B=B_s,C=C_s,time=self.time)
+        if hasattr(cfg, 'uu0_time_dependent'):
+            self.cfg.uu0 = cfg.uu0_time_dependent(A=A_u,omega=omg_u,B=B_u,C=C_u,time=self.time)
         self.setup = S2MFD.Setup(self.cfg, grid)
         setup = self.setup
         self.n = int(nt[index])
         self.nd = int(ndt[index])
-        self.time = timet[index]
         self.dl = 0.0
         self.SN = np.zeros_like(timet[index:index_end+1])
         self.SN[self.nd-index] = self.snumbers_energy(Bpht=self.Bph)
-        # print(self.nd-index)
 
         self.save()
     # ========================================================================================== #
-    # 判定関数
+    # 判定関数①（相関係数）
     def judge(self, Sunspot_N):
         import matplotlib.pyplot as plt
         thre = 0.0
         thre = np.sqrt(np.sum((Sunspot_N - self.SN)**2))
         cc   = np.sum((Sunspot_N-np.mean(Sunspot_N))*(self.SN-np.mean(self.SN)))/np.sqrt(np.sum((Sunspot_N-np.mean(Sunspot_N))**2)*np.sum((self.SN-np.mean(self.SN))**2))
-        # print(Sunspot_N)
-        # print(self.SN)
         plt.plot(Sunspot_N)
         plt.plot(self.SN)
         plt.savefig("P_sunspot.png")
@@ -361,12 +364,21 @@ class Simulation(S2MFD.Data):
         plt.close('all')
         
         print("相関係数＝",cc)
-        judge = 0
-        # if thre < 20:
-        if abs(cc) > 0.95:
-            judge = 1
-        return judge,cc
+        return cc
         
+    # ========================================================================================== #
+    # 判定関数②（黒点総数の誤差）
+    def judge2(self, Sunspot_N):
+        """
+        Compares the number of sunspots with the simulation results
+        """
+        # TODO: 相関係数に合わせて評価してあげるときどの程度重要視するのかを確認しよう。
+        import matplotlib.pyplot as plt
+        sd = 0.0
+        sd = np.sqrt((np.sum(Sunspot_N) - np.sum(self.SN))**2) / np.sum(Sunspot_N)
+        print("黒点総数の誤差=",sd)
+        
+        return sd
     # ========================================================================================== #
 
     

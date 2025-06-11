@@ -398,7 +398,6 @@ class Simulation(S2MFD.Data):
         """
         Compares the number of sunspots with the simulation results
         """
-        # TODO: 相関係数に合わせて評価してあげるときどの程度重要視するのかを確認しよう。
         import matplotlib.pyplot as plt
         sd = 0.0
         sd = np.sqrt((np.sum(Sunspot_N) - np.sum(self.SN))**2) / np.sum(Sunspot_N)

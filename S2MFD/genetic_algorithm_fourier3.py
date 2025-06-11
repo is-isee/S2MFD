@@ -44,7 +44,7 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     """
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.99,
+        threshold=0.97,
         max_generations=1000,
         mutation_probability=0.3,
         crossover_probability=0.8,
@@ -622,9 +622,13 @@ class DefunctionProblem(Chromosome):
         sim.initial_for_defunction(parameters=parameters, Bpht=Bpht, Apht=Apht, uu0t=uu0t, so0t=so0t, nt=nt, ndt=ndt, timet=timet, index=startpoint, index_end=endpoint)
         sim.defunction_main_loop(parameters=parameters, timet=timet, index_start=startpoint, index_end=endpoint)
         
-        cc = sim.judge(Sunspot_N[startpoint:endpoint+1])
+        cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])
+        sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
+        # 評価関数
+        alpha = 0.5
+        eva = alpha*cc + (1-alpha)*sd
         
-        return cc
+        return eva
     @staticmethod
     def get_fitness_static(args):
         """

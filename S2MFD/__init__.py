@@ -21,7 +21,7 @@ from .data import Data
 from .simulation import Simulation
 from . import physics
 from . import tools
-from .genetic_algorithm_double import GA_defunction
+from .genetic_algorithm_fourier3 import GA_defunction
 
 __all__ = [ 'Cfg',
             'Grid',

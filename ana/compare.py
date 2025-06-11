@@ -149,7 +149,7 @@ cc   = np.sum((SN1-np.mean(SN1))*(SN2-np.mean(SN2)))/np.sqrt(np.sum((SN1-np.mean
 sd   = np.sqrt((np.sum(SN1) - np.sum(SN2))**2) / np.sum(SN1)
 so0t_dif = (so0t1/so0t2).mean()
 uu0t_dif = (uu0t1/uu0t2).mean()
-
+print("----------------------------------------------")
 print("相関係数＝",cc,"誤差割合＝",sd)
 print("so0の比=",so0t_dif)
 print("uu0の比=",uu0t_dif)

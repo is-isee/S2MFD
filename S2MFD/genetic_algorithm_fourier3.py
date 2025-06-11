@@ -36,7 +36,7 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     defunction_initial_population: List[DefunctionProblem] = [
     DefunctionProblem.make_random_instance(
         parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N
-    ) for _ in range(5)  # 個体数
+    ) for _ in range(30)  # 個体数
     ]
     
     """
@@ -294,12 +294,15 @@ class GeneticAlgorithm:
         一様突然変異を実行する。
         """
         target: str = random.choice(PARAMETER_NAMES)
-        before = getattr(chromosome, target)  # 変異前の値を取得
+        # before = getattr(chromosome, target)  # 変異前の値を取得
+        before = chromosome.parameters[target]
 
         new_value = before * random.uniform(0.9, 1.1)
-        setattr(chromosome, target, new_value)
+        # setattr(chromosome, target, new_value)
+        chromosome.parameters[target] = new_value 
 
-        after = getattr(chromosome, target)  # 変異後の値を取得
+        # after = getattr(chromosome, target)  # 変異後の値を取得
+        after = chromosome.parameters[target]
         print(f"uniform_mutation: {target} {before} -> {after}")
 
     def _exec_gaussian_mutation(self, chromosome: Chromosome) -> None:
@@ -617,7 +620,7 @@ class DefunctionProblem(Chromosome):
         sim.cfl_condition()
         # 両方パターン
         sim.initial_for_defunction(parameters=parameters, Bpht=Bpht, Apht=Apht, uu0t=uu0t, so0t=so0t, nt=nt, ndt=ndt, timet=timet, index=startpoint, index_end=endpoint)
-        sim.defunction_main_loop(**parameters, timet=timet, index_start=startpoint, index_end=endpoint)
+        sim.defunction_main_loop(parameters=parameters, timet=timet, index_start=startpoint, index_end=endpoint)
         
         cc = sim.judge(Sunspot_N[startpoint:endpoint+1])
         

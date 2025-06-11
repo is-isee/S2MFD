@@ -327,11 +327,14 @@ class Simulation(S2MFD.Data):
                 # print(cfg.boundary_condition_type)
                 
                 # 時間依存の so0 と uu0 を計算
+                parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s']}
                 if hasattr(cfg, 'so0_time_dependent'):
-                    self.cfg.so0 = cfg.so0_time_dependent(**parameters,time=self.time)
+                    self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time)
                     self.setup = S2MFD.Setup(self.cfg, grid)
+                
+                parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']}
                 if hasattr(cfg, 'uu0_time_dependent'):
-                    self.cfg.uu0 = cfg.uu0_time_dependent(**parameters,time=self.time)
+                    self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time)
                     self.setup = S2MFD.Setup(self.cfg, grid)
                     
                 self.cfl_condition()
@@ -356,12 +359,11 @@ class Simulation(S2MFD.Data):
         self.cfg.uu0 = uu0t[index]
         self.cfg.so0 = so0t[index]
         self.time = timet[index]
-        # parameters辞書からa0_s~omega_sを抽出
+
         parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s']}
         if hasattr(cfg, 'so0_time_dependent'):
             self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time)
             
-        # parameters辞書からa0_u~omega_uを抽出 
         parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']}
         if hasattr(cfg, 'uu0_time_dependent'):
             self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time)

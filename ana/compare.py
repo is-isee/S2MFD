@@ -7,6 +7,8 @@ import S2MFD
 # 分析範囲、対象は手で決める
 datadir1 = '../data_sin_GA/data_test_s0u0/'
 datadir2 = '../data_sin_GA/data_GA_s0u0_2/'
+datadir1 = '../data_fourier_sample/'
+datadir2 = '../data_fourier_result1/'
 n0 = 1040
 n1 = 1610
 

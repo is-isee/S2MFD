@@ -10,6 +10,7 @@ import S2MFD
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
 from typing import Dict
+import time
 
 # TODO: 変更箇所①
 PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s',
@@ -18,6 +19,7 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     """
     観測データのインプット
     """
+    start_time = time.time()
     if datadir is None:
         print('You need to specify the datadir')
         return
@@ -44,7 +46,7 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     """
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.97,
+        threshold=0.485,
         max_generations=1000,
         mutation_probability=0.3,
         crossover_probability=0.8,
@@ -53,6 +55,8 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
         mutation_type=GeneticAlgorithm.MUTATION_TYPE_UNIFORM  # 突然変異方式
     )
     _ = ga.run_algorithm()
+    end_time = time.time()
+    print(f"GA実行時間: {end_time - start_time:.2f}秒")
 class Chromosome(ABC):
     """
     染色体（遺伝的アルゴリズムの要素1つ分）を扱う抽象クラス。
@@ -449,35 +453,46 @@ class GeneticAlgorithm:
             もしくはしきい値を超えない場合は指定された世代数に達した
             時点で一番評価関数の値が高い個体が設定される。
         """
-        # 0世代の生成
-        self._evaluate_population_parallel()
-        best_chromosome: Chromosome = \
-            deepcopy(self._get_best_chromosome_from_population())
-        
-        for generation_idx in range(self._max_generations):
-            print(
-                datetime.now(),
-                f'世代数 : {generation_idx}'
-                f' 最良個体情報 : {best_chromosome}'
-            )
-
-            if best_chromosome.get_fitness() >= self._threshold:
-                print("=== 閾値到達個体で再シミュレーション ===")
-                args = self._prepare_simulation_args(best_chromosome)
-                result = DefunctionProblem.run_defunction_simulation(**args)
-                print("再シミュレーション結果（相関係数）:", result)
-                return best_chromosome
-
-            self._to_next_generation()
+        try:
+            # 0世代の生成
             self._evaluate_population_parallel()
+            best_chromosome: Chromosome = \
+                deepcopy(self._get_best_chromosome_from_population())
             
-            currrent_generation_best_chromosome: Chromosome = \
-                self._get_best_chromosome_from_population()
-            current_gen_best_fitness: float = \
-                currrent_generation_best_chromosome.get_fitness()
-            if best_chromosome.get_fitness() < current_gen_best_fitness:
-                best_chromosome = deepcopy(currrent_generation_best_chromosome)
-        return best_chromosome
+            for generation_idx in range(self._max_generations):
+                print(
+                    datetime.now(),
+                    f'世代数 : {generation_idx}'
+                    f' 最良個体情報 : {best_chromosome}'
+                )
+
+                if best_chromosome.get_fitness() >= self._threshold:
+                    print("=== 閾値到達個体で再シミュレーション ===")
+                    args = self._prepare_simulation_args(best_chromosome)
+                    result = DefunctionProblem.run_defunction_simulation(**args)
+                    print("再シミュレーション結果（相関係数）:", result)
+                    return best_chromosome
+
+                self._to_next_generation()
+                self._evaluate_population_parallel()
+                
+                currrent_generation_best_chromosome: Chromosome = \
+                    self._get_best_chromosome_from_population()
+                current_gen_best_fitness: float = \
+                    currrent_generation_best_chromosome.get_fitness()
+                if best_chromosome.get_fitness() < current_gen_best_fitness:
+                    best_chromosome = deepcopy(currrent_generation_best_chromosome)
+            return best_chromosome
+        
+        except KeyboardInterrupt:
+            print("\n=== 実行が中断されました ===")
+            print("=== 現時点での最良個体を再計算します ===")
+            best_chromosome: Chromosome = \
+                deepcopy(self._get_best_chromosome_from_population())
+            args = self._prepare_simulation_args(best_chromosome)
+            result = DefunctionProblem.run_defunction_simulation(**args)
+            print("再シミュレーション結果（相関係数）:", result)
+            return best_chromosome
     
     def _prepare_simulation_args(self, chromosome: Chromosome) -> Dict:
         """
@@ -626,7 +641,7 @@ class DefunctionProblem(Chromosome):
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
         # 評価関数
         alpha = 0.5
-        eva = alpha*cc + (1-alpha)*sd
+        eva = alpha*cc - (1-alpha)*sd
         
         return eva
     @staticmethod

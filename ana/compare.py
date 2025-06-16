@@ -5,10 +5,12 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir1 = '../data_sample_meridional/'
-datadir2 = '../data_bisection/data_sunspot_to_u0_2/'
-n0 = 500
-n1 = 783
+datadir1 = '../data_sin_GA/data_test_s0/'
+datadir2 = '../data_defunction/data0000/'
+# datadir1 = '../data_fourier_sample/'
+# datadir2 = '../data_fourier_result1/'
+n0 = 1041
+n1 = 1611
 
 data = S2MFD.Data.initial_load(datadir1)
 

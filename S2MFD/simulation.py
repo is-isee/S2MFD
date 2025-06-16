@@ -251,30 +251,24 @@ class Simulation(S2MFD.Data):
     # def defunction_main_loop(self,A_sample,omg_sample,B_sample,C_sample,timet,index_start,index_end):
     # def defunction_main_loop(self,A_s,omg_s,B_s,C_s,A_u,omg_u,B_u,C_u,timet,index_start,index_end):
     # TODO パラメタ変更時に設定
-    # parameters = {
-    #     'a0_s': 0.0,
-    #     'a1_s': 0.0,
-    #     'a2_s': 0.0,
-    #     'a3_s': 0.0,
-    #     'b1_s': 0.0,
-    #     'b2_s': 0.0,
-    #     'b3_s': 0.0,
-    #     'omega_s': 0.0,
-    #     'a0_u': 0.0,
-    #     'a1_u': 0.0,
-    #     'a2_u': 0.0,
-    #     'a3_u': 0.0,
-    #     'b1_u': 0.0,
-    #     'b2_u': 0.0,
-    #     'b3_u': 0.0,
-    #     'omega_u': 0.0
-    #     }
     parameters = {
-        'A': 0.0,
-        'omega': 0.0,
-        'B': 0.0,
-        'C': 0.0,
-    }
+        'a0_s': 0.0,
+        'a1_s': 0.0,
+        'a2_s': 0.0,
+        'a3_s': 0.0,
+        'b1_s': 0.0,
+        'b2_s': 0.0,
+        'b3_s': 0.0,
+        'omega_s': 0.0,
+        'a0_u': 0.0,
+        'a1_u': 0.0,
+        'a2_u': 0.0,
+        'a3_u': 0.0,
+        'b1_u': 0.0,
+        'b2_u': 0.0,
+        'b3_u': 0.0,
+        'omega_u': 0.0
+        }
     def defunction_main_loop(self,parameters: Dict[str, float],timet,index_start,index_end):
         """
         Runs the main loop of the simulation
@@ -333,13 +327,12 @@ class Simulation(S2MFD.Data):
                 # print(cfg.boundary_condition_type)
                 
                 # TODO パラメタ変更時に設定
-                # parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s']}
-                parameters_s = {key: parameters[key] for key in ['A', 'omega', 'B', 'C']}
+                parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s']}
                 if hasattr(cfg, 'so0_time_dependent'):
                     self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time)
                     self.setup = S2MFD.Setup(self.cfg, grid)
                 
-                # parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']}
+                parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']}
                 if hasattr(cfg, 'uu0_time_dependent'):
                     self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time)
                     self.setup = S2MFD.Setup(self.cfg, grid)
@@ -367,12 +360,11 @@ class Simulation(S2MFD.Data):
         self.cfg.so0 = so0t[index]
         self.time = timet[index]
         # TODO パラメタ変更時に設定
-        # parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s']}
-        parameters_s = {key: parameters[key] for key in ['A', 'omega', 'B', 'C']}
+        parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s']}
         if hasattr(cfg, 'so0_time_dependent'):
             self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time)
             
-        # parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']}
+        parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']}
         if hasattr(cfg, 'uu0_time_dependent'):
             self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time)
             

@@ -44,9 +44,10 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     """
     GAの設定と実行
     """
+    # TODO : 変更箇所②
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.485,
+        threshold=0.99,
         max_generations=1000,
         mutation_probability=0.3,
         crossover_probability=0.8,
@@ -119,6 +120,7 @@ class GeneticAlgorithm:
     CrossoverType = int
     CROSSOVER_TYPE_SINGLE_POINT: CrossoverType = 1
     CROSSOVER_TYPE_UNIFORM: CrossoverType = 2
+    CROSSOVER_TYPE_PROT: CrossoverType = 3  # プロトタイプ交叉
 
     # 突然変異タイプの指定
     MutationType = int
@@ -290,6 +292,19 @@ class GeneticAlgorithm:
                 child_1.parameters[attr], child_2.parameters[attr] = child_2.parameters[attr], child_1.parameters[attr]
         print(f"uniform_crossover: child_1 {child_1.parameters}, child_2 {child_2.parameters}")
         return [child_1, child_2]
+    
+    def _exec_prot_crossover(self, parents: List[Chromosome]) -> List[Chromosome]:
+        """
+        プロトタイプ交叉を実行する。
+        """
+        from copy import deepcopy
+        child_1 = deepcopy(parents[0])
+        child_2 = deepcopy(parents[1])
+        
+        child_1.parameters['B'], child_2.parameters['B'] = child_2.parameters['B'], child_1.parameters['B']
+        child_1.parameters['C'], child_2.parameters['C'] = child_2.parameters['C'], child_1.parameters['C']
+        print(f"prototype_crossover: child_1 {child_1.parameters}, child_2 {child_2.parameters}")
+        return [child_1, child_2]
     # =================================================================== #
     # =================================================================== #
     """ def mutation methods """
@@ -300,7 +315,6 @@ class GeneticAlgorithm:
         target: str = random.choice(PARAMETER_NAMES)
         # before = getattr(chromosome, target)  # 変異前の値を取得
         before = chromosome.parameters[target]
-
         new_value = before * random.uniform(0.9, 1.1)
         # setattr(chromosome, target, new_value)
         chromosome.parameters[target] = new_value 
@@ -369,6 +383,8 @@ class GeneticAlgorithm:
                 next_generation_chromosomes = self._exec_single_point_crossover(parents)
             elif self._crossover_type == self.CROSSOVER_TYPE_UNIFORM:
                 next_generation_chromosomes = self._exec_uniform_crossover(parents)
+            elif self._crossover_type == self.CROSSOVER_TYPE_PROT:
+                next_generation_chromosomes = self._exec_prot_crossover(parents)
             else:
                 raise ValueError(f"対応していない交叉方式が指定されています: {self._crossover_type}")
         
@@ -586,7 +602,7 @@ class DefunctionProblem(Chromosome):
             値が設定される。
         """
         import numpy as np
-        # TODO: 変更箇所②
+        # TODO: 変更箇所③
         parameters = {
             'a0_s': np.random.uniform(0, 50),
             'a1_s': np.random.uniform(0, 10),
@@ -639,7 +655,7 @@ class DefunctionProblem(Chromosome):
         
         cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
-        # 評価関数
+        # TODO 変更箇所④      
         alpha = 0.5
         eva = alpha*cc - (1-alpha)*sd
         

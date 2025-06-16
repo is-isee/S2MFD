@@ -168,3 +168,6 @@ S2MFD/_version.py
 
 # Ignore PNG files
 *.png
+
+# Ignore MP4 files
+*.mp4

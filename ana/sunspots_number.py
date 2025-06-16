@@ -75,20 +75,40 @@ time_y = time_s/data.cfg.d2s/365
 
 # グラフの描画
 # plt.plot(time_y,S_num2,'r',label = 'sunspots number')
-plt.plot(time_y,SN2,'r',label = 'sunspots number')
-plt.xlabel('time(year)',fontsize=20)
-plt.ylabel('sunspots number',fontsize=20)
-plt.savefig("P_sunspots_number.png")
+# Sunspots Number
+plt.figure(figsize=(10, 6))  # グラフのサイズを調整
+# plt.xlim(110,500)  # x軸の範囲を調整
+# plt.ylim(0,2)  # x軸の範囲を調整
+plt.plot(time_y, SN2, 'r', label='Sunspots Number')  # ラベル名を明確に
+plt.xlabel('Years', fontsize=20)
+plt.ylabel('Sunspots Number', fontsize=20)
+plt.xticks(fontsize=14)  # x軸の数値サイズを調整
+plt.yticks(fontsize=14)  # y軸の数値サイズを調整
+plt.grid(True, linestyle='--', alpha=0.7)  # グリッドを追加
+plt.legend(fontsize=14, loc='upper right')
+plt.savefig("P_sunspots_number.png", dpi=300)  # 解像度を高める
 plt.clf()
 
-plt.plot(time_y,uu0t,'r',label = 'meridional flow speed')
-plt.xlabel('time(year)',fontsize=20)
-plt.ylabel('meridional flow speed',fontsize=20)
-plt.savefig("P_u0.png")
+# Meridional Flow Speed
+plt.figure(figsize=(10, 6))  # グラフのサイズを調整
+plt.plot(time_y, uu0t, 'r', label='Meridional Flow Speed')  # ラベル名を明確に
+plt.xlabel('Years', fontsize=20)
+plt.ylabel(r'$u_0(\rm{cm/s})$', fontsize=20)  # LaTeX形式で表示
+plt.xticks(fontsize=14)  # x軸の数値サイズを調整
+plt.yticks(fontsize=14)  # y軸の数値サイズを調整
+plt.grid(True, linestyle='--', alpha=0.7)  # グリッドを追加
+plt.legend(fontsize=14, loc='upper right')
+plt.savefig("P_u0.png", dpi=300)  # 解像度を高める
 plt.clf()
 
-plt.plot(time_y,so0t,'r',label = 'alpha effect')
-plt.xlabel('time(year)',fontsize=20)
-plt.ylabel('s_0',fontsize=20)
-plt.savefig("P_s0.png")
+# Alpha Effect
+plt.figure(figsize=(10, 6))  # グラフのサイズを調整
+plt.plot(time_y, so0t, 'r', label='Alpha Effect')  # ラベル名を明確に
+plt.xlabel('Years', fontsize=20)
+plt.ylabel(r'$s_0(\rm{cm/s})$', fontsize=20)  # LaTeX形式で表示
+plt.xticks(fontsize=14)  # x軸の数値サイズを調整
+plt.yticks(fontsize=14)  # y軸の数値サイズを調整
+plt.grid(True, linestyle='--', alpha=0.7)  # グリッドを追加
+plt.legend(fontsize=14, loc='upper right')
+plt.savefig("P_s0.png", dpi=300)  # 解像度を高める
 plt.clf()

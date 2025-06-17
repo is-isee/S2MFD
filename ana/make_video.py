@@ -6,7 +6,7 @@ import S2MFD
 from matplotlib.animation import FuncAnimation
 
 # TODO : 参照ファイル、動画を作成するためのディレクトリと出力ファイル名を指定
-datadir = 'data/'
+datadir = '../data/'
 image_directory = 'video_data'  # PNGファイルが保存されているディレクトリ
 output_video = os.path.join(image_directory, 'magnetic_field.mp4')  # 出力するMP4ファイル名
 
@@ -35,7 +35,6 @@ if os.path.isdir(datadir):
             n1 = max(n1, int(filel[1]))
 
 n0 = 0
-n1 = 1
 tau_diff = data.cfg.RSUN**2/data.cfg.ett
 timet = np.zeros(n1-n0)
 nt = np.zeros(n1-n0)

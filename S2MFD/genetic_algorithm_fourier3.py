@@ -656,7 +656,7 @@ class DefunctionProblem(Chromosome):
         cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
         # TODO 変更箇所④      
-        alpha = 0.5
+        alpha = 1
         eva = alpha*cc - (1-alpha)*sd
         
         return eva

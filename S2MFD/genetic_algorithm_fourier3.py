@@ -11,6 +11,7 @@ import numpy as np
 from concurrent.futures import ProcessPoolExecutor
 from typing import Dict
 import time
+import matplotlib.pyplot as plt
 
 # TODO: 変更箇所①
 PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s',
@@ -58,6 +59,7 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     _ = ga.run_algorithm()
     end_time = time.time()
     print(f"GA実行時間: {end_time - start_time:.2f}秒")
+    
 class Chromosome(ABC):
     """
     染色体（遺伝的アルゴリズムの要素1つ分）を扱う抽象クラス。
@@ -109,6 +111,7 @@ class Chromosome(ABC):
         """
         return self.get_fitness() < other.get_fitness()
 C = TypeVar('C', bound=Chromosome)
+
 class GeneticAlgorithm:
     # 選択タイプの指定
     SelectionType = int
@@ -120,7 +123,7 @@ class GeneticAlgorithm:
     CrossoverType = int
     CROSSOVER_TYPE_SINGLE_POINT: CrossoverType = 1
     CROSSOVER_TYPE_UNIFORM: CrossoverType = 2
-    CROSSOVER_TYPE_PROT: CrossoverType = 3  # プロトタイプ交叉
+    CROSSOVER_TYPE_PROT: CrossoverType = 3  
 
     # 突然変異タイプの指定
     MutationType = int
@@ -190,6 +193,8 @@ class GeneticAlgorithm:
         Notes
         -----
         評価関数の結果の値が負になる問題には利用できない。
+        1.適応度(fitness)リストの作成
+        2.適応度リストを重みとして確率計算しに個体を選択。
         """
         weights: List[float] = [
             chromosome.get_fitness() for chromosome in self._population]
@@ -209,6 +214,9 @@ class GeneticAlgorithm:
             選択された2つの個体（染色体）を格納したリスト。トーナメント
             用に引数で指定された件数分抽出された中から上位の2つの個体が
             設定される。
+        Notes
+        -----
+        全体の半数がトーナメントの参加者となり、評価関数の上位2個体が選択される。この時、半数の抽出は重複を許す。
         """
         participants_num: int = len(self._population) // 2
         participants: List[Chromosome] = choices(self._population, k=participants_num)
@@ -218,9 +226,9 @@ class GeneticAlgorithm:
             if not hasattr(participant, '_fitness'):
                 raise RuntimeError("参加者のfitnessが未計算です。")
         # ====
-        
         selected_chromosomes: List[Chromosome] = nlargest(n=2, iterable=participants)
         return selected_chromosomes
+    
     """ Variable Tournament_Selection """
     def _exec_variable_tournament_selection(self) -> List[Chromosome]:
         """
@@ -456,6 +464,65 @@ class GeneticAlgorithm:
             chrom._fitness = fit
     
     # =================================================================== #
+    # ================================================================== #
+    """描画用関数"""
+    def draw_population(self,x,y,label,label_x,label_y,file_name):
+        plt.figure(figsize=(10, 6))  # グラフのサイズを調整
+        plt.plot(x,y,'r',label=label)
+        plt.xlabel(label_x,fontsize=20)
+        plt.ylabel(label_y,fontsize=20)
+        # 軸のメモリを細かく設定
+        plt.xticks(fontsize=14)  # x軸の数値サイズを調整
+        plt.yticks(fontsize=14)  # y軸の数値サイズを調整
+        # グリッドを追加して見やすく
+        plt.grid(True, linestyle='--', alpha=0.7)
+        # 凡例を表示
+        plt.legend(fontsize=14, loc='upper right')  # 凡例を右上に固定
+        # グラフを保存
+        plt.savefig(file_name, dpi=300)
+        plt.clf()
+    # =================================================================== #
+    # ================================================================== #
+    """"多様性を図る関数"""
+    def diversity(self) -> float:
+        """
+        現在の世代の多様性を計算する。
+
+        Returns
+        -------
+        diversity_score : float
+            個体群の多様性を表すスコア（標準偏差の平均値）。
+        """
+        # パラメータ値を格納する辞書を初期化
+        parameter_values = {key: [] for key in PARAMETER_NAMES}
+        
+        # 各個体のパラメータ値を収集（パラメータごとに集めている）
+        for chromosome in self._population:
+            for key in PARAMETER_NAMES:
+                parameter_values[key].append(chromosome.parameters[key])
+                print(parameter_values)
+                
+        # 各パラメータの正規化を実行
+        normalized_values = {}
+        for key, values in parameter_values.items():
+            min_val = np.min(values)  # 最小値
+            max_val = np.max(values)  # 最大値
+            if max_val - min_val == 0:
+                # 値が一定の場合はそのまま使用（正規化の分母=0となってしまうため）
+                normalized_values[key] = values
+            else:
+                # 正規化: (値 - 最小値) / (最大値 - 最小値)
+                normalized_values[key] = [(val - min_val) / (max_val - min_val) for val in values]
+
+        # 各パラメータの標準偏差を計算（標準偏差のリストを生成）
+        std_devs = [np.std(values) for values in parameter_values.values()]
+
+        # 標準偏差の平均を多様性スコアとして返す
+        diversity_score = np.mean(std_devs)
+        return diversity_score
+        
+    
+    # ================================================================== #
     """ Run Algorithm """
     def run_algorithm(self) -> Chromosome:
         """
@@ -474,6 +541,8 @@ class GeneticAlgorithm:
             self._evaluate_population_parallel()
             best_chromosome: Chromosome = \
                 deepcopy(self._get_best_chromosome_from_population())
+            fitness_story   = np.zeros(self._max_generations, dtype=float)
+            diversity_story = np.zeros(self._max_generations, dtype=float)
             
             for generation_idx in range(self._max_generations):
                 print(
@@ -481,12 +550,34 @@ class GeneticAlgorithm:
                     f'世代数 : {generation_idx}'
                     f' 最良個体情報 : {best_chromosome}'
                 )
+                fitness_story[generation_idx]   = best_chromosome.get_fitness()
+                diversity_story[generation_idx] = self.diversity()
+                print("fitness:", fitness_story)
+                print("diversity:", diversity_story)
 
                 if best_chromosome.get_fitness() >= self._threshold:
                     print("=== 閾値到達個体で再シミュレーション ===")
                     args = self._prepare_simulation_args(best_chromosome)
                     result = DefunctionProblem.run_defunction_simulation(**args)
                     print("再シミュレーション結果（相関係数）:", result)
+                    
+                    self.draw_population(
+                        x=np.linspace(0,len(fitness_story[:generation_idx+1])-1,len(fitness_story[:generation_idx+1])),
+                        y=fitness_story[:generation_idx+1],
+                        label="Fitness",
+                        label_x="generation number",
+                        label_y="fitness",
+                        file_name="fitness_time.png"
+                    )
+                    self.draw_population(
+                        x=np.linspace(0, len(diversity_story[:generation_idx+1]) - 1, len(diversity_story[:generation_idx+1])),
+                        y=diversity_story[:generation_idx+1],
+                        label="Diversity",
+                        label_x="generation number",
+                        label_y="diversity",
+                        file_name="diversity_time.png"
+                    )
+                    
                     return best_chromosome
 
                 self._to_next_generation()
@@ -496,11 +587,29 @@ class GeneticAlgorithm:
                     self._get_best_chromosome_from_population()
                 current_gen_best_fitness: float = \
                     currrent_generation_best_chromosome.get_fitness()
+                    
+                # 今回の変異で歴代新記録を出した場合に更新する。
                 if best_chromosome.get_fitness() < current_gen_best_fitness:
                     best_chromosome = deepcopy(currrent_generation_best_chromosome)
             return best_chromosome
         
         except KeyboardInterrupt:
+            self.draw_population(
+                x=np.linspace(0,len(fitness_story[:generation_idx+1])-1,len(fitness_story[:generation_idx+1])),
+                y=fitness_story[:generation_idx+1],
+                label="Fitness",
+                label_x="generation number",
+                label_y="fitness",
+                file_name="fitness_time.png"
+            )
+            self.draw_population(
+                x=np.linspace(0, len(diversity_story[:generation_idx+1]) - 1, len(diversity_story[:generation_idx+1])),
+                y=diversity_story[:generation_idx+1],
+                label="Diversity",
+                label_x="generation number",
+                label_y="diversity",
+                file_name="diversity_time.png"
+            )
             print("\n=== 実行が中断されました ===")
             print("=== 現時点での最良個体を再計算します ===")
             best_chromosome: Chromosome = \
@@ -583,7 +692,10 @@ class DefunctionProblem(Chromosome):
         Returns
         -------
         fitness : float
-            相関係数。
+        
+        Notes
+        -----
+        ここではfitnessの呼び出しを行うが、実際の計算は並列評価後に行われるため、キャッシュされた値を返す。
         """
         if hasattr(self, '_fitness'):  # すでに計算済みの場合はキャッシュを利用
             return self._fitness

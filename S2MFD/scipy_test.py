@@ -1,8 +1,22 @@
+from __future__ import annotations
 sys.path.append('../')
 import S2MFD
 import multiprocessing
 import os
 import numpy as np
+from typing import TypeVar, List, Dict
+from random import choices, random, randrange, shuffle
+from heapq import nlargest
+from abc import ABC, abstractmethod
+from copy import deepcopy
+from datetime import datetime
+import random
+import S2MFD
+import numpy as np
+from concurrent.futures import ProcessPoolExecutor
+from typing import Dict
+import time
+import matplotlib.pyplot as plt
 
 # scipy提供のルジャンドル陪関数
 import scipy.special
@@ -927,3 +941,78 @@ def load_for_bisection(datadir):
         
     return cfg, grid, n1, Bpht, Apht, uu0t, so0t, nt, ndt, timet
 # ========================================================================================== #
+# Test_SBX
+def sbx_crossover_test(child_1,child_2):
+    """
+    Simulated Binary Crossover (SBX)を実行する。
+    """
+    from copy import deepcopy
+    c_1 = child_1
+    c_2 = child_2
+    
+    eta_sbx = 2.0
+    # 交叉する遺伝子（パラメタ）をランダムに決定
+    if random.random() > 0.5:
+        u_sbx = random.random()
+        if u_sbx <= 0.5:
+            beta_sbx = (2.0 * u_sbx) ** (1.0 / (eta_sbx + 1.0))
+        else:
+            beta_sbx = (1.0 / (2.0 * (1.0 - u_sbx))) ** (1.0 / (eta_sbx + 1.0))
+        child_1 = 0.5 * ((1 + beta_sbx) * c_1 + (1 - beta_sbx) * c_2)
+        child_2 = 0.5 * ((1 - beta_sbx) * c_1 + (1 + beta_sbx) * c_2)
+    # 交叉結果の出力
+    print(f"sbx_crossover: child_1 {child_1}, child_2 {child_2}")
+    return child_1, child_2
+
+n_sbx = 500000
+child_1 = np.zeros(n_sbx)
+child_2 = np.zeros(n_sbx)
+for i in range(0,n_sbx):
+    child_1[i], child_2[i] = sbx_crossover_test(2,5)
+
+# ここから確率密度グラフの描画
+import matplotlib.pyplot as plt
+
+# child_1とchild_2を合算
+all_children = np.concatenate([child_1, child_2])
+
+# ヒストグラムで確率密度を描画
+plt.figure(figsize=(8, 5))
+plt.hist(all_children, bins=50, density=True, alpha=0.7, color='blue', label='child_1 + child_2')
+plt.xlim(-1,8)
+plt.xlabel('Value', fontsize=16)
+plt.ylabel('Probability Density', fontsize=16)
+plt.title('Probability Density of SBX Children', fontsize=16)
+plt.legend(fontsize=14)
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.savefig("test_sbx.png", dpi=300)
+plt.clf()
+
+import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
+import numpy as np
+
+# child_1とchild_2を合算
+all_children = np.concatenate([child_1, child_2])
+
+# KDE（カーネル密度推定）で滑らかな曲線を描画
+kde = gaussian_kde(all_children)
+x_grid = np.linspace(np.min(all_children), np.max(all_children), 500)
+kde_values = kde(x_grid)
+
+plt.figure(figsize=(8, 5))
+# ヒストグラム（確率密度）も重ねて表示
+plt.hist(all_children, bins=250, density=True, alpha=0.4, color='blue', label='Histogram')
+# KDE曲線
+plt.plot(x_grid, kde_values, 'r-', linewidth=2, label='KDE')
+plt.xlim(-1,8)
+plt.xlabel('Value', fontsize=16)
+plt.ylabel('Probability Density', fontsize=16)
+plt.title('Probability Density of SBX Children', fontsize=16)
+plt.legend(fontsize=14)
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.savefig("test_sbx_kde.png", dpi=300)
+plt.clf()
+# ================================================================================================== #

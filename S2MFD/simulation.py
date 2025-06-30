@@ -1,3 +1,4 @@
+from typing import Dict
 import numpy as np
 import S2MFD
 
@@ -77,7 +78,7 @@ class Simulation(S2MFD.Data):
         # print(f"{self.time/86400:7.1f} [day]; n={self.n:06d}; nd={self.nd:04d}")
         filename = self.get_data_file_path(self.nd)
         np.savez(file=filename \
-                    ,Bph=self.Bph,Aph=self.Aph,time=self.time,n=self.n,nd=self.nd,uu0=self.cfg.uu0,so0=self.cfg.so0,dl=self.dl)
+                    ,Bph=self.Bph,Aph=self.Aph,time=self.time,n=self.n,nd=self.nd,uu0=self.cfg.uu0,so0=self.cfg.so0)
 
     def initial_condition(self):
         """
@@ -194,7 +195,6 @@ class Simulation(S2MFD.Data):
         while self.time < cfg.tend:
             self.time += self.dt
             self.n += 1
-            # TODO いずれかは記録をdtoutごとにする↓
             if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
             # if self.n % 20 == 0:
                 self.nd += 1
@@ -249,7 +249,27 @@ class Simulation(S2MFD.Data):
     # ========================================================================================== #
     # main loop
     # def defunction_main_loop(self,A_sample,omg_sample,B_sample,C_sample,timet,index_start,index_end):
-    def defunction_main_loop(self,A_s,omg_s,B_s,C_s,A_u,omg_u,B_u,C_u,timet,index_start,index_end):
+    # def defunction_main_loop(self,A_s,omg_s,B_s,C_s,A_u,omg_u,B_u,C_u,timet,index_start,index_end):
+    # TODO パラメタ変更時に設定
+    parameters = {
+        'a0_s': 0.0,
+        'a1_s': 0.0,
+        'a2_s': 0.0,
+        'a3_s': 0.0,
+        'b1_s': 0.0,
+        'b2_s': 0.0,
+        'b3_s': 0.0,
+        'omega_s': 0.0,
+        'a0_u': 0.0,
+        'a1_u': 0.0,
+        'a2_u': 0.0,
+        'a3_u': 0.0,
+        'b1_u': 0.0,
+        'b2_u': 0.0,
+        'b3_u': 0.0,
+        'omega_u': 0.0
+        }
+    def defunction_main_loop(self,parameters: Dict[str, float],timet,index_start,index_end):
         """
         Runs the main loop of the simulation
         """
@@ -306,12 +326,15 @@ class Simulation(S2MFD.Data):
                 # plt.pause(0.01)
                 # print(cfg.boundary_condition_type)
                 
-                # 時間依存の so0 と uu0 を計算
+                # TODO パラメタ変更時に設定
+                parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s']}
                 if hasattr(cfg, 'so0_time_dependent'):
-                    self.cfg.so0 = cfg.so0_time_dependent(A=A_s,omega=omg_s,B=B_s,C=C_s,time=self.time)
+                    self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time)
                     self.setup = S2MFD.Setup(self.cfg, grid)
+                
+                parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']}
                 if hasattr(cfg, 'uu0_time_dependent'):
-                    self.cfg.uu0 = cfg.uu0_time_dependent(A=A_u,omega=omg_u,B=B_u,C=C_u,time=self.time)
+                    self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time)
                     self.setup = S2MFD.Setup(self.cfg, grid)
                     
                 self.cfl_condition()
@@ -324,8 +347,7 @@ class Simulation(S2MFD.Data):
         
     # ========================================================================================== #
     # 初期条件 
-    # def initial_for_defunction(self,A_sample,omg_sample,B_sample,C_sample,Bpht,Apht,uu0t,so0t,nt,ndt,timet,index,index_end):
-    def initial_for_defunction(self,A_s,omg_s,B_s,C_s,A_u,omg_u,B_u,C_u,Bpht,Apht,uu0t,so0t,nt,ndt,timet,index,index_end):
+    def initial_for_defunction(self,parameters: Dict[str, float],Bpht,Apht,uu0t,so0t,nt,ndt,timet,index,index_end):
         """
         Applies initial condition
         """
@@ -337,15 +359,19 @@ class Simulation(S2MFD.Data):
         self.cfg.uu0 = uu0t[index]
         self.cfg.so0 = so0t[index]
         self.time = timet[index]
+        # TODO パラメタ変更時に設定
+        parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s']}
         if hasattr(cfg, 'so0_time_dependent'):
-            self.cfg.so0 = cfg.so0_time_dependent(A=A_s,omega=omg_s,B=B_s,C=C_s,time=self.time)
+            self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time)
+            
+        parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']}
         if hasattr(cfg, 'uu0_time_dependent'):
-            self.cfg.uu0 = cfg.uu0_time_dependent(A=A_u,omega=omg_u,B=B_u,C=C_u,time=self.time)
+            self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time)
+            
         self.setup = S2MFD.Setup(self.cfg, grid)
         setup = self.setup
         self.n = int(nt[index])
         self.nd = int(ndt[index])
-        self.dl = 0.0
         self.SN = np.zeros_like(timet[index:index_end+1])
         self.SN[self.nd-index] = self.snumbers_energy(Bpht=self.Bph)
 
@@ -372,7 +398,6 @@ class Simulation(S2MFD.Data):
         """
         Compares the number of sunspots with the simulation results
         """
-        # TODO: 相関係数に合わせて評価してあげるときどの程度重要視するのかを確認しよう。
         import matplotlib.pyplot as plt
         sd = 0.0
         sd = np.sqrt((np.sum(Sunspot_N) - np.sum(self.SN))**2) / np.sum(Sunspot_N)
@@ -474,7 +499,6 @@ class Simulation(S2MFD.Data):
                     self.Aph = Aph_dfc
                     self.cfg.so0 = smid
                     self.setup = S2MFD.Setup(self.cfg, grid)
-                    # TODO いずれかはここを適切な形に直したい
                     self.time += 20*self.dt
                     self.nd += 1
                     self.n += 20
@@ -658,7 +682,6 @@ class Simulation(S2MFD.Data):
                     self.Aph = Aph_dfc
                     self.cfg.uu0 = umid
                     self.setup = S2MFD.Setup(self.cfg, grid)
-                    # TODO いずれかはここを適切な形に直したい
                     self.time += 20*self.dt
                     self.nd += 1
                     self.n += 20
@@ -750,7 +773,6 @@ class Simulation(S2MFD.Data):
                     self.Aph = Aph_dfc
                     self.cfg.uu0 = umid
                     self.setup = S2MFD.Setup(self.cfg, grid)
-                    # TODO いずれかはここを適切な形に直したい
                     self.time += 20*self.dt
                     self.nd += 1
                     self.n += 20
@@ -1076,7 +1098,6 @@ class Simulation(S2MFD.Data):
 
     # ========================================================================================== #
     # 二分法シミュレーションのためのデータを読み込む関数  
-    # TODO selfは書かないといけならしい
     def load_for_bisection(self,datadir):
         import os
         datadir = datadir+'/'
@@ -1182,7 +1203,7 @@ class Simulation(S2MFD.Data):
         return uu0t
     # ========================================================================================== #
 
-# TODO __all__の中身に追加した関数を加える 
+
 __all__ = [
          'initialize',
          'cfl_condition',

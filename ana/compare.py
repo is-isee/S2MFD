@@ -5,10 +5,15 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir1 = '../data_test_s0u0/'
-datadir2 = '../data/'
-n0 = 1040
-n1 = 1610
+datadir1 = '..//'
+datadir2 = '..//'
+
+datadir1 = '../bisection_results/data_sample_source/'
+datadir2 = '../bisection_results/data_sunspot_to_source/'
+# datadir1 = '../data_fourier_sample/'
+# datadir2 = '../data_fourier_result1/'
+n0 = 501
+n1 = 525
 
 data = S2MFD.Data.initial_load(datadir1)
 
@@ -124,27 +129,60 @@ uu0t2 = uu0t
 time2 = timet/data.cfg.d2s/365
 # ============================================================================== #
 # グラフの描画
-plt.plot(time1,SN1,'r',label = 'sunspots number')
-plt.plot(time2,SN2,'b',label = 'sunspots number')
-plt.xlabel('time(year)',fontsize=20)
-plt.ylabel('sunspots number',fontsize=20)
-plt.savefig("P_sunspots_number.png")
+plt.figure(figsize=(10, 6))  # グラフのサイズを調整
+plt.plot(time1, SN1, 'r--', label='Observation',linewidth=2.5)  # ラベル名を明確に
+plt.plot(time2, SN2, 'b', label='GA inference')  # ラベル名を明確に
+# 軸ラベル
+plt.xlabel('Years', fontsize=20)
+plt.ylabel('Sunspots Number', fontsize=20)
+# 軸のメモリを細かく設定
+plt.xticks(fontsize=14)  # x軸の数値サイズを調整
+plt.yticks(fontsize=14)  # y軸の数値サイズを調整
+# グリッドを追加して見やすく
+plt.grid(True, linestyle='--', alpha=0.7)
+# 凡例を表示
+plt.legend(fontsize=14, loc='upper right')  # 凡例を右上に固定
+# グラフを保存
+plt.savefig("P_sunspots_number_compare.png", dpi=300)  # 解像度を高める
 plt.clf()
 
-plt.plot(time1,uu0t1,'r',label = 'meridional flow speed')
-plt.plot(time2,uu0t2,'b',label = 'meridional flow speed')
-plt.xlabel('time(year)',fontsize=20)
-plt.ylabel('meridional flow speed',fontsize=20)
-plt.savefig("P_u0.png")
+plt.plot(time1,uu0t1,'r--',label='Observation',linewidth=2.5)
+plt.plot(time2,uu0t2,'b',label='GA inference')
+plt.xlabel('Years',fontsize=20)
+plt.ylabel(r'$u_0(\rm{cm/s})$',fontsize=20)
+# 軸のメモリを細かく設定
+plt.xticks(fontsize=14)  # x軸の数値サイズを調整
+plt.yticks(fontsize=14)  # y軸の数値サイズを調整
+# グリッドを追加して見やすく
+plt.grid(True, linestyle='--', alpha=0.7)
+# 凡例を表示
+plt.legend(fontsize=14, loc='upper right')  # 凡例を右上に固定
+# グラフを保存
+plt.savefig("P_u0_compare.png", dpi=300)
 plt.clf()
 
-plt.plot(time1,so0t1,'r',label = 'alpha effect')
-plt.plot(time2,so0t2,'b',label = 'alpha effect')
-plt.xlabel('time(year)',fontsize=20)
-plt.ylabel('s_0',fontsize=20)
-plt.savefig("P_s0.png")
+plt.plot(time1,so0t1,'r--',label='Observation',linewidth=2.5)
+plt.plot(time2,so0t2,'b',label='GA inference')
+plt.xlabel('Years',fontsize=20)
+plt.ylabel(r'$s_0(\rm{cm/s})$',fontsize=20)
+# 軸のメモリを細かく設定
+plt.xticks(fontsize=14)  # x軸の数値サイズを調整
+plt.yticks(fontsize=14)  # y軸の数値サイズを調整
+# グリッドを追加して見やすく
+plt.grid(True, linestyle='--', alpha=0.7)
+# 凡例を表示
+plt.legend(fontsize=14, loc='upper right')  # 凡例を右上に固定
+# グラフを保存
+plt.savefig("P_s0_compare.png", dpi=300)
 plt.clf()
+
 # ============================================================================== #
 cc   = np.sum((SN1-np.mean(SN1))*(SN2-np.mean(SN2)))/np.sqrt(np.sum((SN1-np.mean(SN1))**2)*np.sum((SN2-np.mean(SN2))**2))
 sd   = np.sqrt((np.sum(SN1) - np.sum(SN2))**2) / np.sum(SN1)
+so0t_dif = (so0t1/so0t2).mean()
+uu0t_dif = (uu0t1/uu0t2).mean()
+print("----------------------------------------------")
 print("相関係数＝",cc,"誤差割合＝",sd)
+print("評価関数=",0.5*cc+0.5*sd)
+print("so0の比=",so0t_dif)
+print("uu0の比=",uu0t_dif)

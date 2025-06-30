@@ -123,7 +123,8 @@ class GeneticAlgorithm:
     CrossoverType = int
     CROSSOVER_TYPE_SINGLE_POINT: CrossoverType = 1
     CROSSOVER_TYPE_UNIFORM: CrossoverType = 2
-    CROSSOVER_TYPE_PROT: CrossoverType = 3  
+    CROSSOVER_TYPE_PROT: CrossoverType = 3
+    CROSSOVER_TYPE_SBX: CrossoverType = 4  
 
     # 突然変異タイプの指定
     MutationType = int
@@ -163,6 +164,7 @@ class GeneticAlgorithm:
             交叉方式。以下のいずれかの定数値を指定する。
             - CROSSOVER_TYPE_SINGLE_POINT
             - CROSSOVER_TYPE_UNIFORM
+            - CROSSOVER_TYPE_SBX
         mutation_type : int
             突然変異方式。以下のいずれかの定数値を指定する。
             - MUTATION_TYPE_UNIFORM
@@ -416,6 +418,8 @@ class GeneticAlgorithm:
                 next_generation_chromosomes = self._exec_uniform_crossover(parents)
             elif self._crossover_type == self.CROSSOVER_TYPE_PROT:
                 next_generation_chromosomes = self._exec_prot_crossover(parents)
+            elif self._crossover_type == self.CROSSOVER_TYPE_SBX:
+                next_generation_chromosomes = self.sbx_crossover(parents)
             else:
                 raise ValueError(f"対応していない交叉方式が指定されています: {self._crossover_type}")
         

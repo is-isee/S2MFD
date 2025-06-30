@@ -313,6 +313,29 @@ class GeneticAlgorithm:
         child_1.parameters['C'], child_2.parameters['C'] = child_2.parameters['C'], child_1.parameters['C']
         print(f"prototype_crossover: child_1 {child_1.parameters}, child_2 {child_2.parameters}")
         return [child_1, child_2]
+    
+    def sbx_crossover(self, parents: List[Chromosome]) -> List[Chromosome]:
+        """
+        Simulated Binary Crossover (SBX)を実行する。
+        """
+        from copy import deepcopy
+        child_1 = deepcopy(parents[0])
+        child_2 = deepcopy(parents[1])
+        
+        eta_sbx = 2.0
+        for attr in PARAMETER_NAMES:
+            # 交叉する遺伝子（パラメタ）をランダムに決定
+            if random.random() > 0.5:
+                u_sbx = random.random()
+                if u_sbx <= 0.5:
+                    beta_sbx = (2.0 * u_sbx) ** (1.0 / (eta_sbx + 1.0))
+                else:
+                    beta_sbx = (1.0 / (2.0 * (1.0 - u_sbx))) ** (1.0 / (eta_sbx + 1.0))
+                child_1.parameters[attr] = 0.5 * ((1 + beta_sbx) * parents[0].parameters[attr] + (1 - beta_sbx) * parents[1].parameters[attr])
+                child_2.parameters[attr] = 0.5 * ((1 - beta_sbx) * parents[0].parameters[attr] + (1 + beta_sbx) * parents[1].parameters[attr])
+        print(f"sbx_crossover: child_1 {child_1.parameters}, child_2 {child_2.parameters}")
+        return [child_1, child_2]
+    
     # =================================================================== #
     # =================================================================== #
     """ def mutation methods """

@@ -5,12 +5,15 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir1 = '../data_sin_GA/data_test_s0/'
-datadir2 = '../data_defunction/data0000/'
+datadir1 = '..//'
+datadir2 = '..//'
+
+datadir1 = '../bisection_results/data_sample_source/'
+datadir2 = '../bisection_results/data_sunspot_to_source/'
 # datadir1 = '../data_fourier_sample/'
 # datadir2 = '../data_fourier_result1/'
-n0 = 1041
-n1 = 1611
+n0 = 501
+n1 = 525
 
 data = S2MFD.Data.initial_load(datadir1)
 
@@ -127,7 +130,7 @@ time2 = timet/data.cfg.d2s/365
 # ============================================================================== #
 # グラフの描画
 plt.figure(figsize=(10, 6))  # グラフのサイズを調整
-plt.plot(time1, SN1, 'r', label='Observation')  # ラベル名を明確に
+plt.plot(time1, SN1, 'r--', label='Observation',linewidth=2.5)  # ラベル名を明確に
 plt.plot(time2, SN2, 'b', label='GA inference')  # ラベル名を明確に
 # 軸ラベル
 plt.xlabel('Years', fontsize=20)
@@ -143,7 +146,7 @@ plt.legend(fontsize=14, loc='upper right')  # 凡例を右上に固定
 plt.savefig("P_sunspots_number_compare.png", dpi=300)  # 解像度を高める
 plt.clf()
 
-plt.plot(time1,uu0t1,'r',label='Observation')
+plt.plot(time1,uu0t1,'r--',label='Observation',linewidth=2.5)
 plt.plot(time2,uu0t2,'b',label='GA inference')
 plt.xlabel('Years',fontsize=20)
 plt.ylabel(r'$u_0(\rm{cm/s})$',fontsize=20)
@@ -158,7 +161,7 @@ plt.legend(fontsize=14, loc='upper right')  # 凡例を右上に固定
 plt.savefig("P_u0_compare.png", dpi=300)
 plt.clf()
 
-plt.plot(time1,so0t1,'r',label='Observation')
+plt.plot(time1,so0t1,'r--',label='Observation',linewidth=2.5)
 plt.plot(time2,so0t2,'b',label='GA inference')
 plt.xlabel('Years',fontsize=20)
 plt.ylabel(r'$s_0(\rm{cm/s})$',fontsize=20)

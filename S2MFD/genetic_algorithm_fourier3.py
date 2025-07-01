@@ -117,7 +117,7 @@ class GeneticAlgorithm:
     SelectionType = int
     SELECTION_TYPE_ROULETTE_WHEEL: SelectionType = 1
     SELECTION_TYPE_TOURNAMENT: SelectionType = 2
-    SELECTION_TYPE_VARIABLE_TOURNAMENT: SelectionType = 3
+    SELECTION_TYPE_ASP_TOURNAMENT: SelectionType = 3
     
     # 交叉タイプの指定
     CrossoverType = int
@@ -160,6 +160,7 @@ class GeneticAlgorithm:
             選択方式。以下のいずれかの定数値を指定する。
             - SELECTION_TYPE_ROULETTE_WHEEL
             - SELECTION_TYPE_TOURNAMENT
+            - SELECTION_TYPE_ASP_TOURNAMENT
         crossover_type : int
             交叉方式。以下のいずれかの定数値を指定する。
             - CROSSOVER_TYPE_SINGLE_POINT
@@ -232,18 +233,13 @@ class GeneticAlgorithm:
         return selected_chromosomes
     
     """ Variable Tournament_Selection """
-    def _exec_asp_tournament_selection(self, generation_idx: int, fitness_story: np.ndarray, diversity_story: np.ndarray) -> List[Chromosome]:
+    def _exec_asp_tournament_selection(self) -> List[Chromosome]:
         """
         多様性と適応度変化率に応じて選択圧を調節するトーナメント選択方式。
         
         Parameters
         ----------
-        generation_idx : int
-            現在の世代数。
-        fitness_story : np.ndarray
-            過去の世代の最良個体適応度の履歴。
-        diversity_story : np.ndarray
-            過去の世代の多様性の履歴。
+        self : GeneticAlgorithm
             
         Returns
         -------
@@ -251,25 +247,25 @@ class GeneticAlgorithm:
             選択された2つの個体（染色体）を格納したリスト。
         """
         # 適応度変化率
-        if generation_idx > 0:
-            fitness_delta = abs(fitness_story[generation_idx] - fitness_story[generation_idx - 1])
+        if self.generation_idx > 0:
+            fitness_delta = abs(self.fitness_story[self.generation_idx] - self.fitness_story[self.generation_idx - 1])
         else:
             fitness_delta = 0.0
-        """
+
         # 最大直近5世代の適応度変化率（差分の絶対値の平均）をとる。最初の方は2,3,4世代の平均を順に取っていく
-        if generation_idx > 0:
-            start_idx = max(0, generation_idx - 4)
-            recent_deltas = np.abs(np.diff(fitness_story[start_idx:generation_idx+1]))
+        if self.generation_idx > 0:
+            start_idx = max(0, self.generation_idx - 4)
+            recent_deltas = np.abs(np.diff(self.fitness_story[start_idx:self.generation_idx+1]))
             fitness_delta = np.mean(recent_deltas)
         else:
             fitness_delta = 0.0
-        """
+
         
         # 多様性(直近世代の値)
-        diversity = diversity_story[generation_idx]
+        diversity = self.diversity()
         
         # トーナメントサイズの決定
-        epsi_fit = 0.005 # 適応度変化が0.5%程度しか起きていない→停滞していると判断
+        epsi_fit = 0.005 # 適応度変化が0.005程度しか起きていない→停滞していると判断
         epsi_div = 2  # 平均標準偏差が2未満で多様性喪失と判断
         if fitness_delta < epsi_fit:
             if diversity < epsi_div:
@@ -485,8 +481,8 @@ class GeneticAlgorithm:
             parents: List[Chromosome] = self._exec_roulette_wheel_selection()
         elif self._selection_type == self.SELECTION_TYPE_TOURNAMENT:
             parents = self._exec_tournament_selection()
-        elif self._selection_type == self.SELECTION_TYPE_VARIABLE_TOURNAMENT:
-            parents = self._exec_variable_tournament_selection()
+        elif self._selection_type == self.SELECTION_TYPE_ASP_TOURNAMENT:
+            parents = self._exec_asp_tournament_selection()
         else:
             raise ValueError(
                 '対応していない選択方式が指定されています : %s'
@@ -611,6 +607,10 @@ class GeneticAlgorithm:
                 )
                 fitness_story[generation_idx]   = best_chromosome.get_fitness()
                 diversity_story[generation_idx] = self.diversity()
+                # ASP使用
+                self.fitness_story = fitness_story
+                self.generation_idx = generation_idx
+                
                 print("fitness:", fitness_story)
                 print("diversity:", diversity_story)
 

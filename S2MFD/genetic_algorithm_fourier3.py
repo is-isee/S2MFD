@@ -232,38 +232,68 @@ class GeneticAlgorithm:
         return selected_chromosomes
     
     """ Variable Tournament_Selection """
-    def _exec_variable_tournament_selection(self) -> List[Chromosome]:
+    def _exec_asp_tournament_selection(self, generation_idx: int, fitness_story: np.ndarray, diversity_story: np.ndarray) -> List[Chromosome]:
         """
-        可変的トーナメント選択を行い、交叉などで利用するための2つの個体
-        （染色体）を入手する。
+        多様性と適応度変化率に応じて選択圧を調節するトーナメント選択方式。
         
         Parameters
         ----------
         generation_idx : int
-            現在の世代数。選択する個体の件数を世代数に応じて変化させる。
+            現在の世代数。
+        fitness_story : np.ndarray
+            過去の世代の最良個体適応度の履歴。
+        diversity_story : np.ndarray
+            過去の世代の多様性の履歴。
             
         Returns
         -------
         selected_chromosomes : list of Chromosome
-            選択された2つの個体（染色体）を格納したリスト。トーナメント
-            用に引数で指定された件数分抽出された中から上位の2つの個体が
-            設定される。
-        
+            選択された2つの個体（染色体）を格納したリスト。
         """
-        generation_idx = len(self._population)  # 世代数を取得（仮定）
-        base_size = len(self._population) // 4  # 初期サイズ（集団の1/4）
-        max_size = len(self._population) // 2  # 最大サイズ（集団の1/2）
-        tournament_size = min(base_size + generation_idx, max_size)
-    
-        # トーナメント参加者をランダムに選択
-        participants: List[Chromosome] = choices(self._population, k=tournament_size)
-
-        # fitnessが未計算の場合に例外を防ぐ
+        # 適応度変化率
+        if generation_idx > 0:
+            fitness_delta = abs(fitness_story[generation_idx] - fitness_story[generation_idx - 1])
+        else:
+            fitness_delta = 0.0
+        """
+        # 最大直近5世代の適応度変化率（差分の絶対値の平均）をとる。最初の方は2,3,4世代の平均を順に取っていく
+        if generation_idx > 0:
+            start_idx = max(0, generation_idx - 4)
+            recent_deltas = np.abs(np.diff(fitness_story[start_idx:generation_idx+1]))
+            fitness_delta = np.mean(recent_deltas)
+        else:
+            fitness_delta = 0.0
+        """
+        
+        # 多様性(直近世代の値)
+        diversity = diversity_story[generation_idx]
+        
+        # トーナメントサイズの決定
+        epsi_fit = 0.005 # 適応度変化が0.5%程度しか起きていない→停滞していると判断
+        epsi_div = 2  # 平均標準偏差が2未満で多様性喪失と判断
+        if fitness_delta < epsi_fit:
+            if diversity < epsi_div:
+                # 適応度変化：低、多様性：低　→ 収束段階だが、局所最適化の可能性を避ける
+                # トーナメントサイズ3(選択圧：低)
+                participants_num: int = len(self._population) // 10
+                participants: List[Chromosome] = choices(self._population, k=participants_num)
+            else:
+                # 適応度変化：低、多様性：高　→ 収束段階と判断。緩やかに収束させる。
+                # トーナメントサイズ7(選択圧：中)
+                participants_num: int = len(self._population) // 4
+                participants: List[Chromosome] = choices(self._population, k=participants_num)
+        else:
+            # 適応度変化：高　→ 新しい解を探索する段階
+            # トーナメントサイズ5(選択圧：低)
+            participants_num: int = len(self._population) // 6
+            participants: List[Chromosome] = choices(self._population, k=participants_num)
+            
+        # ★ fitnessが未計算の場合に例外を防ぐ
         for participant in participants:
             if not hasattr(participant, '_fitness'):
                 raise RuntimeError("参加者のfitnessが未計算です。")
-
-        # トーナメント内で最良の2個体を選択
+            
+        # トーナメント参加者から上位2個体を選択
         selected_chromosomes: List[Chromosome] = nlargest(n=2, iterable=participants)
         return selected_chromosomes
     # =================================================================== #

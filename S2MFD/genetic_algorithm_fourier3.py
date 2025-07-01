@@ -362,7 +362,9 @@ class GeneticAlgorithm:
         """
         target: str = random.choice(PARAMETER_NAMES)
         before = getattr(chromosome, target)  # 変異前の値を取得
-        setattr(chromosome, target, getattr(chromosome, target) + random.gauss(0, 1))
+        sigma = 0.1 * abs(before)  # 標準偏差は値の10%（必要に応じて調整）
+        new_value = np.random.normal(loc=before, scale=sigma)
+        chromosome.parameters[target] = new_value 
         after = getattr(chromosome, target)  # 変異後の値を取得
         print(f"gaussian_mutation: {target} {before} -> {after}")
     # =================================================================== #

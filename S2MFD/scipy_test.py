@@ -963,7 +963,8 @@ def sbx_crossover_test(child_1,child_2):
     # 交叉結果の出力
     print(f"sbx_crossover: child_1 {child_1}, child_2 {child_2}")
     return child_1, child_2
-
+"""
+# 回す＆描画
 n_sbx = 500000
 child_1 = np.zeros(n_sbx)
 child_2 = np.zeros(n_sbx)
@@ -1015,4 +1016,44 @@ plt.grid(True, linestyle='--', alpha=0.7)
 plt.tight_layout()
 plt.savefig("test_sbx_kde.png", dpi=300)
 plt.clf()
+"""
 # ================================================================================================== #
+# Gaussian Mutation Test
+def _exec_gaussian_mutation_TEST(before):
+    """
+    ガウス分布に基づく突然変異を実行する。
+    """
+    sigma = 0.1 * abs(before)  # 標準偏差は値の10%（必要に応じて調整）
+    new_value = np.random.normal(loc=before, scale=sigma)
+    after = new_value
+    print(f"gaussian_mutation:{before} -> {after}")
+    return after
+# 回す＆描画
+n_sbx = 100000
+after_g = np.zeros(n_sbx)
+for i in range(0,n_sbx):
+    after_g[i] = _exec_gaussian_mutation_TEST(10)
+    
+import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
+import numpy as np
+
+# KDE（カーネル密度推定）で滑らかな曲線を描画
+kde = gaussian_kde(after_g)
+x_grid = np.linspace(np.min(after_g), np.max(after_g), 500)
+kde_values = kde(x_grid)
+
+plt.figure(figsize=(8, 5))
+# ヒストグラム（確率密度）も重ねて表示
+plt.hist(after_g, bins=250, density=True, alpha=0.4, color='blue', label='Histogram')
+# KDE曲線
+plt.plot(x_grid, kde_values, 'r-', linewidth=2, label='KDE')
+# plt.xlim(-1,8)
+plt.xlabel('Value', fontsize=16)
+plt.ylabel('Probability Density', fontsize=16)
+plt.title('Probability Density of Gaussian Mutation', fontsize=16)
+plt.legend(fontsize=14)
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.savefig("test_gau_kde.png", dpi=300)
+plt.clf()

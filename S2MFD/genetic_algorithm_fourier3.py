@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 # TODO: 変更箇所①
 PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s',
                    'a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']
-def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir="data/"):
+def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0):
     """
     観測データのインプット
     """
@@ -29,7 +29,6 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
             cfg = S2MFD.Cfg()
         else:
             cfg = S2MFD.Cfg(parameter_file)
-    cfg.datadir = output_dir
     sim = S2MFD.Simulation(cfg)
     n1, Bpht, Apht, uu0t, so0t, nt, ndt, timet = sim.load_for_bisection(datadir)
     Sunspot_N, Sunspot_N2 = sim.pre_snumbers_energy(Bpht)
@@ -818,6 +817,9 @@ class DefunctionProblem(Chromosome):
         """
         print(", ".join([f"{key} = {value}" for key, value in parameters.items()]))
         cfg = S2MFD.Cfg(parameter_file)
+        
+        # TODO 変更箇所④   
+        cfg.datadir = "data_gaussian/"
         sim = S2MFD.Simulation(cfg)
         sim.initialize_simulation()
         sim.cfl_condition()
@@ -827,7 +829,8 @@ class DefunctionProblem(Chromosome):
         
         cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
-        # TODO 変更箇所④      
+        
+        # TODO 変更箇所⑤      
         alpha = 1
         eva = alpha*cc - (1-alpha)*sd
         

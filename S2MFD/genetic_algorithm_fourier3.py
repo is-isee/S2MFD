@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 # TODO: 変更箇所①
 PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s',
                    'a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']
-def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0):
+def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir="data/"):
     """
     観測データのインプット
     """
@@ -29,6 +29,7 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
             cfg = S2MFD.Cfg()
         else:
             cfg = S2MFD.Cfg(parameter_file)
+    cfg.datadir = output_dir
     sim = S2MFD.Simulation(cfg)
     n1, Bpht, Apht, uu0t, so0t, nt, ndt, timet = sim.load_for_bisection(datadir)
     Sunspot_N, Sunspot_N2 = sim.pre_snumbers_energy(Bpht)
@@ -54,7 +55,7 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
         crossover_probability=0.8,
         selection_type=GeneticAlgorithm.SELECTION_TYPE_TOURNAMENT,  # 選択方式
         crossover_type=GeneticAlgorithm.CROSSOVER_TYPE_UNIFORM,  # 交叉方式
-        mutation_type=GeneticAlgorithm.MUTATION_TYPE_UNIFORM  # 突然変異方式
+        mutation_type=GeneticAlgorithm.MUTATION_TYPE_GAUSSIAN  # 突然変異方式
     )
     _ = ga.run_algorithm()
     end_time = time.time()

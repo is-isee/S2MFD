@@ -16,11 +16,12 @@ import matplotlib.pyplot as plt
 # TODO: 変更箇所①
 PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s',
                    'a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']
-def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir=None):
+def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir=None, g_num=0):
     """
     観測データのインプット
     """
     start_time = time.time()
+    parameter_file = "parameters/" + parameter_file
     if datadir is None:
         print('You need to specify the datadir')
         return
@@ -39,7 +40,7 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     defunction_initial_population: List[DefunctionProblem] = [
     DefunctionProblem.make_random_instance(
         parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N, output_dir
-    ) for _ in range(30)  # 個体数
+    ) for _ in range(g_num)  # 個体数
     ]
     
     """
@@ -53,8 +54,8 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
         mutation_probability=0.3,
         crossover_probability=0.8,
         selection_type=GeneticAlgorithm.SELECTION_TYPE_TOURNAMENT,  # 選択方式
-        crossover_type=GeneticAlgorithm.CROSSOVER_TYPE_UNIFORM,  # 交叉方式
-        mutation_type=GeneticAlgorithm.MUTATION_TYPE_GAUSSIAN  # 突然変異方式
+        crossover_type=GeneticAlgorithm.CROSSOVER_TYPE_SBX,  # 交叉方式
+        mutation_type=GeneticAlgorithm.MUTATION_TYPE_UNIFORM  # 突然変異方式
     )
     _ = ga.run_algorithm()
     end_time = time.time()
@@ -372,13 +373,9 @@ class GeneticAlgorithm:
         一様突然変異を実行する。
         """
         target: str = random.choice(PARAMETER_NAMES)
-        # before = getattr(chromosome, target)  # 変異前の値を取得
         before = chromosome.parameters[target]
         new_value = before * random.uniform(0.9, 1.1)
-        # setattr(chromosome, target, new_value)
         chromosome.parameters[target] = new_value 
-
-        # after = getattr(chromosome, target)  # 変異後の値を取得
         after = chromosome.parameters[target]
         print(f"uniform_mutation: {target} {before} -> {after}")
 
@@ -387,11 +384,11 @@ class GeneticAlgorithm:
         ガウス分布に基づく突然変異を実行する。
         """
         target: str = random.choice(PARAMETER_NAMES)
-        before = getattr(chromosome, target)  # 変異前の値を取得
+        before = chromosome.parameters[target]
         sigma = 0.1 * abs(before)  # 標準偏差は値の10%（必要に応じて調整）
         new_value = np.random.normal(loc=before, scale=sigma)
         chromosome.parameters[target] = new_value 
-        after = getattr(chromosome, target)  # 変異後の値を取得
+        after = chromosome.parameters[target] # 変異後の値を取得
         print(f"gaussian_mutation: {target} {before} -> {after}")
     # =================================================================== #
     

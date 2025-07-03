@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 # TODO: 変更箇所①
 PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s',
                    'a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']
-def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0):
+def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir=None):
     """
     観測データのインプット
     """
@@ -38,7 +38,7 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     """
     defunction_initial_population: List[DefunctionProblem] = [
     DefunctionProblem.make_random_instance(
-        parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N
+        parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N, output_dir
     ) for _ in range(30)  # 個体数
     ]
     
@@ -509,7 +509,8 @@ class GeneticAlgorithm:
                 timet=chrom.timet,
                 startpoint=chrom.startpoint,
                 endpoint=chrom.endpoint,
-                Sunspot_N=chrom.Sunspot_N
+                Sunspot_N=chrom.Sunspot_N,
+                output_dir= chrom.output_dir
             )
             args_list.append(args)
         # 並列実行
@@ -704,7 +705,8 @@ class GeneticAlgorithm:
             timet=chromosome.timet,
             startpoint=chromosome.startpoint,
             endpoint=chromosome.endpoint,
-            Sunspot_N=chromosome.Sunspot_N
+            Sunspot_N=chromosome.Sunspot_N,
+            output_dir=chromosome.output_dir
         )
 
     def _get_best_chromosome_from_population(self) -> Chromosome:
@@ -725,7 +727,7 @@ class GeneticAlgorithm:
     # =================================================================== #
 class DefunctionProblem(Chromosome):
 
-    def __init__(self, parameters: Dict[str, float], parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N) -> None:
+    def __init__(self, parameters: Dict[str, float], parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N, output_dir) -> None:
         """
         パラメータを辞書で受け取り、インスタンス変数として設定する。
         """
@@ -743,6 +745,7 @@ class DefunctionProblem(Chromosome):
         self.startpoint = startpoint
         self.endpoint = endpoint
         self.Sunspot_N = Sunspot_N
+        self.output_dir = output_dir
         
     def get_fitness(self) -> float:
         """
@@ -761,7 +764,7 @@ class DefunctionProblem(Chromosome):
         raise RuntimeError("get_fitnessは並列評価後に呼んでください")
     
     @classmethod
-    def make_random_instance(cls, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N) -> DefunctionProblem:
+    def make_random_instance(cls, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N, output_dir) -> DefunctionProblem:
         """
         ランダムな初期値を与えた DefunctionProblem クラスの
         インスタンスを生成する。
@@ -792,7 +795,7 @@ class DefunctionProblem(Chromosome):
             'b3_u': np.random.uniform(0, 300),
             'omega_u': np.random.uniform(1/(693782000*10), 1/(693782000))
         }
-        problem = DefunctionProblem(parameters, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N)
+        problem = DefunctionProblem(parameters, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N, output_dir)
         return problem
     
 
@@ -811,15 +814,14 @@ class DefunctionProblem(Chromosome):
     
     # パラメタの種類はここで編集
     @staticmethod
-    def run_defunction_simulation(parameter_file, parameters, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N):
+    def run_defunction_simulation(parameter_file, parameters, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N, output_dir):
         """
         実行するシミュレーション
         """
         print(", ".join([f"{key} = {value}" for key, value in parameters.items()]))
         cfg = S2MFD.Cfg(parameter_file)
         
-        # TODO 変更箇所④   
-        cfg.datadir = "data_gaussian/"
+        cfg.datadir = output_dir
         sim = S2MFD.Simulation(cfg)
         sim.initialize_simulation()
         sim.cfl_condition()
@@ -830,7 +832,7 @@ class DefunctionProblem(Chromosome):
         cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
         
-        # TODO 変更箇所⑤      
+        # TODO 変更箇所④     
         alpha = 1
         eva = alpha*cc - (1-alpha)*sd
         

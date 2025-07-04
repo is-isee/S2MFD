@@ -53,8 +53,8 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
         max_generations=1000,
         mutation_probability=0.3,
         crossover_probability=0.8,
-        selection_type=GeneticAlgorithm.SELECTION_TYPE_TOURNAMENT,  # 選択方式
-        crossover_type=GeneticAlgorithm.CROSSOVER_TYPE_SBX,  # 交叉方式
+        selection_type=GeneticAlgorithm.SELECTION_TYPE_ASP_TOURNAMENT,  # 選択方式
+        crossover_type=GeneticAlgorithm.CROSSOVER_TYPE_UNIFORM,  # 交叉方式
         mutation_type=GeneticAlgorithm.MUTATION_TYPE_UNIFORM  # 突然変異方式
     )
     _ = ga.run_algorithm()
@@ -247,12 +247,13 @@ class GeneticAlgorithm:
         selected_chromosomes : list of Chromosome
             選択された2つの個体（染色体）を格納したリスト。
         """
+        print("ASP_TOURNAMENT")
         # 適応度変化率
         if self.generation_idx > 0:
-            fitness_delta = abs(self.fitness_story[self.generation_idx] - self.fitness_story[self.generation_idx - 1])
+            fitness_delta = abs(self.fitness_story[self.generation_idx] - self.fitness_story[self.generation_idx - 1])/self.fitness_story[self.generation_idx - 1]
         else:
-            fitness_delta = 0.0
-
+            fitness_delta = 10
+        """
         # 最大直近5世代の適応度変化率（差分の絶対値の平均）をとる。最初の方は2,3,4世代の平均を順に取っていく
         if self.generation_idx > 0:
             start_idx = max(0, self.generation_idx - 4)
@@ -260,30 +261,33 @@ class GeneticAlgorithm:
             fitness_delta = np.mean(recent_deltas)
         else:
             fitness_delta = 0.0
-
+        """     
         
         # 多様性(直近世代の値)
         diversity = self.diversity()
         
         # トーナメントサイズの決定
-        epsi_fit = 0.005 # 適応度変化が0.005程度しか起きていない→停滞していると判断
-        epsi_div = 2  # 平均標準偏差が2未満で多様性喪失と判断
+        epsi_fit = 0.005 # 適応度変化が0.5%程度しか起きていない→停滞していると判断
+        epsi_div = 20  # 平均標準偏差が2未満で多様性喪失と判断
         if fitness_delta < epsi_fit:
             if diversity < epsi_div:
                 # 適応度変化：低、多様性：低　→ 収束段階だが、局所最適化の可能性を避ける
                 # トーナメントサイズ3(選択圧：低)
                 participants_num: int = len(self._population) // 10
                 participants: List[Chromosome] = choices(self._population, k=participants_num)
+                print("選択圧(低)",participants_num,fitness_delta,diversity)
             else:
                 # 適応度変化：低、多様性：高　→ 収束段階と判断。緩やかに収束させる。
-                # トーナメントサイズ7(選択圧：中)
+                # トーナメントサイズ7(選択圧：大)
                 participants_num: int = len(self._population) // 4
                 participants: List[Chromosome] = choices(self._population, k=participants_num)
+                print("選択圧(大)",participants_num,fitness_delta,diversity)
         else:
             # 適応度変化：高　→ 新しい解を探索する段階
-            # トーナメントサイズ5(選択圧：低)
+            # トーナメントサイズ5(選択圧：中)
             participants_num: int = len(self._population) // 6
             participants: List[Chromosome] = choices(self._population, k=participants_num)
+            print("選択圧(中)",participants_num,fitness_delta,diversity)
             
         # ★ fitnessが未計算の場合に例外を防ぐ
         for participant in participants:
@@ -553,7 +557,7 @@ class GeneticAlgorithm:
         for chromosome in self._population:
             for key in PARAMETER_NAMES:
                 parameter_values[key].append(chromosome.parameters[key])
-                print(parameter_values)
+                # print(parameter_values)
                 
         # 各パラメータの正規化を実行
         normalized_values = {}

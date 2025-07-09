@@ -572,7 +572,7 @@ class GeneticAlgorithm:
                 normalized_values[key] = [(val - min_val) / (max_val - min_val) for val in values]
 
         # 各パラメータの標準偏差を計算（標準偏差のリストを生成）
-        std_devs = [np.std(values) for values in parameter_values.values()]
+        std_devs = [np.std(values) for values in normalized_values.values()]
 
         # 標準偏差の平均を多様性スコアとして返す
         diversity_score = np.mean(std_devs)

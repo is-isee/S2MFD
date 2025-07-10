@@ -327,13 +327,13 @@ class Simulation(S2MFD.Data):
                 # print(cfg.boundary_condition_type)
                 
                 # TODO パラメタ変更時に設定
-                parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s']}
                 if hasattr(cfg, 'so0_time_dependent'):
+                    parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s']}
                     self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time)
                     self.setup = S2MFD.Setup(self.cfg, grid)
                 
-                parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']}
                 if hasattr(cfg, 'uu0_time_dependent'):
+                    parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u']}
                     self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time)
                     self.setup = S2MFD.Setup(self.cfg, grid)
                     
@@ -360,12 +360,12 @@ class Simulation(S2MFD.Data):
         self.cfg.so0 = so0t[index]
         self.time = timet[index]
         # TODO パラメタ変更時に設定
-        parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s']}
         if hasattr(cfg, 'so0_time_dependent'):
+            parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s','omega_s']}
             self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time)
             
-        parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']}
         if hasattr(cfg, 'uu0_time_dependent'):
+            parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u','omega_u']}
             self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time)
             
         self.setup = S2MFD.Setup(self.cfg, grid)

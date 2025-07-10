@@ -14,7 +14,8 @@ import time
 import matplotlib.pyplot as plt
 
 # TODO: 変更箇所①
-PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s']
+# PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s']
+PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u']
 def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir=None, g_num=0):
     """
     観測データのインプット
@@ -778,12 +779,18 @@ class DefunctionProblem(Chromosome):
         import numpy as np
         # TODO: 変更箇所③
         parameters = {
-            'a0_s': np.random.uniform(0, 50),
-            'a1_s': np.random.uniform(-15, 15),
-            'a2_s': np.random.uniform(-15, 15),
-            'b1_s': np.random.uniform(-15, 15),
-            'b2_s': np.random.uniform(-15, 15),
-            'omega_s': np.random.uniform(2*np.pi/(30*365*60*60), 2*np.pi/(10*365*60*60))
+            # 'a0_s': np.random.uniform(0, 50),
+            # 'a1_s': np.random.uniform(-15, 15),
+            # 'a2_s': np.random.uniform(-15, 15),
+            # 'b1_s': np.random.uniform(-15, 15),
+            # 'b2_s': np.random.uniform(-15, 15),
+            # 'omega_s': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100))
+            'a0_u': np.random.uniform(700, 1300),
+            'a1_u': np.random.uniform(-300, 300),
+            'a2_u': np.random.uniform(-300, 300),
+            'b1_u': np.random.uniform(-300, 300),
+            'b2_u': np.random.uniform(-300, 300),
+            'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100))
         }
         problem = DefunctionProblem(parameters, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N, output_dir)
         return problem

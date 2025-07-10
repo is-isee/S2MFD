@@ -17,7 +17,7 @@ def uu0_time_dependent(time, ett, RSUN):
     b2 = 90 *factor
     b3 = 20 *factor
     # omega = 2*np.pi/(18*365*60*60)  # 多分うまくいかない
-    omega = 2*np.pi/(18*365*60*60*1000)  # こっちを採用予定
+    omega = 2*np.pi/(18*365*60*60*100)  # こっちを採用予定
     """時間 t に応じて so0 を変化させる関数(フーリエ級数)"""
     u0t = (a0   + a1*np.cos(1.0*omega*time) + b1*np.sin(1.0*omega*time)\
                 + a2*np.cos(2.0*omega*time) + b2*np.sin(2.0*omega*time)\

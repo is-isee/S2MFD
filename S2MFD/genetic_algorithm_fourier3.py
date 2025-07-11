@@ -14,8 +14,8 @@ import time
 import matplotlib.pyplot as plt
 
 # TODO: 変更箇所①
-# PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s']
-PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u']
+PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s']
+# PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u']
 def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir=None, g_num=0):
     """
     観測データのインプット
@@ -49,13 +49,13 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     # TODO : 変更箇所②
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.98,
+        threshold=0.782,
         max_generations=1000,
         mutation_probability=0.3,
         crossover_probability=0.8,
         selection_type=GeneticAlgorithm.SELECTION_TYPE_ASP_TOURNAMENT,  # 選択方式
-        crossover_type=GeneticAlgorithm.CROSSOVER_TYPE_UNIFORM,  # 交叉方式
-        mutation_type=GeneticAlgorithm.MUTATION_TYPE_UNIFORM  # 突然変異方式
+        crossover_type=GeneticAlgorithm.CROSSOVER_TYPE_SBX,  # 交叉方式
+        mutation_type=GeneticAlgorithm.MUTATION_TYPE_GAUSSIAN  # 突然変異方式
     )
     _ = ga.run_algorithm()
     end_time = time.time()
@@ -268,7 +268,7 @@ class GeneticAlgorithm:
         
         # トーナメントサイズの決定
         epsi_fit = 0.005 # 適応度変化が0.5%程度しか起きていない→停滞していると判断
-        epsi_div = 20  # 平均標準偏差が2未満で多様性喪失と判断
+        epsi_div = 0.10  # 平均標準偏差が2未満で多様性喪失と判断
         if fitness_delta < epsi_fit:
             if diversity < epsi_div:
                 # 適応度変化：低、多様性：低　→ 収束段階だが、局所最適化の可能性を避ける
@@ -673,8 +673,8 @@ class GeneticAlgorithm:
             )
             print("\n=== 実行が中断されました ===")
             print("=== 現時点での最良個体を再計算します ===")
-            best_chromosome: Chromosome = \
-                deepcopy(self._get_best_chromosome_from_population())
+            # best_chromosome: Chromosome = \
+            #     deepcopy(self._get_best_chromosome_from_population())
             args = self._prepare_simulation_args(best_chromosome)
             result = DefunctionProblem.run_defunction_simulation(**args)
             print("再シミュレーション結果（相関係数）:", result)
@@ -779,18 +779,18 @@ class DefunctionProblem(Chromosome):
         import numpy as np
         # TODO: 変更箇所③
         parameters = {
-            # 'a0_s': np.random.uniform(0, 50),
-            # 'a1_s': np.random.uniform(-15, 15),
-            # 'a2_s': np.random.uniform(-15, 15),
-            # 'b1_s': np.random.uniform(-15, 15),
-            # 'b2_s': np.random.uniform(-15, 15),
-            # 'omega_s': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100))
-            'a0_u': np.random.uniform(700, 1300),
-            'a1_u': np.random.uniform(-300, 300),
-            'a2_u': np.random.uniform(-300, 300),
-            'b1_u': np.random.uniform(-300, 300),
-            'b2_u': np.random.uniform(-300, 300),
-            'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100))
+            'a0_s': np.random.uniform(0, 50),
+            'a1_s': np.random.uniform(-15, 15),
+            'a2_s': np.random.uniform(-15, 15),
+            'b1_s': np.random.uniform(-15, 15),
+            'b2_s': np.random.uniform(-15, 15),
+            'omega_s': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100))
+            # 'a0_u': np.random.uniform(700, 1300),
+            # 'a1_u': np.random.uniform(-300, 300),
+            # 'a2_u': np.random.uniform(-300, 300),
+            # 'b1_u': np.random.uniform(-300, 300),
+            # 'b2_u': np.random.uniform(-300, 300),
+            # 'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100))
         }
         problem = DefunctionProblem(parameters, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N, output_dir)
         return problem

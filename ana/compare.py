@@ -8,12 +8,12 @@ import S2MFD
 datadir1 = '..//'
 datadir2 = '..//'
 
-datadir1 = '../bisection_results/data_sample_source/'
-datadir2 = '../bisection_results/data_sunspot_to_source/'
+datadir1 = '../data_fourier_sample/'
+datadir2 = '../data_u0_fGA_double/'
 # datadir1 = '../data_fourier_sample/'
 # datadir2 = '../data_fourier_result1/'
-n0 = 501
-n1 = 525
+n0 = 1000
+n1 = 1401
 
 data = S2MFD.Data.initial_load(datadir1)
 

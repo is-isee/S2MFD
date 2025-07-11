@@ -22,6 +22,8 @@ from .simulation import Simulation
 from . import physics
 from . import tools
 from .genetic_algorithm_fourier3 import GA_defunction
+from .make_graph import make_graph
+
 
 __all__ = [ 'Cfg',
             'Grid',
@@ -34,7 +36,8 @@ __all__ = [ 'Cfg',
             'run_simulation',
             'bisection_simulation',
             'defunction_simulation',
-            'GA_defunction'
+            'GA_defunction',
+            'make_graph'
             ]
 
 try:

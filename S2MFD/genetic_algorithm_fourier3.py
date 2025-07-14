@@ -14,8 +14,8 @@ import time
 import matplotlib.pyplot as plt
 
 # TODO: 変更箇所①
-PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s']
-# PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u']
+# PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s']
+PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u']
 def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir=None, g_num=0):
     """
     観測データのインプット
@@ -49,11 +49,11 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     # TODO : 変更箇所②
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.782,
+        threshold=0.881,
         max_generations=1000,
         mutation_probability=0.3,
         crossover_probability=0.8,
-        selection_type=GeneticAlgorithm.SELECTION_TYPE_ASP_TOURNAMENT,  # 選択方式
+        selection_type=GeneticAlgorithm.SELECTION_TYPE_ASP_VER2_TOURNAMENT,  # 選択方式
         crossover_type=GeneticAlgorithm.CROSSOVER_TYPE_SBX,  # 交叉方式
         mutation_type=GeneticAlgorithm.MUTATION_TYPE_GAUSSIAN  # 突然変異方式
     )
@@ -119,6 +119,7 @@ class GeneticAlgorithm:
     SELECTION_TYPE_ROULETTE_WHEEL: SelectionType = 1
     SELECTION_TYPE_TOURNAMENT: SelectionType = 2
     SELECTION_TYPE_ASP_TOURNAMENT: SelectionType = 3
+    SELECTION_TYPE_ASP_VER2_TOURNAMENT: SelectionType = 4
     
     # 交叉タイプの指定
     CrossoverType = int
@@ -282,6 +283,72 @@ class GeneticAlgorithm:
                 participants_num: int = len(self._population) // 4
                 participants: List[Chromosome] = choices(self._population, k=participants_num)
                 print("選択圧(大)",participants_num,fitness_delta,diversity)
+        else:
+            # 適応度変化：高　→ 新しい解を探索する段階
+            # トーナメントサイズ5(選択圧：中)
+            participants_num: int = len(self._population) // 6
+            participants: List[Chromosome] = choices(self._population, k=participants_num)
+            print("選択圧(中)",participants_num,fitness_delta,diversity)
+            
+        # ★ fitnessが未計算の場合に例外を防ぐ
+        for participant in participants:
+            if not hasattr(participant, '_fitness'):
+                raise RuntimeError("参加者のfitnessが未計算です。")
+            
+        # トーナメント参加者から上位2個体を選択
+        selected_chromosomes: List[Chromosome] = nlargest(n=2, iterable=participants)
+        return selected_chromosomes
+    
+    def _exec_asp_tournament2_selection(self) -> List[Chromosome]:
+        """
+        多様性と適応度変化率に応じて選択圧を調節するトーナメント選択方式。
+        
+        Parameters
+        ----------
+        self : GeneticAlgorithm
+            
+        Returns
+        -------
+        selected_chromosomes : list of Chromosome
+            選択された2つの個体（染色体）を格納したリスト。
+        """
+        print("ASP_TOURNAMENT2")
+        Now_fitness = self.fitness_story[self.generation_idx]
+        # 適応度変化率
+        if self.generation_idx > 0:
+            fitness_delta = abs(self.fitness_story[self.generation_idx] - self.fitness_story[self.generation_idx - 1])/self.fitness_story[self.generation_idx - 1]
+        else:
+            fitness_delta = 10
+        """
+        # 最大直近5世代の適応度変化率（差分の絶対値の平均）をとる。最初の方は2,3,4世代の平均を順に取っていく
+        if self.generation_idx > 0:
+            start_idx = max(0, self.generation_idx - 4)
+            recent_deltas = np.abs(np.diff(self.fitness_story[start_idx:self.generation_idx+1]))
+            fitness_delta = np.mean(recent_deltas)
+        else:
+            fitness_delta = 0.0
+        """     
+        
+        # 多様性(直近世代の値)
+        diversity = self.diversity()
+        
+        # トーナメントサイズの決定
+        epsi_fit = 0.005 # 適応度変化が0.5%程度しか起きていない→停滞していると判断
+        epsi_div = 0.10  # 平均標準偏差が2未満で多様性喪失と判断
+        if fitness_delta < epsi_fit:
+            if  Now_fitness > 0.9*0.881:
+                # 適応度変化：低、多様性：高　→ 収束段階と判断。緩やかに収束させる。
+                # トーナメントサイズ7(選択圧：大)
+                participants_num: int = len(self._population) // 4
+                participants: List[Chromosome] = choices(self._population, k=participants_num)
+                print("選択圧(大)",participants_num,fitness_delta,diversity)
+
+            else:
+                # 適応度変化：低、多様性：低　→ 収束段階だが、局所最適化の可能性を避ける
+                # トーナメントサイズ3(選択圧：低)
+                participants_num: int = len(self._population) // 10
+                participants: List[Chromosome] = choices(self._population, k=participants_num)
+                print("選択圧(低)",participants_num,fitness_delta,diversity)
         else:
             # 適応度変化：高　→ 新しい解を探索する段階
             # トーナメントサイズ5(選択圧：中)
@@ -484,6 +551,8 @@ class GeneticAlgorithm:
             parents = self._exec_tournament_selection()
         elif self._selection_type == self.SELECTION_TYPE_ASP_TOURNAMENT:
             parents = self._exec_asp_tournament_selection()
+        elif self._selection_type == self.SELECTION_TYPE_ASP_VER2_TOURNAMENT:
+            parents = self._exec_asp_tournament2_selection()
         else:
             raise ValueError(
                 '対応していない選択方式が指定されています : %s'
@@ -779,18 +848,18 @@ class DefunctionProblem(Chromosome):
         import numpy as np
         # TODO: 変更箇所③
         parameters = {
-            'a0_s': np.random.uniform(0, 50),
-            'a1_s': np.random.uniform(-15, 15),
-            'a2_s': np.random.uniform(-15, 15),
-            'b1_s': np.random.uniform(-15, 15),
-            'b2_s': np.random.uniform(-15, 15),
-            'omega_s': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100))
-            # 'a0_u': np.random.uniform(700, 1300),
-            # 'a1_u': np.random.uniform(-300, 300),
-            # 'a2_u': np.random.uniform(-300, 300),
-            # 'b1_u': np.random.uniform(-300, 300),
-            # 'b2_u': np.random.uniform(-300, 300),
-            # 'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100))
+            # 'a0_s': np.random.uniform(0, 50),
+            # 'a1_s': np.random.uniform(-15, 15),
+            # 'a2_s': np.random.uniform(-15, 15),
+            # 'b1_s': np.random.uniform(-15, 15),
+            # 'b2_s': np.random.uniform(-15, 15),
+            # 'omega_s': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100))
+            'a0_u': np.random.uniform(700, 1300),
+            'a1_u': np.random.uniform(-150, 150),
+            'a2_u': np.random.uniform(-150, 150),
+            'b1_u': np.random.uniform(-150, 150),
+            'b2_u': np.random.uniform(-150, 150),
+            'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100))
         }
         problem = DefunctionProblem(parameters, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N, output_dir)
         return problem
@@ -830,7 +899,7 @@ class DefunctionProblem(Chromosome):
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
         
         # TODO 変更箇所④     
-        alpha = 0.8
+        alpha = 0.9
         eva = alpha*cc - (1-alpha)*sd
         
         return eva

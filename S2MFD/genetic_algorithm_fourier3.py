@@ -742,8 +742,6 @@ class GeneticAlgorithm:
             )
             print("\n=== 実行が中断されました ===")
             print("=== 現時点での最良個体を再計算します ===")
-            # best_chromosome: Chromosome = \
-            #     deepcopy(self._get_best_chromosome_from_population())
             args = self._prepare_simulation_args(best_chromosome)
             result = DefunctionProblem.run_defunction_simulation(**args)
             print("再シミュレーション結果（相関係数）:", result)

@@ -12,11 +12,19 @@ from concurrent.futures import ProcessPoolExecutor
 from typing import Dict
 import time
 import matplotlib.pyplot as plt
+"""
+実装項目
+=======================================
+・初期条件を与えない仕組み
+・歴代最良個体の保持
+・正解に近い解をフーリエ級数でfittingする仕組み
+・観測データインプットの仕組み
+  datadirを”OBS”とすると観測データが使われるようにした。datadirにシミュレーション生成したデータを入れると今まで通り。
+"""
 
 
 
 # TODO: 変更箇所①
-# PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s']
 PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u']
 def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir=None, g_num=0):
     """
@@ -24,17 +32,17 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     """
     start_time = time.time()
     parameter_file = "parameters/" + parameter_file
-    if datadir is None:
-        print('You need to specify the datadir')
+    if datadir == "OBS":
+        data = np.genfromtxt("obs_data/obs_data/SN_Yearly_interp.csv", delimiter=',', skip_header=1)
+        timet = data[:, 1]
+        timez = data[:, 2]
+        Sunspot_N = data[:, 3]
         return
-    if cfg is None:
-        if parameter_file is None:
-            cfg = S2MFD.Cfg()
-        else:
-            cfg = S2MFD.Cfg(parameter_file)
-    sim = S2MFD.Simulation(cfg)
-    n1, Bpht, Apht, uu0t, so0t, nt, ndt, timet = sim.load_for_bisection(datadir)
-    Sunspot_N, Sunspot_N2 = sim.pre_snumbers_energy(Bpht)
+    else:
+        cfg = S2MFD.Cfg(parameter_file)
+        sim = S2MFD.Simulation(cfg)
+        n1, Bpht, Apht, uu0t, so0t, nt, ndt, timet = sim.load_for_bisection(datadir)
+        Sunspot_N, Sunspot_N2 = sim.pre_snumbers_energy(Bpht)
     
     """
     初期世代の生成、観測データをGAにインプット

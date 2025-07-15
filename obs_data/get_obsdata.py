@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+import csv
 sys.path.append('../')
 import S2MFD
 
@@ -18,6 +19,13 @@ years_interp = np.arange(years[0], years[-1], interval)
 seconds_interp = years_interp * 365 * 24 * 60 * 60 # 年を秒に変換
 seconds_zero = seconds_interp - seconds_interp[0] # 0秒からの経過時間に変換
 sunspots_interp = np.interp(years_interp, years, sunspots) # 線形補完
+
+output_csv = 'obs_data/SN_Yearly_interp.csv'
+with open(output_csv, 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(['years_interp', 'seconds_interp', 'seconds_zero', 'sunspots_interp'])
+    for y, s, sz, sun in zip(years_interp, seconds_interp, seconds_zero, sunspots_interp):
+        writer.writerow([y, s, sz, sun])
 
 S2MFD.make_graph(years_interp, sunspots_interp, 'Sunspot Number (Interpolated)', 'Year', 'Sunspot Number', FILENAME+"_interp.png")
 S2MFD.make_graph(years, sunspots, 'Sunspot Number', 'Year', 'Sunspot Number', FILENAME+"_raw.png")

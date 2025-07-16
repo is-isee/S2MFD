@@ -22,6 +22,7 @@ from .simulation import Simulation
 from . import physics
 from . import tools
 from .genetic_algorithm_fourier3 import GA_defunction
+from .GA_for_OBS import GA_for_OBS
 from .make_graph import make_graph
 
 
@@ -37,6 +38,7 @@ __all__ = [ 'Cfg',
             'bisection_simulation',
             'defunction_simulation',
             'GA_defunction',
+            'GA_for_OBS',
             'make_graph'
             ]
 

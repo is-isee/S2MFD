@@ -15,17 +15,21 @@ import matplotlib.pyplot as plt
 """
 実装項目
 =======================================
-・初期条件を与えない仕組み
+・初期条件を与えない仕組みOK
 ・歴代最良個体の保持
 ・正解に近い解をフーリエ級数でfittingする仕組み
-・観測データインプットの仕組み
+・観測データインプットの仕組み：OK
   datadirを”OBS”とすると観測データが使われるようにした。datadirにシミュレーション生成したデータを入れると今まで通り。
+
+覚書
+=======================================
+・Bpht, Apht, uu0t, so0t, nd, ndtは与えないようにしたので、それに伴う変更が要請される。
 """
 
 
 
 # TODO: 変更箇所①
-PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u']
+PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u', 'u0_const', 's0_const']
 def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir=None, g_num=0):
     """
     観測データのインプット
@@ -49,7 +53,7 @@ def GA_defunction(cfg=None, parameter_file=None, datadir=None, startpoint=0, end
     """
     defunction_initial_population: List[DefunctionProblem] = [
     DefunctionProblem.make_random_instance(
-        parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N, output_dir
+        parameter_file, timet, startpoint, endpoint, Sunspot_N, output_dir
     ) for _ in range(g_num)  # 個体数
     ]
     
@@ -580,12 +584,6 @@ class GeneticAlgorithm:
             args = dict(
                 parameter_file=chrom.parameter_file,
                 parameters=chrom.parameters,
-                Bpht=chrom.Bpht,
-                Apht=chrom.Apht,
-                uu0t=chrom.uu0t,
-                so0t=chrom.so0t,
-                nt=chrom.nt,
-                ndt=chrom.ndt,
                 timet=chrom.timet,
                 startpoint=chrom.startpoint,
                 endpoint=chrom.endpoint,
@@ -774,12 +772,6 @@ class GeneticAlgorithm:
         return dict(
             parameter_file=chromosome.parameter_file,
             parameters=chromosome.parameters,  # 辞書でパラメータを渡す
-            Bpht=chromosome.Bpht,
-            Apht=chromosome.Apht,
-            uu0t=chromosome.uu0t,
-            so0t=chromosome.so0t,
-            nt=chromosome.nt,
-            ndt=chromosome.ndt,
             timet=chromosome.timet,
             startpoint=chromosome.startpoint,
             endpoint=chromosome.endpoint,
@@ -805,7 +797,7 @@ class GeneticAlgorithm:
     # =================================================================== #
 class DefunctionProblem(Chromosome):
 
-    def __init__(self, parameters: Dict[str, float], parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N, output_dir) -> None:
+    def __init__(self, parameters: Dict[str, float], parameter_file, timet, startpoint, endpoint, Sunspot_N, output_dir) -> None:
         """
         パラメータを辞書で受け取り、インスタンス変数として設定する。
         """
@@ -813,12 +805,6 @@ class DefunctionProblem(Chromosome):
         # ========== #
         """ 以下初期条件にのみ使用"""
         self.parameter_file = parameter_file
-        self.Bpht = Bpht
-        self.Apht = Apht
-        self.uu0t = uu0t
-        self.so0t = so0t
-        self.nt = nt
-        self.ndt = ndt
         self.timet = timet
         self.startpoint = startpoint
         self.endpoint = endpoint
@@ -842,7 +828,7 @@ class DefunctionProblem(Chromosome):
         raise RuntimeError("get_fitnessは並列評価後に呼んでください")
     
     @classmethod
-    def make_random_instance(cls, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N, output_dir) -> DefunctionProblem:
+    def make_random_instance(cls, parameter_file, timet, startpoint, endpoint, Sunspot_N, output_dir) -> DefunctionProblem:
         """
         ランダムな初期値を与えた DefunctionProblem クラスの
         インスタンスを生成する。
@@ -867,9 +853,12 @@ class DefunctionProblem(Chromosome):
             'a2_u': np.random.uniform(-150, 150),
             'b1_u': np.random.uniform(-150, 150),
             'b2_u': np.random.uniform(-150, 150),
-            'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100))
+            'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
+            'u0_const': np.random.uniform(800, 1800),
+            's0_const': np.random.uniform(30, 80)
+
         }
-        problem = DefunctionProblem(parameters, parameter_file, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N, output_dir)
+        problem = DefunctionProblem(parameters, parameter_file, timet, startpoint, endpoint, Sunspot_N, output_dir)
         return problem
     
 
@@ -888,7 +877,7 @@ class DefunctionProblem(Chromosome):
     
     # パラメタの種類はここで編集
     @staticmethod
-    def run_defunction_simulation(parameter_file, parameters, Bpht, Apht, uu0t, so0t, nt, ndt, timet, startpoint, endpoint, Sunspot_N, output_dir):
+    def run_defunction_simulation(parameter_file, parameters, timet, startpoint, endpoint, Sunspot_N, output_dir):
         """
         実行するシミュレーション
         """
@@ -899,8 +888,7 @@ class DefunctionProblem(Chromosome):
         sim = S2MFD.Simulation(cfg)
         sim.initialize_simulation()
         sim.cfl_condition()
-        # 両方パターン
-        sim.initial_for_defunction(parameters=parameters, Bpht=Bpht, Apht=Apht, uu0t=uu0t, so0t=so0t, nt=nt, ndt=ndt, timet=timet, index=startpoint, index_end=endpoint)
+        sim.initial_for_OBS(parameters=parameters,timet=timet, index=startpoint, index_end=endpoint)
         sim.defunction_main_loop(parameters=parameters, timet=timet, index_start=startpoint, index_end=endpoint)
         
         cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])

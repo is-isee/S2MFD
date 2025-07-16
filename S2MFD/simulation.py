@@ -362,14 +362,24 @@ class Simulation(S2MFD.Data):
         self.Aph = grid.sinTH/(grid.RR/cfg.RSUN)**2*cfg.RSUN/100
         self.Aph[0:setup.ibase,:] = 0.0
         self.time = 0.0
+        self.nd = index
+        self.n = 0
         count = 0
         self.cfg.uu0 = parameters['u0_const']
         self.cfg.so0 = parameters['s0_const']
+        print("[No1]","u0=",self.cfg.uu0,"time=",self.time,"nd=",self.nd)
+        self.save()
 
-        # 120年間分計算
+        # 110年間分計算
         self.cfl_condition()
-        while self.time < 120*365*24*3600:  # 120年
+        while self.time < 110*365*24*3600:  # 110年
+            self.n += 1
             self.tvd_runge_kutta()
+            self.time += self.dt
+            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+                self.nd += 1
+                print("[No2]","u0=",self.cfg.uu0,"time=",self.time,"nd=",self.nd)
+                self.save()
             if count % 2 == 0:
                 SN_even = self.snumbers_energy(Bpht=self.Bph)
                 tag = "even"
@@ -381,7 +391,7 @@ class Simulation(S2MFD.Data):
         prev_Aph = self.Aph.copy()  
         sn_history = np.zeros(3)
         self.tvd_runge_kutta()
-
+        self.time += self.dt
         if tag == "even":
             sn_history[0] = SN_odds
             sn_history[1] = SN_even
@@ -390,7 +400,7 @@ class Simulation(S2MFD.Data):
             sn_history[0] = SN_even
             sn_history[1] = SN_odds
             sn_history[2] = self.snumbers_energy(Bpht=self.Bph)
-        
+        print("110年の計算終了")
         # 極小値が出るまで計算
         while True:
            # 極小値判定
@@ -398,22 +408,28 @@ class Simulation(S2MFD.Data):
                 print("極小値を検出しました。計算を終了します。")
                 self.Bpht = prev_Bph
                 self.Apht = prev_Aph
+                print("[No4]","u0=",self.cfg.uu0,"time=",self.time,"nd=",self.nd)
+                self.save()
                 break
             prev_Bph = self.Bph.copy()
             prev_Aph = self.Aph.copy() 
             self.tvd_runge_kutta()
+            self.time += self.dt
+            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+                self.nd += 1
+                print("[No3]","u0=",self.cfg.uu0,"time=",self.time,"nd=",self.nd)
+                self.save()
             # sn_historyをシフトして新しい値を追加
             sn_history[0] = sn_history[1]
             sn_history[1] = sn_history[2]
             sn_history[2] = self.snumbers_energy(Bpht=self.Bph)
         
-        self.time = timet[index]
-        self.n = int(0)
-        self.nd = index
-        self.SN = np.zeros_like(timet[index:index_end+1])
-        self.SN[index] = self.snumbers_energy(Bpht=self.Bph)
+        # self.time = timet[index]
+        # self.n = int(0)
+        # self.nd = index
+        # self.SN = np.zeros_like(timet[index:index_end+1])
+        # self.SN[0] = self.snumbers_energy(Bpht=self.Bph)
         # 得られた極小期の初期条件（GA）をここにいれる。  
-        self.save()
 
     # ========================================================================================== #
     # 初期条件 

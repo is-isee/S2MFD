@@ -34,7 +34,7 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     """
     観測データのインプット
     """
-    start_time = time.time()
+    # start_time = time.time()
     parameter_file = "parameters/" + parameter_file
     if datadir == "OBS":
         data = np.genfromtxt("obs_data/obs_data/SN_Yearly_interp.csv", delimiter=',', skip_header=1)
@@ -72,8 +72,8 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
         mutation_type=GeneticAlgorithm.MUTATION_TYPE_GAUSSIAN  # 突然変異方式
     )
     _ = ga.run_algorithm()
-    end_time = time.time()
-    print(f"GA実行時間: {end_time - start_time:.2f}秒")
+    # end_time = time.time()
+    # print(f"GA実行時間: {end_time - start_time:.2f}秒")
     
 class Chromosome(ABC):
     """
@@ -854,8 +854,8 @@ class DefunctionProblem(Chromosome):
             'b1_u': np.random.uniform(-150, 150),
             'b2_u': np.random.uniform(-150, 150),
             'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
-            'u0_const': np.random.uniform(800, 1800),
-            's0_const': np.random.uniform(30, 80)
+            'u0_const': np.random.uniform(800, 1200),
+            's0_const': np.random.uniform(50, 60)
 
         }
         problem = DefunctionProblem(parameters, parameter_file, timet, startpoint, endpoint, Sunspot_N, output_dir)
@@ -888,7 +888,11 @@ class DefunctionProblem(Chromosome):
         sim = S2MFD.Simulation(cfg)
         sim.initialize_simulation()
         sim.cfl_condition()
+        print("初期条件生成スタート")
+        start_time = time.time()
         sim.initial_for_OBS(parameters=parameters,timet=timet, index=startpoint, index_end=endpoint)
+        end_time = time.time()
+        print(f"初期条件生成時間: {end_time - start_time:.2f}秒")
         sim.defunction_main_loop(parameters=parameters, timet=timet, index_start=startpoint, index_end=endpoint)
         
         cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])

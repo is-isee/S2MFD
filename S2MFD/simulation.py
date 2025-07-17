@@ -375,6 +375,7 @@ class Simulation(S2MFD.Data):
         self.n = 0
         self.cfg.uu0 = parameters['u0_const']
         self.cfg.so0 = parameters['s0_const']
+        self.cfl_condition()
         sn_history = np.zeros(3)
 
         # 110年間分計算開始

@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 """
 実装項目
 =======================================
-・初期条件を与えない仕組みOK
-・歴代最良個体の保持
+・初期条件を与えない仕組み：OK
+・歴代最良個体の保持：OK
 ・正解に近い解をフーリエ級数でfittingする仕組み
 ・観測データインプットの仕組み：OK
   datadirを”OBS”とすると観測データが使われるようにした。datadirにシミュレーション生成したデータを入れると今まで通り。
@@ -34,7 +34,7 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     """
     観測データのインプット
     """
-    # start_time = time.time()
+    start_time = time.time()
     parameter_file = "parameters/" + parameter_file
     if datadir == "OBS":
         data = np.genfromtxt("obs_data/obs_data/SN_Yearly_interp.csv", delimiter=',', skip_header=1)
@@ -72,8 +72,8 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
         mutation_type=GeneticAlgorithm.MUTATION_TYPE_GAUSSIAN  # 突然変異方式
     )
     _ = ga.run_algorithm()
-    # end_time = time.time()
-    # print(f"GA実行時間: {end_time - start_time:.2f}秒")
+    end_time = time.time()
+    print(f"GA実行時間: {end_time - start_time:.2f}秒")
     
 class Chromosome(ABC):
     """
@@ -485,19 +485,21 @@ class GeneticAlgorithm:
         """
         new_population: List[Chromosome] = []
 
-        # 元の個体群の件数が奇数件数の場合を加味して件数の比較は等値ではなく
-        # 小なりの条件で判定する。
+        # 新世代個体群の生成
         while len(new_population) < len(self._population):
             parents: List[Chromosome] = self._get_parents_by_selection_type()
             next_generation_chromosomes: List[Chromosome] = \
                 self._get_next_generation_chromosomes(parents=parents)
             new_population.extend(next_generation_chromosomes)
 
-        # 2件ずつ次世代のリストを増やしていく都合、元のリストよりも件数が
-        # 多い場合は1件リストから取り除いてリストの件数を元のリストと一致させる。
+        # 現世代の最良個体（エリート）を取得
+        new_population[3] = deepcopy(self.best_chromosome)
+
+        # 個体数調整（新世代が多い場合は削除）
         if len(new_population) > len(self._population):
             del new_population[0]
-
+        
+        # 個体群の置換
         self._population = new_population
 
     def _get_next_generation_chromosomes(
@@ -854,8 +856,8 @@ class DefunctionProblem(Chromosome):
             'b1_u': np.random.uniform(-150, 150),
             'b2_u': np.random.uniform(-150, 150),
             'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
-            'u0_const': np.random.uniform(800, 1200),
-            's0_const': np.random.uniform(50, 60)
+            'u0_const': np.random.uniform(550, 1250),
+            's0_const': np.random.uniform(40, 65)
 
         }
         problem = DefunctionProblem(parameters, parameter_file, timet, startpoint, endpoint, Sunspot_N, output_dir)
@@ -889,10 +891,8 @@ class DefunctionProblem(Chromosome):
         sim.initialize_simulation()
         sim.cfl_condition()
         print("初期条件生成スタート")
-        start_time = time.time()
         sim.initial_for_OBS(parameters=parameters,timet=timet, index=startpoint, index_end=endpoint)
-        end_time = time.time()
-        print(f"初期条件生成時間: {end_time - start_time:.2f}秒")
+        print("初期条件生成完了")
         sim.defunction_main_loop(parameters=parameters, timet=timet, index_start=startpoint, index_end=endpoint)
         
         cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])

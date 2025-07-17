@@ -248,8 +248,6 @@ class Simulation(S2MFD.Data):
     """
     # ========================================================================================== #
     # main loop
-    # def defunction_main_loop(self,A_sample,omg_sample,B_sample,C_sample,timet,index_start,index_end):
-    # def defunction_main_loop(self,A_s,omg_s,B_s,C_s,A_u,omg_u,B_u,C_u,timet,index_start,index_end):
     # TODO パラメタ変更時に設定
     parameters = {
         'a0_s': 0.0,
@@ -359,8 +357,6 @@ class Simulation(S2MFD.Data):
                     かったらそこを極小値とする。
 
         """ 
-        import os
-
         cfg = self.cfg
         grid = self.grid
         setup = self.setup
@@ -435,7 +431,7 @@ class Simulation(S2MFD.Data):
             sn_history[1] = sn_history[2]
             sn_history[2] = self.snumbers_energy(Bpht=self.Bph)
     # ========================================================================================== #
-    
+
     # ========================================================================================== #
     def initial_for_OBS_prot(self,parameters: Dict[str, float],timet,index,index_end):
         """

@@ -346,7 +346,98 @@ class Simulation(S2MFD.Data):
 
             self.tvd_runge_kutta()
     # ========================================================================================== #
+    # 初期条件生成
     def initial_for_OBS(self,parameters: Dict[str, float],timet,index,index_end):
+        """
+        Applies initial condition
+        十分なリードタイムを設ける。
+        -----------------------------------------
+        「内容」
+        1.110年分の計算を行う（「真の初期条件」はJouve+2008のものを採用） 
+        2.極小期が訪れるまで計算を継続する。
+            判定方法：時間的に連続した三点の黒点数を記録、その三点のうち二番目の点が他の点より小さ
+                    かったらそこを極小値とする。
+
+        """ 
+        import os
+
+        cfg = self.cfg
+        grid = self.grid
+        setup = self.setup
+        dir_origin = self.cfg.datadir
+        self.cfg.datadir = self.cfg.datadir + "Lead_data/"
+        self.initialize_simulation()
+
+        # Lead Timeの初期条件
+        self.Aph = np.zeros((grid.ixg, grid.jxg))
+        self.Bph = np.zeros((grid.ixg, grid.jxg))
+        self.Aph = grid.sinTH/(grid.RR/cfg.RSUN)**2*cfg.RSUN/100
+        self.Aph[0:setup.ibase,:] = 0.0
+        self.time = 0.0
+        self.nd = 0
+        self.n = 0
+        self.cfg.uu0 = parameters['u0_const']
+        self.cfg.so0 = parameters['s0_const']
+        sn_history = np.zeros(3)
+
+        # 110年間分計算開始
+        for i in range(3):
+            self.tvd_runge_kutta()
+            self.time += self.dt
+            sn_history[i] = self.snumbers_energy(Bpht=self.Bph)
+            print(i)
+            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+                self.save()
+                self.nd += 1
+                print("u0=",self.cfg.uu0,"time=",self.time,"nd=",self.nd)
+                
+        while self.time < 110*365*24*3600:  # 110年
+            prev_Bph = self.Bph.copy()
+            prev_Aph = self.Aph.copy() 
+            self.tvd_runge_kutta()
+            self.time += self.dt
+            sn_history[0] = sn_history[1]
+            sn_history[1] = sn_history[2]
+            sn_history[2] = self.snumbers_energy(Bpht=self.Bph)
+            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+                self.save()
+                self.nd += 1
+                print("u0=",self.cfg.uu0,"time=",self.time,"nd=",self.nd)
+        print(self.time/(365*24*3600),"110年の計算終了")
+
+        # 極小値が出るまで計算
+        while True:
+           # 極小値判定
+            if (sn_history[1] < sn_history[0]) and (sn_history[1] < sn_history[2]):
+                print("極小値を検出しました。計算を終了します。")
+                # ここで初期条件として保存するものを整理
+                self.Bpht = prev_Bph
+                self.Apht = prev_Aph
+                self.n    = int(0)
+                self.nd   = index
+                self.time = timet[index]
+                self.SN = np.zeros_like(timet[index:index_end+1])
+                self.SN[0] = self.snumbers_energy(Bpht=self.Bph)
+                self.cfg.datadir = dir_origin    
+                print("u0=",self.cfg.uu0,"time=",self.time,"nd=",self.nd)
+                self.save()
+                break
+            prev_Bph = self.Bph.copy()
+            prev_Aph = self.Aph.copy() 
+            self.tvd_runge_kutta()
+            self.time += self.dt
+            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+                self.save()
+                self.nd += 1
+                print("u0=",self.cfg.uu0,"time=",self.time,"nd=",self.nd)
+            # sn_historyをシフトして新しい値を追加
+            sn_history[0] = sn_history[1]
+            sn_history[1] = sn_history[2]
+            sn_history[2] = self.snumbers_energy(Bpht=self.Bph)
+    # ========================================================================================== #
+    
+    # ========================================================================================== #
+    def initial_for_OBS_prot(self,parameters: Dict[str, float],timet,index,index_end):
         """
         Applies initial condition
         十分なリードタイムを設ける。→一旦110年=1000タイムステップ
@@ -423,14 +514,6 @@ class Simulation(S2MFD.Data):
             sn_history[0] = sn_history[1]
             sn_history[1] = sn_history[2]
             sn_history[2] = self.snumbers_energy(Bpht=self.Bph)
-        
-        # self.time = timet[index]
-        # self.n = int(0)
-        # self.nd = index
-        # self.SN = np.zeros_like(timet[index:index_end+1])
-        # self.SN[0] = self.snumbers_energy(Bpht=self.Bph)
-        # 得られた極小期の初期条件（GA）をここにいれる。  
-
     # ========================================================================================== #
     # 初期条件 
     def initial_for_defunction(self,parameters: Dict[str, float],Bpht,Apht,uu0t,so0t,nt,ndt,timet,index,index_end):

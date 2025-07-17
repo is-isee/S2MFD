@@ -327,6 +327,7 @@ class Simulation(S2MFD.Data):
                 # print(cfg.boundary_condition_type)
                 
                 # TODO パラメタ変更時に設定
+
                 if hasattr(cfg, 'so0_time_dependent'):
                     parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s']}
                     self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time)
@@ -381,11 +382,9 @@ class Simulation(S2MFD.Data):
             self.tvd_runge_kutta()
             self.time += self.dt
             sn_history[i] = self.snumbers_energy(Bpht=self.Bph)
-            print(i)
             if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
                 self.save()
                 self.nd += 1
-                print("u0=",self.cfg.uu0,"time=",self.time,"nd=",self.nd)
                 
         while self.time < 110*365*24*3600:  # 110年
             prev_Bph = self.Bph.copy()
@@ -398,8 +397,7 @@ class Simulation(S2MFD.Data):
             if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
                 self.save()
                 self.nd += 1
-                print("u0=",self.cfg.uu0,"time=",self.time,"nd=",self.nd)
-        print(self.time/(365*24*3600),"110年の計算終了")
+        print(f"{self.time/(365*24*3600)} [year]; 110年の計算終了")
 
         # 極小値が出るまで計算
         while True:
@@ -415,7 +413,7 @@ class Simulation(S2MFD.Data):
                 self.SN = np.zeros_like(timet[index:index_end+1])
                 self.SN[0] = self.snumbers_energy(Bpht=self.Bph)
                 self.cfg.datadir = dir_origin    
-                print("u0=",self.cfg.uu0,"time=",self.time,"nd=",self.nd)
+                print(f"{self.time/(86400*365)} [year]; u0={self.cfg.uu0}; s0={self.cfg.so0}")
                 self.save()
                 break
             prev_Bph = self.Bph.copy()
@@ -425,7 +423,6 @@ class Simulation(S2MFD.Data):
             if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
                 self.save()
                 self.nd += 1
-                print("u0=",self.cfg.uu0,"time=",self.time,"nd=",self.nd)
             # sn_historyをシフトして新しい値を追加
             sn_history[0] = sn_history[1]
             sn_history[1] = sn_history[2]

@@ -67,7 +67,7 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
         max_generations=1000,
         mutation_probability=0.3,
         crossover_probability=0.8,
-        selection_type=GeneticAlgorithm.SELECTION_TYPE_ASP_TOURNAMENT,  # 選択方式
+        selection_type=GeneticAlgorithm.SELECTION_TYPE_TOURNAMENT,  # 選択方式
         crossover_type=GeneticAlgorithm.CROSSOVER_TYPE_SBX,  # 交叉方式
         mutation_type=GeneticAlgorithm.MUTATION_TYPE_GAUSSIAN  # 突然変異方式
     )
@@ -889,7 +889,6 @@ class DefunctionProblem(Chromosome):
         cfg.datadir = output_dir
         sim = S2MFD.Simulation(cfg)
         sim.initialize_simulation()
-        sim.cfl_condition()
         print("初期条件生成スタート")
         sim.initial_for_OBS(parameters=parameters,timet=timet, index=startpoint, index_end=endpoint)
         print("初期条件生成完了")

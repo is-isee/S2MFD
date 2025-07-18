@@ -339,7 +339,7 @@ class Simulation(S2MFD.Data):
                     self.setup = S2MFD.Setup(self.cfg, grid)
                     
                 self.cfl_condition()
-                # print("dt=",self.dt)
+                self.setup = S2MFD.Setup(self.cfg, grid)
                 self.SN[self.nd-(index_start)] = self.snumbers_energy(Bpht=self.Bph)
                 self.save()
 
@@ -366,15 +366,18 @@ class Simulation(S2MFD.Data):
         self.initialize_simulation()
 
         # Lead Timeの初期条件
-        self.Aph = np.zeros((grid.ixg, grid.jxg))
-        self.Bph = np.zeros((grid.ixg, grid.jxg))
-        self.Aph = grid.sinTH/(grid.RR/cfg.RSUN)**2*cfg.RSUN/100
-        self.Aph[0:setup.ibase,:] = 0.0
+        # self.Aph = np.zeros((grid.ixg, grid.jxg))
+        # self.Bph = np.zeros((grid.ixg, grid.jxg))
+        # self.Aph = grid.sinTH/(grid.RR/cfg.RSUN)**2*cfg.RSUN/100
+        # self.Aph[0:setup.ibase,:] = 0.0
+        self.Bph = np.load("Jouve_2008/Bpht_saved.npy")
+        self.Aph = np.load("Jouve_2008/Apht_saved.npy")
         self.time = 0.0
         self.nd = 0
         self.n = 0
         self.cfg.uu0 = parameters['u0_const']
         self.cfg.so0 = parameters['s0_const']
+        self.setup = S2MFD.Setup(self.cfg, grid) # u0,s0のプロファイル更新
         self.cfl_condition()
         sn_history = np.zeros(3)
 

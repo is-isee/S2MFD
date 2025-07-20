@@ -331,15 +331,13 @@ class Simulation(S2MFD.Data):
                 if hasattr(cfg, 'so0_time_dependent'):
                     parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s']}
                     self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time)
-                    self.setup = S2MFD.Setup(self.cfg, grid)
                 
                 if hasattr(cfg, 'uu0_time_dependent'):
                     parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u']}
                     self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time)
-                    self.setup = S2MFD.Setup(self.cfg, grid)
                     
-                self.cfl_condition()
                 self.setup = S2MFD.Setup(self.cfg, grid)
+                self.cfl_condition()
                 self.SN[self.nd-(index_start)] = self.snumbers_energy(Bpht=self.Bph)
                 self.save()
 
@@ -360,24 +358,15 @@ class Simulation(S2MFD.Data):
         """ 
         cfg = self.cfg
         grid = self.grid
-        setup = self.setup
-        dir_origin = self.cfg.datadir
-        self.cfg.datadir = self.cfg.datadir + "Lead_data/"
-        self.initialize_simulation()
 
         # Lead Timeの初期条件
-        # self.Aph = np.zeros((grid.ixg, grid.jxg))
-        # self.Bph = np.zeros((grid.ixg, grid.jxg))
-        # self.Aph = grid.sinTH/(grid.RR/cfg.RSUN)**2*cfg.RSUN/100
-        # self.Aph[0:setup.ibase,:] = 0.0
         self.Bph = np.load("Jouve_2008/Bpht_saved.npy")
         self.Aph = np.load("Jouve_2008/Apht_saved.npy")
-        self.time = 0.0
-        self.nd = 0
-        self.n = 0
         self.cfg.uu0 = parameters['u0_const']
         self.cfg.so0 = parameters['s0_const']
+        self.time = 0.0
         self.setup = S2MFD.Setup(self.cfg, grid) # u0,s0のプロファイル更新
+        
         self.cfl_condition()
         sn_history = np.zeros(3)
 
@@ -386,11 +375,11 @@ class Simulation(S2MFD.Data):
             self.tvd_runge_kutta()
             self.time += self.dt
             sn_history[i] = self.snumbers_energy(Bpht=self.Bph)
-            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
-                self.save()
-                self.nd += 1
+            # if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+            #     self.save()
+            #     self.nd += 1
                 
-        while self.time < 110*365*24*3600:  # 110年
+        while self.time < 80*365*24*3600:  # 110年
             prev_Bph = self.Bph.copy()
             prev_Aph = self.Aph.copy() 
             self.tvd_runge_kutta()
@@ -398,10 +387,10 @@ class Simulation(S2MFD.Data):
             sn_history[0] = sn_history[1]
             sn_history[1] = sn_history[2]
             sn_history[2] = self.snumbers_energy(Bpht=self.Bph)
-            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
-                self.save()
-                self.nd += 1
-        print(f"{self.time/(365*24*3600)} [year]; 110年の計算終了")
+            # if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+            #     self.save()
+            #     self.nd += 1
+        print(f"{self.time/(365*24*3600)} [year]; 80年の計算終了")
 
         # 極小値が出るまで計算
         while True:
@@ -416,7 +405,8 @@ class Simulation(S2MFD.Data):
                 self.time = timet[index]
                 self.SN = np.zeros_like(timet[index:index_end+1])
                 self.SN[0] = self.snumbers_energy(Bpht=self.Bph)
-                self.cfg.datadir = dir_origin    
+                # self.cfg.datadir = "T_"+dir_origin
+                # self.initialize_simulation()
                 print(f"{self.time/(86400*365)} [year]; u0={self.cfg.uu0}; s0={self.cfg.so0}")
                 self.save()
                 break
@@ -424,9 +414,9 @@ class Simulation(S2MFD.Data):
             prev_Aph = self.Aph.copy() 
             self.tvd_runge_kutta()
             self.time += self.dt
-            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
-                self.save()
-                self.nd += 1
+            # if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+            #     self.save()
+            #     self.nd += 1
             # sn_historyをシフトして新しい値を追加
             sn_history[0] = sn_history[1]
             sn_history[1] = sn_history[2]
@@ -1297,9 +1287,8 @@ class Simulation(S2MFD.Data):
         Apht = np.zeros((grid.ixg,grid.jxg,n1-n0))
         so0t = np.zeros(n1-n0)
         uu0t = np.zeros(n1-n0)
-
+        print(f"{n0}から{n1}までのデータを読み込み開始")
         for n  in range(n0,n1):
-            print(n)
             data.data_load(n)
             Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
             d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')

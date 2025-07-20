@@ -12,6 +12,7 @@ from concurrent.futures import ProcessPoolExecutor
 from typing import Dict
 import time
 import matplotlib.pyplot as plt
+import os
 """
 実装項目
 =======================================
@@ -29,7 +30,8 @@ import matplotlib.pyplot as plt
 
 
 # TODO: 変更箇所①
-PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u', 'u0_const', 's0_const']
+# PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u', 'u0_const', 's0_const']
+PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s', 'u0_const', 's0_const']
 def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir=None, g_num=0):
     """
     観測データのインプット
@@ -63,7 +65,7 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     # TODO : 変更箇所②
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.881,
+        threshold=0.683,
         max_generations=1000,
         mutation_probability=0.3,
         crossover_probability=0.8,
@@ -493,7 +495,9 @@ class GeneticAlgorithm:
             new_population.extend(next_generation_chromosomes)
 
         # 現世代の最良個体（エリート）を取得
+        # TODO エラー出るならここ
         new_population[3] = deepcopy(self.best_chromosome)
+        print(self.best_chromosome)
 
         # 個体数調整（新世代が多い場合は削除）
         if len(new_population) > len(self._population):
@@ -679,7 +683,6 @@ class GeneticAlgorithm:
                 deepcopy(self._get_best_chromosome_from_population())
             fitness_story   = np.zeros(self._max_generations, dtype=float)
             diversity_story = np.zeros(self._max_generations, dtype=float)
-            
             for generation_idx in range(self._max_generations):
                 print(
                     datetime.now(),
@@ -691,6 +694,7 @@ class GeneticAlgorithm:
                 # ASP使用
                 self.fitness_story = fitness_story
                 self.generation_idx = generation_idx
+                self.best_chromosome = best_chromosome
                 
                 print("fitness:", fitness_story)
                 print("diversity:", diversity_story)
@@ -844,19 +848,19 @@ class DefunctionProblem(Chromosome):
         import numpy as np
         # TODO: 変更箇所③
         parameters = {
-            # 'a0_s': np.random.uniform(0, 50),
-            # 'a1_s': np.random.uniform(-15, 15),
-            # 'a2_s': np.random.uniform(-15, 15),
-            # 'b1_s': np.random.uniform(-15, 15),
-            # 'b2_s': np.random.uniform(-15, 15),
-            # 'omega_s': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100))
-            'a0_u': np.random.uniform(700, 1300),
-            'a1_u': np.random.uniform(-150, 150),
-            'a2_u': np.random.uniform(-150, 150),
-            'b1_u': np.random.uniform(-150, 150),
-            'b2_u': np.random.uniform(-150, 150),
-            'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
-            'u0_const': np.random.uniform(550, 1250),
+            'a0_s': np.random.uniform(0, 50),
+            'a1_s': np.random.uniform(-15, 15),
+            'a2_s': np.random.uniform(-15, 15),
+            'b1_s': np.random.uniform(-15, 15),
+            'b2_s': np.random.uniform(-15, 15),
+            'omega_s': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
+            # 'a0_u': np.random.uniform(700, 1300),
+            # 'a1_u': np.random.uniform(-150, 150),
+            # 'a2_u': np.random.uniform(-150, 150),
+            # 'b1_u': np.random.uniform(-150, 150),
+            # 'b2_u': np.random.uniform(-150, 150),
+            # 'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
+            'u0_const': np.random.uniform(950, 1250),
             's0_const': np.random.uniform(40, 65)
 
         }
@@ -889,16 +893,15 @@ class DefunctionProblem(Chromosome):
         cfg.datadir = output_dir
         sim = S2MFD.Simulation(cfg)
         sim.initialize_simulation()
-        print("初期条件生成スタート")
+        sim.cfl_condition()
         sim.initial_for_OBS(parameters=parameters,timet=timet, index=startpoint, index_end=endpoint)
-        print("初期条件生成完了")
         sim.defunction_main_loop(parameters=parameters, timet=timet, index_start=startpoint, index_end=endpoint)
         
         cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
         
         # TODO 変更箇所④     
-        alpha = 0.9
+        alpha = 0.7
         eva = alpha*cc - (1-alpha)*sd
         
         return eva

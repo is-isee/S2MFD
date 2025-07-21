@@ -8,10 +8,8 @@ import S2MFD
 datadir1 = '..//'
 datadir2 = '..//'
 
-datadir1 = '../data_fourier_sample/'
-datadir2 = '../data_u0_fGA_double/'
-# datadir1 = '../data_fourier_sample/'
-# datadir2 = '../data_fourier_result1/'
+datadir1 = '..//'
+datadir2 = '..//'
 n0 = 1000
 n1 = 1401
 

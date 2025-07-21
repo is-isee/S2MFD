@@ -69,7 +69,7 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
         max_generations=1000,
         mutation_probability=0.3,
         crossover_probability=0.8,
-        selection_type=GeneticAlgorithm.SELECTION_TYPE_TOURNAMENT,  # 選択方式
+        selection_type=GeneticAlgorithm.SELECTION_TYPE_ASP_TOURNAMENT,  # 選択方式
         crossover_type=GeneticAlgorithm.CROSSOVER_TYPE_SBX,  # 交叉方式
         mutation_type=GeneticAlgorithm.MUTATION_TYPE_GAUSSIAN  # 突然変異方式
     )
@@ -495,7 +495,6 @@ class GeneticAlgorithm:
             new_population.extend(next_generation_chromosomes)
 
         # 現世代の最良個体（エリート）を取得
-        # TODO エラー出るならここ
         new_population[3] = deepcopy(self.best_chromosome)
         print(self.best_chromosome)
 
@@ -678,6 +677,12 @@ class GeneticAlgorithm:
         """
         try:
             # 0世代の生成
+            chrom = self._population[0]
+            cfg = S2MFD.Cfg(chrom.parameter_file)
+            cfg.datadir = chrom.output_dir
+            sim = S2MFD.Simulation(cfg)
+            sim.initialize_simulation()
+            
             self._evaluate_population_parallel()
             best_chromosome: Chromosome = \
                 deepcopy(self._get_best_chromosome_from_population())

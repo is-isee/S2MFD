@@ -1028,6 +1028,7 @@ def _exec_gaussian_mutation_TEST(before):
     after = new_value
     print(f"gaussian_mutation:{before} -> {after}")
     return after
+"""
 # 回す＆描画
 n_sbx = 100000
 after_g = np.zeros(n_sbx)
@@ -1056,4 +1057,52 @@ plt.legend(fontsize=14)
 plt.grid(True, linestyle='--', alpha=0.7)
 plt.tight_layout()
 plt.savefig("test_gau_kde.png", dpi=300)
+plt.clf()
+"""
+#=======================================================================#
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+
+# ---- 1. サンプルデータ作成（実データがある場合はここを読み替えてください） ----
+# 時間軸（例: 40日間隔で10年分 = 3650日 ÷ 40 ≒ 91点）
+t = np.arange(0, 3650, 40)
+
+# 本来のパラメタ（テスト用）
+true_a0 = 900
+true_a1 = 200
+true_a2 = 100
+omega = 2 * np.pi / 400  # 約400日周期と仮定
+
+# 真のデータ + ノイズ（観測データの想定）
+y = true_a0 + true_a1 * np.sin(omega * t) + true_a2 * np.sin(2 * omega * t)
+y += np.random.normal(0, 30, size=t.shape)  # ノイズを追加
+
+# ---- 2. フィッティング関数を定義 ----
+def fit_func(t, a0, a1, a2, omega):
+    return a0 + a1 * np.sin(omega * t) + a2 * np.sin(2 * omega * t)
+
+# ---- 3. フィッティング ----
+# 初期推定値: a0=1000, a1=100, a2=100, omega=2π/400
+initial_guess = [1000, 100, 100, 2 * np.pi / 400]
+
+params, covariance = curve_fit(fit_func, t, y, p0=initial_guess)
+fitted_a0, fitted_a1, fitted_a2, fitted_omega = params
+
+print(f"推定されたパラメタ:")
+print(f"a0 = {fitted_a0:.2f}, a1 = {fitted_a1:.2f}, a2 = {fitted_a2:.2f}, omega = {fitted_omega:.6f}")
+
+# ---- 4. 可視化 ----
+t_dense = np.linspace(0, 3650, 1000)
+y_fit = fit_func(t_dense, *params)
+
+plt.figure(figsize=(10, 5))
+plt.scatter(t, y, label="obs data", color='gray')
+plt.plot(t_dense, y_fit, label="fit data", color='blue')
+plt.xlabel("days")
+plt.ylabel("score")
+plt.legend()
+plt.grid(True)
+plt.title("The fitting of f(t) = a₀ + a₁ sin(ωt) + a₂ sin(2ωt)")
+plt.savefig("fitting_result.png", dpi=300)
 plt.clf()

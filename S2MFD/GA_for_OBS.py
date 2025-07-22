@@ -710,6 +710,7 @@ class GeneticAlgorithm:
                     print("=== 閾値到達個体で再シミュレーション ===")
                     args = self._prepare_simulation_args(best_chromosome)
                     result = DefunctionProblem.run_defunction_simulation(**args)
+                    result = DefunctionProblem.run_last_simulation(**args)
                     print("再シミュレーション結果（相関係数）:", result)
                     
                     self.draw_population(
@@ -861,7 +862,7 @@ class DefunctionProblem(Chromosome):
             # 'b1_s': np.random.uniform(-15, 15),
             # 'b2_s': np.random.uniform(-15, 15),
             # 'omega_s': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
-            'a0_u': np.random.uniform(600, 1300),
+            'a0_u': np.random.uniform(800, 1300),
             'a1_u': np.random.uniform(-150, 150),
             'a2_u': np.random.uniform(-150, 150),
             # 'b1_u': np.random.uniform(-150, 150),
@@ -887,7 +888,6 @@ class DefunctionProblem(Chromosome):
         fitness = self.get_fitness()
         return f'{param_str}, fitness = {fitness}'
     
-    # パラメタの種類はここで編集
     @staticmethod
     def run_defunction_simulation(parameter_file, parameters, timet, startpoint, endpoint, Sunspot_N, output_dir):
         """
@@ -907,6 +907,29 @@ class DefunctionProblem(Chromosome):
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
         
         # TODO 変更箇所④     
+        alpha = 0.9
+        eva = alpha*cc - (1-alpha)*sd
+        
+        return eva
+    @staticmethod
+    def run_last_simulation(parameter_file, parameters, timet, startpoint, endpoint, Sunspot_N, output_dir):
+        """
+        実行するシミュレーション
+        """
+        print(", ".join([f"{key} = {value}" for key, value in parameters.items()]))
+        cfg = S2MFD.Cfg(parameter_file)
+        
+        cfg.datadir = output_dir
+        sim = S2MFD.Simulation(cfg)
+        sim.initialize_simulation()
+        sim.cfl_condition()
+        sim.initial_for_LAST(parameters=parameters,timet=timet, index_start=startpoint, index_end=endpoint)
+        sim.defunction_main_loop(parameters=parameters, timet=timet, index_start=startpoint, index_end=endpoint)
+        
+        cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])
+        sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
+        
+        # TODO 変更箇所⑤     
         alpha = 0.9
         eva = alpha*cc - (1-alpha)*sd
         

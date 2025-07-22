@@ -861,11 +861,11 @@ class DefunctionProblem(Chromosome):
             # 'b1_s': np.random.uniform(-15, 15),
             # 'b2_s': np.random.uniform(-15, 15),
             # 'omega_s': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
-            'a0_u': np.random.uniform(700, 1300),
+            'a0_u': np.random.uniform(600, 1300),
             'a1_u': np.random.uniform(-150, 150),
             'a2_u': np.random.uniform(-150, 150),
-            'b1_u': np.random.uniform(-150, 150),
-            'b2_u': np.random.uniform(-150, 150),
+            # 'b1_u': np.random.uniform(-150, 150),
+            # 'b2_u': np.random.uniform(-150, 150),
             'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
             'a0_s': np.random.uniform(40, 65)
 
@@ -900,7 +900,7 @@ class DefunctionProblem(Chromosome):
         sim = S2MFD.Simulation(cfg)
         sim.initialize_simulation()
         sim.cfl_condition()
-        sim.initial_for_OBS(parameters=parameters,timet=timet, index=startpoint, index_end=endpoint)
+        sim.initial_for_OBS(parameters=parameters,timet=timet, index_start=startpoint, index_end=endpoint)
         sim.defunction_main_loop(parameters=parameters, timet=timet, index_start=startpoint, index_end=endpoint)
         
         cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])

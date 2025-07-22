@@ -428,7 +428,7 @@ class Simulation(S2MFD.Data):
     # ========================================================================================== #
 
     # ========================================================================================== #
-    def initial_for_OBS_prot(self,parameters: Dict[str, float],timet,index,index_end):
+    def initial_for_OBS_prot(self,parameters: Dict[str, float],timet,index_start,index_end):
         """
         Applies initial condition
         十分なリードタイムを設ける。→一旦110年=1000タイムステップ

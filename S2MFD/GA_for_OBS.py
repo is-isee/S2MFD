@@ -32,8 +32,8 @@ import os
 # TODO: 変更箇所①
 # PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u', 'u0_const', 's0_const']
 # PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s', 'u0_const', 's0_const']
-PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'omega_u', 'a0_s']
-# PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'omega_s', 'a0_u']
+# PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'omega_u', 'a0_s']
+PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'omega_s', 'a0_u']
 def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir=None, g_num=0):
     """
     観測データのインプット
@@ -67,7 +67,7 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     # TODO : 変更箇所②
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.881,
+        threshold=0.683,
         max_generations=1000,
         mutation_probability=0.3,
         crossover_probability=0.8,
@@ -856,19 +856,19 @@ class DefunctionProblem(Chromosome):
         import numpy as np
         # TODO: 変更箇所③
         parameters = {
-            # 'a0_s': np.random.uniform(0, 50),
-            # 'a1_s': np.random.uniform(-15, 15),
-            # 'a2_s': np.random.uniform(-15, 15),
+            'a0_s': np.random.uniform(40, 65),
+            'a1_s': np.random.uniform(-15, 15),
+            'a2_s': np.random.uniform(-15, 15),
             # 'b1_s': np.random.uniform(-15, 15),
             # 'b2_s': np.random.uniform(-15, 15),
-            # 'omega_s': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
-            'a0_u': np.random.uniform(800, 1300),
-            'a1_u': np.random.uniform(-150, 150),
-            'a2_u': np.random.uniform(-150, 150),
+            'omega_s': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
+            'a0_u': np.random.uniform(800, 1300)
+            # 'a1_u': np.random.uniform(-150, 150),
+            # 'a2_u': np.random.uniform(-150, 150),
             # 'b1_u': np.random.uniform(-150, 150),
             # 'b2_u': np.random.uniform(-150, 150),
-            'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
-            'a0_s': np.random.uniform(40, 65)
+            # 'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
+            # 'a0_s': np.random.uniform(40, 65)
 
         }
         problem = DefunctionProblem(parameters, parameter_file, timet, startpoint, endpoint, Sunspot_N, output_dir)
@@ -907,7 +907,7 @@ class DefunctionProblem(Chromosome):
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
         
         # TODO 変更箇所④     
-        alpha = 0.9
+        alpha = 0.7
         eva = alpha*cc - (1-alpha)*sd
         
         return eva
@@ -930,7 +930,7 @@ class DefunctionProblem(Chromosome):
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
         
         # TODO 変更箇所⑤     
-        alpha = 0.9
+        alpha = 0.7
         eva = alpha*cc - (1-alpha)*sd
         
         return eva

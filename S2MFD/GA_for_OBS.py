@@ -709,7 +709,6 @@ class GeneticAlgorithm:
                 if best_chromosome.get_fitness() >= self._threshold:
                     print("=== 閾値到達個体で再シミュレーション ===")
                     args = self._prepare_simulation_args(best_chromosome)
-                    result = DefunctionProblem.run_defunction_simulation(**args)
                     result = DefunctionProblem.run_last_simulation(**args)
                     print("再シミュレーション結果（相関係数）:", result)
                     
@@ -765,7 +764,7 @@ class GeneticAlgorithm:
             print("\n=== 実行が中断されました ===")
             print("=== 現時点での最良個体を再計算します ===")
             args = self._prepare_simulation_args(best_chromosome)
-            result = DefunctionProblem.run_defunction_simulation(**args)
+            result = DefunctionProblem.run_last_simulation(**args)
             print("再シミュレーション結果（相関係数）:", result)
             return best_chromosome
     

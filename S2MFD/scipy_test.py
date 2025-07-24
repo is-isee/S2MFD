@@ -1060,23 +1060,25 @@ plt.savefig("test_gau_kde.png", dpi=300)
 plt.clf()
 """
 #=======================================================================#
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+from scipy.fft import rfft, rfftfreq
 
 # ---- 1. サンプルデータ作成（実データがある場合はここを読み替えてください） ----
 # 時間軸（例: 40日間隔で10年分 = 3650日 ÷ 40 ≒ 91点）
 t = np.arange(0, 3650, 40)
 
 # 本来のパラメタ（テスト用）
-true_a0 = 900
+true_a0 = 1200
 true_a1 = 200
 true_a2 = 100
-omega = 2 * np.pi / 400  # 約400日周期と仮定
+omega = 2 * np.pi / 1800  # 約400日周期と仮定
 
 # 真のデータ + ノイズ（観測データの想定）
 y = true_a0 + true_a1 * np.sin(omega * t) + true_a2 * np.sin(2 * omega * t)
-y += np.random.normal(0, 30, size=t.shape)  # ノイズを追加
+y += np.random.normal(0, 40, size=t.shape)  # ノイズを追加
 
 # ---- 2. フィッティング関数を定義 ----
 def fit_func(t, a0, a1, a2, omega):
@@ -1084,7 +1086,16 @@ def fit_func(t, a0, a1, a2, omega):
 
 # ---- 3. フィッティング ----
 # 初期推定値: a0=1000, a1=100, a2=100, omega=2π/400
-initial_guess = [1000, 100, 100, 2 * np.pi / 400]
+# スペクトル解析（最大ピークの周波数を推定）
+y_detrended = y - np.mean(y)
+freqs = rfftfreq(len(t), d=40)  # 40日間隔
+spectrum = np.abs(rfft(y_detrended))
+
+peak_idx = np.argmax(spectrum[1:]) + 1  # DC成分を除外
+omega_peak = 2 * np.pi * freqs[peak_idx]
+
+print(f"推定された ω: {omega_peak:.6f} rad/day")
+initial_guess = [1000, 100, 100, omega_peak]
 
 params, covariance = curve_fit(fit_func, t, y, p0=initial_guess)
 fitted_a0, fitted_a1, fitted_a2, fitted_omega = params
@@ -1106,3 +1117,209 @@ plt.grid(True)
 plt.title("The fitting of f(t) = a₀ + a₁ sin(ωt) + a₂ sin(2ωt)")
 plt.savefig("fitting_result.png", dpi=300)
 plt.clf()
+"""
+# ================================================================ #
+# 極小期検出用コード
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import argrelextrema
+
+# 1. CSVファイルを読み込む
+df = pd.read_csv("../obs_data/obs_data/SN_Yearly_interp.csv")  # ファイル名は適宜変更してください
+
+# 2. 配列に変換
+sunspots = df['sunspots_interp'].values
+years = df['years_interp'].values
+
+# 3. 局所最小（極小）を検出（±30点 = 約1200日）
+minima_indices = argrelextrema(sunspots, np.less, order=30)[0]
+
+# 4. 極小の時刻と値を取得
+minima_years = years[minima_indices]
+minima_values = sunspots[minima_indices]
+
+# 5. 極小間の周期（年差）を計算
+cycle_lengths = np.diff(minima_years)
+
+def calc_u0_from_T(T):
+    a = 4038.76
+    b = 0.7971
+    return (T / a) ** (-1 / b)
+
+u0_values = calc_u0_from_T(cycle_lengths*2)
+print(u0_values)
+
+# 6. プロット
+plt.figure(figsize=(12, 5))
+plt.plot(years, sunspots, label='Interpolated Sunspot Number', color='gray')
+plt.scatter(minima_years, minima_values, color='red', label='Detected Minima', zorder=5)
+
+plt.xlabel('Year')
+plt.ylabel('Sunspot Number')
+plt.title('Detected Sunspot Minima in Time Series')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig("sunspot_minima.png", dpi=300)
+plt.clf()
+
+# 4. 階段状グラフ用データ生成
+# 区間ごとにu0_valuesを保持する配列を作成
+step_years = []
+step_u0 = []
+for i in range(len(u0_values)):
+    step_years.extend([minima_years[i], minima_years[i+1]])
+    step_u0.extend([u0_values[i], u0_values[i]])
+
+# 5. 描画
+plt.figure(figsize=(10, 5))
+plt.plot(step_years, step_u0, drawstyle='steps-post', label='u0 (constant per cycle)')
+plt.xlabel('Year')
+plt.ylabel('u0 (cm/s)')
+plt.title('Estimated u0 (constant between sunspot minima)')
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.savefig("u0_step_plot.png", dpi=300)
+plt.clf()
+
+"""
+import numpy as np
+
+# ファイル読み込み
+data = np.loadtxt("../ana/uu0_period.csv", delimiter=",")
+
+# 1列目（uu0）でソート
+sorted_data = data[data[:, 0].argsort()]
+
+# 上書き保存
+np.savetxt("uu0_period_sorted.csv", sorted_data, fmt="%.10f", delimiter=",")
+
+# 必要ならヘッダーを付ける場合
+# with open("uu0_period_sorted.csv", "w") as f:
+#     f.write("uu0,period_year\n")
+#     np.savetxt(f, sorted_data, fmt="%.10f", delimiter=",")
+"""
+
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+
+# データ読み込み
+data = np.loadtxt("uu0_period_sorted.csv", delimiter=",")
+u0 = data[:,0]
+T = data[:,1]
+
+# フィッティング関数の定義
+def fit_func(u0, a, b):
+    return a * u0 ** (-b)
+
+# フィッティング実行（初期値は適当に設定）
+popt, pcov = curve_fit(fit_func, u0, T, p0=[10000, 1])
+
+a_fit, b_fit = popt
+print(f"推定されたパラメータ: a = {a_fit}, b = {b_fit}")
+
+# フィット曲線の描画
+u0_dense = np.linspace(np.min(u0), np.max(u0), 500)
+T_fit = fit_func(u0_dense, a_fit, b_fit)
+
+plt.scatter(u0, T, label="data")
+plt.plot(u0_dense, T_fit, color='red', label=f"fit: a={a_fit:.2f}, b={b_fit:.2f}")
+plt.xlabel("u0 (cm/s)")
+plt.ylabel("T (year)")
+plt.legend()
+plt.savefig("fit_powerlaw.png", dpi=300)
+plt.clf()
+"""
+"""
+# 近似パラメータを取得する関数
+# GA_for_OBS.pyに代入することでそのまま使える
+def approximation_parameters(timet, Sunspot_N, uu0t):
+    from scipy.signal import argrelextrema
+    from scipy.optimize import curve_fit
+
+    # ① 極小期検出
+    minima_indices = argrelextrema(Sunspot_N, np.less, order=30)[0]
+    minima_timet = timet[minima_indices]
+    minima_values = Sunspot_N[minima_indices]
+
+    # 先頭に追加
+    minima_timet = np.insert(minima_timet, 0, timet[0]) 
+    minima_values = np.insert(minima_values, 0, Sunspot_N[0]) 
+
+    # 最後に追加
+    minima_timet = np.insert(minima_timet, len(minima_timet), timet[-1])
+    minima_values = np.insert(minima_values, len(minima_values), Sunspot_N[-1])
+
+    # ② 周期間隔・速度の入手
+    cycle_lengths = np.diff(minima_timet)  # 周期間隔を計算
+    def calc_u0_from_T(T):
+        T = T/(365 * 60 * 60 * 24) # Tを年単位に変換
+        a = 4038.76
+        b = 0.7971
+        return (T / a) ** (-1 / b)
+    u0_values = calc_u0_from_T(cycle_lengths*2)
+    print(u0_values)
+    
+    # ③ 配列の入手
+    step_timet = []
+    step_u0 = []
+    for i in range(len(u0_values)):
+        step_timet.extend([minima_timet[i], minima_timet[i+1]])
+        step_u0.extend([u0_values[i], u0_values[i]])
+    # 902行目付近に追記
+    def sin_func(time, a0_u, a1_u, a2_u, omega_u):
+        return a0_u + a1_u * np.sin(omega_u * time) + a2_u * np.sin(2.0 * omega_u * time)
+
+    # 初期値（必要に応じて調整）
+    p0 = [np.mean(step_u0), 100, 100, 2*np.pi/(30*365*60*60*100)]
+
+    # フィッティング
+    popt, _ = curve_fit(sin_func, step_timet, step_u0, p0=p0, maxfev=10000)
+    a0_u, a1_u, a2_u, omega_u = popt
+
+    # フィット結果をparametersに反映
+    parameters = {
+        'a0_s': 50,  # 必要に応じて他の値もフィットさせる
+        'a0_u': a0_u,
+        'a1_u': a1_u,
+        'a2_u': a2_u,
+        'omega_u': omega_u
+    }
+    # 年単位に変換
+    step_timet_year = np.array(step_timet) / (365 * 24 * 60 * 60)
+    fit_t_year = np.linspace(min(step_timet_year), max(step_timet_year), 500)
+    fit_t = np.linspace(min(step_timet), max(step_timet), 500)
+    fit_u0 = sin_func(fit_t, a0_u, a1_u, a2_u, omega_u)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(step_timet_year, step_u0, drawstyle='steps-post', label='u0 (constant per cycle)')
+    plt.plot(fit_t_year, fit_u0, 'k--', label='Fitted function')
+    plt.plot(timet/(365*60*60*24),uu0t ,'r', label='true value')
+    plt.xlabel('Year')
+    plt.ylabel('u0 (cm/s)')
+    ymax = max(np.max(uu0t), np.max(step_u0),np.max(fit_u0)) * 1.1
+    plt.ylim(bottom=0, top=ymax)
+    plt.title('Estimated u0 (constant between sunspot minima)')
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig("u0_step_plot.png", dpi=300)
+    plt.clf()
+
+    plt.figure(figsize=(12, 5))
+    plt.plot(timet, Sunspot_N, label='Interpolated Sunspot Number', color='gray')
+    plt.scatter(minima_timet, minima_values, color='red', label='Detected Minima', zorder=5)
+    plt.xlabel('Year')
+    plt.ylabel('Sunspot Number')
+    plt.title('Detected Sunspot Minima in Time Series')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("sunspot_minima.png", dpi=300)
+    plt.clf()
+    return parameters
+"""

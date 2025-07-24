@@ -445,6 +445,7 @@ class Simulation(S2MFD.Data):
         grid = self.grid
         dir_origin = cfg.datadir
         cfg.datadir = dir_origin + "Lead_Time/"
+        self.nd = 0
         self.initialize_simulation()
         # Lead Timeの初期条件
         print("初期条件の生成を開始します。")

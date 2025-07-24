@@ -13,12 +13,14 @@ from typing import Dict
 import time
 import matplotlib.pyplot as plt
 import os
+from scipy.signal import argrelextrema
+from scipy.optimize import curve_fit
 """
 実装項目
 =======================================
 ・初期条件を与えない仕組み：OK
 ・歴代最良個体の保持：OK
-・正解に近い解をフーリエ級数でfittingする仕組み
+・正解に近い解をフーリエ級数でfittingする仕組み : OK
 ・観測データインプットの仕組み：OK
   datadirを”OBS”とすると観測データが使われるようにした。datadirにシミュレーション生成したデータを入れると今まで通り。
 
@@ -32,8 +34,8 @@ import os
 # TODO: 変更箇所①
 # PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u', 'u0_const', 's0_const']
 # PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s', 'u0_const', 's0_const']
-# PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'omega_u', 'a0_s']
-PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'omega_s', 'a0_u']
+PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'omega_u', 'a0_s']
+# PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'omega_s', 'a0_u']
 def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir=None, g_num=0):
     """
     観測データのインプット
@@ -55,19 +57,28 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     """
     初期世代の生成、観測データをGAにインプット
     """
+    # 極小期の場所を調べられる
+    # minima_indices = argrelextrema(Sunspot_N, np.less, order=30)[0]
+    # print(minima_indices)
+
     defunction_initial_population: List[DefunctionProblem] = [
     DefunctionProblem.make_random_instance(
         parameter_file, timet, startpoint, endpoint, Sunspot_N, output_dir
     ) for _ in range(g_num)  # 個体数
     ]
-    
+    fit_params = DefunctionProblem.approximation_parameters(
+        timet[startpoint:endpoint+1], Sunspot_N[startpoint:endpoint+1]
+    )
+    for key_ap in ['a0_u', 'a1_u', 'a2_u', 'omega_u']:
+        defunction_initial_population[3].parameters[key_ap] = fit_params[key_ap]
+        defunction_initial_population[4].parameters[key_ap] = fit_params[key_ap]
     """
     GAの設定と実行
     """
     # TODO : 変更箇所②
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.683,
+        threshold=0.881,
         max_generations=1000,
         mutation_probability=0.3,
         crossover_probability=0.8,
@@ -856,23 +867,97 @@ class DefunctionProblem(Chromosome):
         # TODO: 変更箇所③
         parameters = {
             'a0_s': np.random.uniform(40, 65),
-            'a1_s': np.random.uniform(-15, 15),
-            'a2_s': np.random.uniform(-15, 15),
-            # 'b1_s': np.random.uniform(-15, 15),
-            # 'b2_s': np.random.uniform(-15, 15),
-            'omega_s': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
-            'a0_u': np.random.uniform(800, 1300)
-            # 'a1_u': np.random.uniform(-150, 150),
-            # 'a2_u': np.random.uniform(-150, 150),
-            # 'b1_u': np.random.uniform(-150, 150),
-            # 'b2_u': np.random.uniform(-150, 150),
-            # 'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
-            # 'a0_s': np.random.uniform(40, 65)
-
+            # 'a1_s': np.random.uniform(-15, 15),
+            # 'a2_s': np.random.uniform(-15, 15),
+            # 'omega_s': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
+            'a0_u': np.random.uniform(800, 1300),
+            'a1_u': np.random.uniform(-150, 150),
+            'a2_u': np.random.uniform(-150, 150),
+            'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100))
         }
         problem = DefunctionProblem(parameters, parameter_file, timet, startpoint, endpoint, Sunspot_N, output_dir)
         return problem
     
+    @staticmethod
+    def approximation_parameters(timet, Sunspot_N):
+        """
+        Sunspot_Nとtimetから新しいパラメータセットを生成して返す関数。
+        必要に応じてここでデータに基づくパラメータ生成ロジックを書く。
+        """
+
+        # ① 極小期検出
+        minima_indices = argrelextrema(Sunspot_N, np.less, order=30)[0]
+        minima_timet = timet[minima_indices]
+        minima_values = Sunspot_N[minima_indices]
+        minima_timet = np.insert(minima_timet, 0, timet[0]) # 先頭に追加
+        minima_values = np.insert(minima_values, 0, Sunspot_N[0]) 
+        minima_timet = np.insert(minima_timet, len(minima_timet), timet[-1]) # 最後に追加
+        minima_values = np.insert(minima_values, len(minima_values), Sunspot_N[-1])
+
+        # ② 周期間隔・速度の入手
+        cycle_lengths = np.diff(minima_timet)  # 周期間隔を計算
+        def calc_u0_from_T(T):
+            T = T/(365 * 60 * 60 * 24) # Tを年単位に変換
+            a = 4038.76
+            b = 0.7971
+            return (T / a) ** (-1 / b)
+        u0_values = calc_u0_from_T(cycle_lengths*2)
+        
+        # ③ 配列の入手
+        step_timet = []
+        step_u0 = []
+        for i in range(len(u0_values)):
+            step_timet.extend([minima_timet[i], minima_timet[i+1]])
+            step_u0.extend([u0_values[i], u0_values[i]])
+        def sin_func(time, a0, a1, a2, omega):
+            return a0 + a1 * np.sin(omega * time) + a2 * np.sin(2.0 * omega * time)
+
+        # フィッティング
+        p0 = [np.mean(step_u0), 100, 100, 2*np.pi/(30*365*60*60*100)]
+        popt, _ = curve_fit(sin_func, step_timet, step_u0, p0=p0, maxfev=10000)
+        a0, a1, a2, omega = popt
+
+        # TODO 変更箇所
+        parameters = {
+            'a0_u': a0,
+            'a1_u': a1,
+            'a2_u': a2,
+            'omega_u': omega
+        }
+        # グラフの描画
+        # step_timet_year = np.array(step_timet) / (365 * 24 * 60 * 60)
+        # fit_t_year = np.linspace(min(step_timet_year), max(step_timet_year), 500)
+        # fit_t = np.linspace(min(step_timet), max(step_timet), 500)
+        # fit_u0 = sin_func(fit_t, a0_u, a1_u, a2_u, omega_u)
+
+        # plt.figure(figsize=(10, 5))
+        # plt.plot(step_timet_year, step_u0, drawstyle='steps-post', label='u0 (constant per cycle)')
+        # plt.plot(fit_t_year, fit_u0, 'k--', label='Fitted function')
+        # plt.plot(timet/(365*60*60*24),uu0t ,'r', label='true value')
+        # plt.xlabel('Year')
+        # plt.ylabel('u0 (cm/s)')
+        # ymax = max(np.max(uu0t), np.max(step_u0),np.max(fit_u0)) * 1.1
+        # plt.ylim(bottom=0, top=ymax)
+        # plt.title('Estimated u0 (constant between sunspot minima)')
+        # plt.grid(True)
+        # plt.legend()
+        # plt.tight_layout()
+        # plt.savefig("u0_step_plot.png", dpi=300)
+        # plt.clf()
+
+        # plt.figure(figsize=(12, 5))
+        # plt.plot(timet, Sunspot_N, label='Interpolated Sunspot Number', color='gray')
+        # plt.scatter(minima_timet, minima_values, color='red', label='Detected Minima', zorder=5)
+        # plt.xlabel('Year')
+        # plt.ylabel('Sunspot Number')
+        # plt.title('Detected Sunspot Minima in Time Series')
+        # plt.legend()
+        # plt.grid(True)
+        # plt.tight_layout()
+        # plt.savefig("sunspot_minima.png", dpi=300)
+        # plt.clf()
+
+        return parameters
 
     def __str__(self) -> str:
         """
@@ -906,7 +991,7 @@ class DefunctionProblem(Chromosome):
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
         
         # TODO 変更箇所④     
-        alpha = 0.7
+        alpha = 0.9
         eva = alpha*cc - (1-alpha)*sd
         
         return eva
@@ -929,7 +1014,7 @@ class DefunctionProblem(Chromosome):
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
         
         # TODO 変更箇所⑤     
-        alpha = 0.7
+        alpha = 0.9
         eva = alpha*cc - (1-alpha)*sd
         
         return eva
@@ -940,4 +1025,6 @@ class DefunctionProblem(Chromosome):
         """
         # 必要なパラメータを展開
         return DefunctionProblem.run_defunction_simulation(**args)
+    
+
 

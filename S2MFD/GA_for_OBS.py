@@ -79,7 +79,7 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
         threshold=0.881,
-        max_generations=1000,
+        max_generations=200,  # 最大世代数
         mutation_probability=0.3,
         crossover_probability=0.8,
         selection_type=GeneticAlgorithm.SELECTION_TYPE_ASP_TOURNAMENT,  # 選択方式
@@ -210,6 +210,7 @@ class GeneticAlgorithm:
         self._selection_type: int = selection_type
         self._crossover_type: int = crossover_type
         self._mutation_type: int = mutation_type
+        self.participants_num_story = np.zeros(self._max_generations, dtype=int)
     # =================================================================== #
     """ Def_Selection Methods """
     """ Roulette_Wheel_Selection """
@@ -323,7 +324,10 @@ class GeneticAlgorithm:
         for participant in participants:
             if not hasattr(participant, '_fitness'):
                 raise RuntimeError("参加者のfitnessが未計算です。")
-            
+        
+        # 選択圧の記録
+        self.participants_num_story[self.generation_idx] = participants_num
+
         # トーナメント参加者から上位2個体を選択
         selected_chromosomes: List[Chromosome] = nlargest(n=2, iterable=participants)
         return selected_chromosomes
@@ -389,7 +393,10 @@ class GeneticAlgorithm:
         for participant in participants:
             if not hasattr(participant, '_fitness'):
                 raise RuntimeError("参加者のfitnessが未計算です。")
-            
+        
+        # 選択圧の記録
+        self.participants_num_story[self.generation_idx] = participants_num
+
         # トーナメント参加者から上位2個体を選択
         selected_chromosomes: List[Chromosome] = nlargest(n=2, iterable=participants)
         return selected_chromosomes
@@ -869,11 +876,11 @@ class DefunctionProblem(Chromosome):
             'a0_s': np.random.uniform(40, 65),
             # 'a1_s': np.random.uniform(-15, 15),
             # 'a2_s': np.random.uniform(-15, 15),
-            # 'omega_s': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100)),
-            'a0_u': np.random.uniform(800, 1300),
+            # 'omega_s': np.random.uniform(2*np.pi/(30*365*60*60*24), 2*np.pi/(10*365*60*60*24)),
+            'a0_u': np.random.uniform(500, 1100),
             'a1_u': np.random.uniform(-150, 150),
             'a2_u': np.random.uniform(-150, 150),
-            'omega_u': np.random.uniform(2*np.pi/(30*365*60*60*100), 2*np.pi/(10*365*60*60*100))
+            'omega_u': np.random.uniform(2*np.pi/(120*365*60*60*24), 2*np.pi/(10*365*60*60*24))
         }
         problem = DefunctionProblem(parameters, parameter_file, timet, startpoint, endpoint, Sunspot_N, output_dir)
         return problem
@@ -909,6 +916,7 @@ class DefunctionProblem(Chromosome):
         for i in range(len(u0_values)):
             step_timet.extend([minima_timet[i], minima_timet[i+1]])
             step_u0.extend([u0_values[i], u0_values[i]])
+        # TODO 変更箇所
         def sin_func(time, a0, a1, a2, omega):
             return a0 + a1 * np.sin(omega * time) + a2 * np.sin(2.0 * omega * time)
 

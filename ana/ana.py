@@ -4,7 +4,7 @@ import os, sys
 sys.path.append('../')
 import S2MFD
 
-datadir = '../data/'
+datadir = '../data_u0_fGA_6/Lead_Time/'
 data = S2MFD.Data.initial_load(datadir)
 
 cfg = data.cfg
@@ -40,7 +40,7 @@ for n  in range(n0,n1):
     print(n)
     data.data_load(n)
     Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
-    d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')
+    d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz', allow_pickle=True)
     timet[n-n0] = d['time']
     nt[n-n0] = d['n']
     ndt[n-n0] = d['nd']

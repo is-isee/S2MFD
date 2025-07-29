@@ -8,12 +8,10 @@ import S2MFD
 datadir1 = '..//'
 datadir2 = '..//'
 
-datadir1 = '../bisection_results/data_sample_source/'
-datadir2 = '../bisection_results/data_sunspot_to_source/'
-# datadir1 = '../data_fourier_sample/'
-# datadir2 = '../data_fourier_result1/'
-n0 = 501
-n1 = 525
+datadir1 = '../data_fousamp_s0/'
+datadir2 = '../data_s0_fGA_6/'
+n0 = 1031
+n1 = 1432
 
 data = S2MFD.Data.initial_load(datadir1)
 
@@ -150,6 +148,8 @@ plt.plot(time1,uu0t1,'r--',label='Observation',linewidth=2.5)
 plt.plot(time2,uu0t2,'b',label='GA inference')
 plt.xlabel('Years',fontsize=20)
 plt.ylabel(r'$u_0(\rm{cm/s})$',fontsize=20)
+ymax = max(np.max(uu0t1), np.max(uu0t2)) * 1.1
+plt.ylim(bottom=0, top=ymax)
 # 軸のメモリを細かく設定
 plt.xticks(fontsize=14)  # x軸の数値サイズを調整
 plt.yticks(fontsize=14)  # y軸の数値サイズを調整
@@ -163,6 +163,8 @@ plt.clf()
 
 plt.plot(time1,so0t1,'r--',label='Observation',linewidth=2.5)
 plt.plot(time2,so0t2,'b',label='GA inference')
+ymax = max(np.max(so0t1), np.max(so0t2)) * 1.1
+plt.ylim(bottom=0, top=ymax)
 plt.xlabel('Years',fontsize=20)
 plt.ylabel(r'$s_0(\rm{cm/s})$',fontsize=20)
 # 軸のメモリを細かく設定

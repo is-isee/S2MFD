@@ -248,8 +248,6 @@ class Simulation(S2MFD.Data):
     """
     # ========================================================================================== #
     # main loop
-    # def defunction_main_loop(self,A_sample,omg_sample,B_sample,C_sample,timet,index_start,index_end):
-    # def defunction_main_loop(self,A_s,omg_s,B_s,C_s,A_u,omg_u,B_u,C_u,timet,index_start,index_end):
     # TODO パラメタ変更時に設定
     parameters = {
         'a0_s': 0.0,
@@ -267,14 +265,16 @@ class Simulation(S2MFD.Data):
         'b1_u': 0.0,
         'b2_u': 0.0,
         'b3_u': 0.0,
-        'omega_u': 0.0
+        'omega_u': 0.0,
+        'u0_const': 0.0,
+        's0_const': 0.0
         }
     def defunction_main_loop(self,parameters: Dict[str, float],timet,index_start,index_end):
         """
         Runs the main loop of the simulation
         """
         import matplotlib.pyplot as plt
-        
+        print("Targetの計算開始")
         cfg = self.cfg
         grid = self.grid
             
@@ -327,25 +327,191 @@ class Simulation(S2MFD.Data):
                 # print(cfg.boundary_condition_type)
                 
                 # TODO パラメタ変更時に設定
-                parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s']}
+
                 if hasattr(cfg, 'so0_time_dependent'):
-                    self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time)
-                    self.setup = S2MFD.Setup(self.cfg, grid)
+                    # parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s']}
+                    # self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time) # フーリエ級数用
+                    parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'omega_s']}
+                    self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time-timet[index_start]) # sin関数用
                 
-                parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']}
                 if hasattr(cfg, 'uu0_time_dependent'):
-                    self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time)
-                    self.setup = S2MFD.Setup(self.cfg, grid)
-                    
+                    # parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u']}
+                    # self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time) # フーリエ級数用
+                    parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'omega_u']} # sin関数用
+                    self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time-timet[index_start]) 
+                
+                self.setup = S2MFD.Setup(self.cfg, grid)
                 self.cfl_condition()
-                # print("dt=",self.dt)
                 self.SN[self.nd-(index_start)] = self.snumbers_energy(Bpht=self.Bph)
                 self.save()
 
             self.tvd_runge_kutta()
     # ========================================================================================== #
+    # 初期条件生成
+    def initial_for_OBS(self,parameters: Dict[str, float],timet,index_start,index_end):
+        """
+        Applies initial condition
+        十分なリードタイムを設ける。
+        -----------------------------------------
+        「内容」
+        1.110年分の計算を行う（「真の初期条件」はJouve+2008のものを採用） 
+        2.極小期が訪れるまで計算を継続する。
+            判定方法：時間的に連続した三点の黒点数を記録、その三点のうち二番目の点が他の点より小さ
+                    かったらそこを極小値とする。
+
+        """ 
+        cfg = self.cfg
+        grid = self.grid
+
+        # Lead Timeの初期条件
+        print("初期条件の生成を開始します。")
+        self.Bph = np.load("Jouve_2008/Bpht_saved.npy")
+        self.Aph = np.load("Jouve_2008/Apht_saved.npy")
+        self.cfg.uu0 = parameters['a0_u']
+        self.cfg.so0 = parameters['a0_s']
+        self.time = 0.0
+        self.setup = S2MFD.Setup(self.cfg, grid) # u0,s0のプロファイル更新
         
+        self.cfl_condition()
+        sn_history = np.zeros(3)
+
+        # 110年間分計算開始
+        for i in range(3):
+            self.tvd_runge_kutta()
+            self.time += self.dt
+            sn_history[i] = self.snumbers_energy(Bpht=self.Bph)
+            # if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+            #     self.save()
+            #     self.nd += 1
+                
+        while self.time < 80*365*24*3600:  # 110年
+            prev_Bph = self.Bph.copy()
+            prev_Aph = self.Aph.copy() 
+            self.tvd_runge_kutta()
+            self.time += self.dt
+            sn_history[0] = sn_history[1]
+            sn_history[1] = sn_history[2]
+            sn_history[2] = self.snumbers_energy(Bpht=self.Bph)
+            # if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+            #     self.save()
+            #     self.nd += 1
+        print(f"{self.time/(365*24*3600)} [year]; 80年の計算終了")
+
+        # 極小値が出るまで計算
+        while True:
+           # 極小値判定
+            if (sn_history[1] < sn_history[0]) and (sn_history[1] < sn_history[2]):
+                print("極小値を検出しました。計算を終了します。")
+                # ここで初期条件として保存するものを整理
+                self.Bpht = prev_Bph
+                self.Apht = prev_Aph
+                self.n    = int(0)
+                self.nd   = index_start
+                self.time = timet[index_start]
+                self.SN = np.zeros_like(timet[index_start:index_end+1])
+                self.SN[0] = self.snumbers_energy(Bpht=self.Bph)
+                # self.cfg.datadir = "T_"+dir_origin
+                # self.initialize_simulation()
+                print(f"{self.time/(86400*365)} [year]; u0={self.cfg.uu0}; s0={self.cfg.so0}")
+                self.save()
+                break
+            prev_Bph = self.Bph.copy()
+            prev_Aph = self.Aph.copy() 
+            self.tvd_runge_kutta()
+            self.time += self.dt
+            # if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+            #     self.save()
+            #     self.nd += 1
+            # sn_historyをシフトして新しい値を追加
+            sn_history[0] = sn_history[1]
+            sn_history[1] = sn_history[2]
+            sn_history[2] = self.snumbers_energy(Bpht=self.Bph)
     # ========================================================================================== #
+    # ========================================================================================== #
+    # 初期条件生成
+    def initial_for_LAST(self,parameters: Dict[str, float],timet,index_start,index_end):
+        """
+        Applies initial condition
+        十分なリードタイムを設ける。
+        -----------------------------------------
+        「内容」
+        1.110年分の計算を行う（「真の初期条件」はJouve+2008のものを採用） 
+        2.極小期が訪れるまで計算を継続する。
+            判定方法：時間的に連続した三点の黒点数を記録、その三点のうち二番目の点が他の点より小さ
+                    かったらそこを極小値とする。
+
+        """ 
+        cfg = self.cfg
+        grid = self.grid
+        dir_origin = cfg.datadir
+        cfg.datadir = dir_origin + "Lead_Time/"
+        self.nd = 0
+        self.initialize_simulation()
+        # Lead Timeの初期条件
+        print("初期条件の生成を開始します。")
+        self.Bph = np.load("Jouve_2008/Bpht_saved.npy")
+        self.Aph = np.load("Jouve_2008/Apht_saved.npy")
+        self.cfg.uu0 = parameters['a0_u']
+        self.cfg.so0 = parameters['a0_s']
+        self.time = 0.0
+        self.setup = S2MFD.Setup(self.cfg, grid) # u0,s0のプロファイル更新
+        
+        self.cfl_condition()
+        sn_history = np.zeros(3)
+
+        # 110年間分計算開始
+        for i in range(3):
+            self.tvd_runge_kutta()
+            self.time += self.dt
+            sn_history[i] = self.snumbers_energy(Bpht=self.Bph)
+            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+                self.save()
+                self.nd += 1
+                
+        while self.time < 80*365*24*3600:  # 110年
+            prev_Bph = self.Bph.copy()
+            prev_Aph = self.Aph.copy() 
+            self.tvd_runge_kutta()
+            self.time += self.dt
+            sn_history[0] = sn_history[1]
+            sn_history[1] = sn_history[2]
+            sn_history[2] = self.snumbers_energy(Bpht=self.Bph)
+            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+                self.save()
+                self.nd += 1
+        print(f"{self.time/(365*24*3600)} [year]; 80年の計算終了")
+
+        # 極小値が出るまで計算
+        while True:
+        # 極小値判定
+            if (sn_history[1] < sn_history[0]) and (sn_history[1] < sn_history[2]):
+                print("極小値を検出しました。計算を終了します。")
+                # ここで初期条件として保存するものを整理
+                self.Bpht = prev_Bph
+                self.Apht = prev_Aph
+                self.n    = int(0)
+                self.nd   = index_start
+                self.time = timet[index_start]
+                self.SN = np.zeros_like(timet[index_start:index_end+1])
+                self.SN[0] = self.snumbers_energy(Bpht=self.Bph)
+                self.cfg.datadir = dir_origin
+                self.initialize_simulation()
+                print(f"{self.time/(86400*365)} [year]; u0={self.cfg.uu0}; s0={self.cfg.so0}")
+                self.save()
+                break
+            prev_Bph = self.Bph.copy()
+            prev_Aph = self.Aph.copy() 
+            self.tvd_runge_kutta()
+            self.time += self.dt
+            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+                self.save()
+                self.nd += 1
+            # sn_historyをシフトして新しい値を追加
+            sn_history[0] = sn_history[1]
+            sn_history[1] = sn_history[2]
+            sn_history[2] = self.snumbers_energy(Bpht=self.Bph)
+    # ========================================================================================== #
+
     # 初期条件 
     def initial_for_defunction(self,parameters: Dict[str, float],Bpht,Apht,uu0t,so0t,nt,ndt,timet,index,index_end):
         """
@@ -360,12 +526,12 @@ class Simulation(S2MFD.Data):
         self.cfg.so0 = so0t[index]
         self.time = timet[index]
         # TODO パラメタ変更時に設定
-        parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'a3_s', 'b1_s', 'b2_s', 'b3_s', 'omega_s']}
         if hasattr(cfg, 'so0_time_dependent'):
+            parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s','omega_s']}
             self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time)
             
-        parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'b1_u', 'b2_u', 'b3_u', 'omega_u']}
         if hasattr(cfg, 'uu0_time_dependent'):
+            parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u','omega_u']}
             self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time)
             
         self.setup = S2MFD.Setup(self.cfg, grid)
@@ -1131,9 +1297,8 @@ class Simulation(S2MFD.Data):
         Apht = np.zeros((grid.ixg,grid.jxg,n1-n0))
         so0t = np.zeros(n1-n0)
         uu0t = np.zeros(n1-n0)
-
+        print(f"{n0}から{n1}までのデータを読み込み開始")
         for n  in range(n0,n1):
-            print(n)
             data.data_load(n)
             Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
             d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')

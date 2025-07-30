@@ -337,7 +337,7 @@ class Simulation(S2MFD.Data):
                 if hasattr(cfg, 'uu0_time_dependent'):
                     # parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u']}
                     # self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time) # フーリエ級数用
-                    parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'omega_u']} # sin関数用
+                    parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'a3_u']} # sin関数用
                     self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time-timet[index_start]) 
                 
                 self.setup = S2MFD.Setup(self.cfg, grid)

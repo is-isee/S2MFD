@@ -34,7 +34,7 @@ from scipy.optimize import curve_fit
 # TODO: 変更箇所①
 # PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u', 'u0_const', 's0_const']
 # PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s', 'u0_const', 's0_const']
-PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'omega_u', 'a0_s']
+PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'a0_s']
 # PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'omega_s', 'a0_u']
 def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir=None, g_num=0):
     """
@@ -69,7 +69,8 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     fit_params = DefunctionProblem.approximation_parameters(
         timet[startpoint:endpoint+1], Sunspot_N[startpoint:endpoint+1]
     )
-    for key_ap in ['a0_u', 'a1_u', 'a2_u', 'omega_u']:
+    # TODO
+    for key_ap in ['a0_u', 'a1_u', 'a2_u', 'a3_u']:
         defunction_initial_population[3].parameters[key_ap] = fit_params[key_ap]
         defunction_initial_population[4].parameters[key_ap] = fit_params[key_ap]
     """
@@ -638,6 +639,7 @@ class GeneticAlgorithm:
         # 凡例を表示
         plt.legend(fontsize=14, loc='upper right')  # 凡例を右上に固定
         # グラフを保存
+        file_name=os.path.join(self._population[0].output_dir, file_name)
         plt.savefig(file_name, dpi=300)
         plt.clf()
     # =================================================================== #
@@ -880,7 +882,7 @@ class DefunctionProblem(Chromosome):
             'a0_u': np.random.uniform(500, 1100),
             'a1_u': np.random.uniform(-150, 150),
             'a2_u': np.random.uniform(-150, 150),
-            'omega_u': np.random.uniform(2*np.pi/(120*365*60*60*24), 2*np.pi/(10*365*60*60*24))
+            'a3_u': np.random.uniform(-150, 150)
         }
         problem = DefunctionProblem(parameters, parameter_file, timet, startpoint, endpoint, Sunspot_N, output_dir)
         return problem
@@ -917,20 +919,21 @@ class DefunctionProblem(Chromosome):
             step_timet.extend([minima_timet[i], minima_timet[i+1]])
             step_u0.extend([u0_values[i], u0_values[i]])
         # TODO 変更箇所
-        def sin_func(time, a0, a1, a2, omega):
-            return a0 + a1 * np.sin(omega * time) + a2 * np.sin(2.0 * omega * time)
+        def sin_func(time, a0, a1, a2, a3):
+            omega = 2*np.pi/(150*365*60*60*100)
+            return a0 + a1 * np.sin(omega * time) + a2 * np.sin(2.0 * omega * time) + a3 * np.sin(3.0 * omega * time)
 
         # フィッティング
-        p0 = [np.mean(step_u0), 100, 100, 2*np.pi/(30*365*60*60*100)]
+        p0 = [np.mean(step_u0), 100, 100, 100]
         popt, _ = curve_fit(sin_func, step_timet, step_u0, p0=p0, maxfev=10000)
-        a0, a1, a2, omega = popt
+        a0, a1, a2, a3 = popt
 
         # TODO 変更箇所
         parameters = {
             'a0_u': a0,
             'a1_u': a1,
             'a2_u': a2,
-            'omega_u': omega
+            'a3_u': a3
         }
         # グラフの描画
         # step_timet_year = np.array(step_timet) / (365 * 24 * 60 * 60)

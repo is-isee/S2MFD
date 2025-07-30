@@ -9,7 +9,7 @@ import os
 import concurrent.futures
 
 
-uu0_list = np.arange(600,800,20)
+uu0_list = np.arange(600,1800,60)
 
 def run_and_analyze(uu0):
     cfg = S2MFD.Cfg()

@@ -1132,29 +1132,34 @@ df = pd.read_csv("../obs_data/obs_data/SN_Yearly_interp.csv")  # ファイル名
 sunspots = df['sunspots_interp'].values
 years = df['years_interp'].values
 
-# 3. 局所最小（極小）を検出（±30点 = 約1200日）
+# 3. 局所最小/最大（極小・極大）を検出（±30点 = 約1200日）
 minima_indices = argrelextrema(sunspots, np.less, order=30)[0]
+maxima_indices = argrelextrema(sunspots, np.greater, order=30)[0]
 
-# 4. 極小の時刻と値を取得
+# 4. 極小・極大の時刻と値を取得
 minima_years = years[minima_indices]
 minima_values = sunspots[minima_indices]
+maxima_years = years[maxima_indices]
+maxima_values = sunspots[maxima_indices]
+print("peaks mean:", np.mean(maxima_values))
 
 # 5. 極小間の周期（年差）を計算
 cycle_lengths = np.diff(minima_years)
+print(np.average(cycle_lengths), "years(mean)")  # 平均周期を表示
 
 def calc_u0_from_T(T):
     a = 4038.76
     b = 0.7971
     return (T / a) ** (-1 / b)
 
-u0_values = calc_u0_from_T(cycle_lengths*2)
-print(u0_values)
+u0_values = calc_u0_from_T(np.average(cycle_lengths)*2)
+print(u0_values,"cm/s(mean)")
 
-# 6. プロット
+# # 6. プロット
 plt.figure(figsize=(12, 5))
 plt.plot(years, sunspots, label='Interpolated Sunspot Number', color='gray')
 plt.scatter(minima_years, minima_values, color='red', label='Detected Minima', zorder=5)
-
+plt.scatter(maxima_years, maxima_values, color='blue', label='Detected Maxima', zorder=5)
 plt.xlabel('Year')
 plt.ylabel('Sunspot Number')
 plt.title('Detected Sunspot Minima in Time Series')
@@ -1164,25 +1169,25 @@ plt.tight_layout()
 plt.savefig("sunspot_minima.png", dpi=300)
 plt.clf()
 
-# 4. 階段状グラフ用データ生成
-# 区間ごとにu0_valuesを保持する配列を作成
-step_years = []
-step_u0 = []
-for i in range(len(u0_values)):
-    step_years.extend([minima_years[i], minima_years[i+1]])
-    step_u0.extend([u0_values[i], u0_values[i]])
+# # 4. 階段状グラフ用データ生成
+# # 区間ごとにu0_valuesを保持する配列を作成
+# step_years = []
+# step_u0 = []
+# for i in range(len(u0_values)):
+#     step_years.extend([minima_years[i], minima_years[i+1]])
+#     step_u0.extend([u0_values[i], u0_values[i]])
 
-# 5. 描画
-plt.figure(figsize=(10, 5))
-plt.plot(step_years, step_u0, drawstyle='steps-post', label='u0 (constant per cycle)')
-plt.xlabel('Year')
-plt.ylabel('u0 (cm/s)')
-plt.title('Estimated u0 (constant between sunspot minima)')
-plt.grid(True)
-plt.legend()
-plt.tight_layout()
-plt.savefig("u0_step_plot.png", dpi=300)
-plt.clf()
+# # 5. 描画
+# plt.figure(figsize=(10, 5))
+# plt.plot(step_years, step_u0, drawstyle='steps-post', label='u0 (constant per cycle)')
+# plt.xlabel('Year')
+# plt.ylabel('u0 (cm/s)')
+# plt.title('Estimated u0 (constant between sunspot minima)')
+# plt.grid(True)
+# plt.legend()
+# plt.tight_layout()
+# plt.savefig("u0_step_plot.png", dpi=300)
+# plt.clf()
 
 """
 import numpy as np

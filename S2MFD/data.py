@@ -103,7 +103,7 @@ class Data:
             Data output step 
         """        
         filename = self.get_data_file_path(nd)
-        d = np.load(file=filename)
+        d = np.load(file=filename, allow_pickle=True)
         self.Bph = d['Bph']
         self.Aph = d['Aph']
         self.time = d['time']

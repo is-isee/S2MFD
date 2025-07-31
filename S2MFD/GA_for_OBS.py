@@ -43,11 +43,12 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     start_time = time.time()
     parameter_file = "parameters/" + parameter_file
     if datadir == "OBS":
+        print("観測データをインプットします。")
         data = np.genfromtxt("obs_data/obs_data/SN_Yearly_interp.csv", delimiter=',', skip_header=1)
         timet = data[:, 1]
         timez = data[:, 2]
         Sunspot_N = data[:, 3]
-        return
+
     else:
         cfg = S2MFD.Cfg(parameter_file)
         sim = S2MFD.Simulation(cfg)
@@ -58,21 +59,23 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     初期世代の生成、観測データをGAにインプット
     """
     # 極小期の場所を調べられる
-    # minima_indices = argrelextrema(Sunspot_N, np.less, order=30)[0]
-    # print(minima_indices)
+    minima_indices = argrelextrema(Sunspot_N, np.less, order=30)[0]
+    print("極小期リスト：",minima_indices)
+
 
     defunction_initial_population: List[DefunctionProblem] = [
     DefunctionProblem.make_random_instance(
         parameter_file, timet, startpoint, endpoint, Sunspot_N, output_dir
     ) for _ in range(g_num)  # 個体数
     ]
-    fit_params = DefunctionProblem.approximation_parameters(
-        timet[startpoint:endpoint+1], Sunspot_N[startpoint:endpoint+1]
-    )
-    # TODO
-    for key_ap in ['a0_u', 'a1_u', 'a2_u', 'a3_u']:
-        defunction_initial_population[3].parameters[key_ap] = fit_params[key_ap]
-        defunction_initial_population[4].parameters[key_ap] = fit_params[key_ap]
+    # fit_params = DefunctionProblem.approximation_parameters(
+    #     timet[startpoint:endpoint+1], Sunspot_N[startpoint:endpoint+1]
+    # )
+    # # TODO
+    # for key_ap in ['a0_u', 'a1_u', 'a2_u', 'a3_u']:
+    #     defunction_initial_population[3].parameters[key_ap] = fit_params[key_ap]
+    #     defunction_initial_population[4].parameters[key_ap] = fit_params[key_ap]
+    #     print(key_ap,":",fit_params[key_ap])
     """
     GAの設定と実行
     """
@@ -211,7 +214,7 @@ class GeneticAlgorithm:
         self._selection_type: int = selection_type
         self._crossover_type: int = crossover_type
         self._mutation_type: int = mutation_type
-        self.participants_num_story = np.zeros(self._max_generations, dtype=int)
+        # self.participants_num_story = np.zeros(self._max_generations, dtype=int)
     # =================================================================== #
     """ Def_Selection Methods """
     """ Roulette_Wheel_Selection """
@@ -327,7 +330,7 @@ class GeneticAlgorithm:
                 raise RuntimeError("参加者のfitnessが未計算です。")
         
         # 選択圧の記録
-        self.participants_num_story[self.generation_idx] = participants_num
+        # self.participants_num_story[self.generation_idx] = participants_num
 
         # トーナメント参加者から上位2個体を選択
         selected_chromosomes: List[Chromosome] = nlargest(n=2, iterable=participants)
@@ -396,7 +399,7 @@ class GeneticAlgorithm:
                 raise RuntimeError("参加者のfitnessが未計算です。")
         
         # 選択圧の記録
-        self.participants_num_story[self.generation_idx] = participants_num
+        # self.participants_num_story[self.generation_idx] = participants_num
 
         # トーナメント参加者から上位2個体を選択
         selected_chromosomes: List[Chromosome] = nlargest(n=2, iterable=participants)
@@ -922,10 +925,10 @@ class DefunctionProblem(Chromosome):
         def sin_func(time, a0, a1, a2, a3):
             omega = 2*np.pi/(150*365*60*60*100)
             return a0 + a1 * np.sin(omega * time) + a2 * np.sin(2.0 * omega * time) + a3 * np.sin(3.0 * omega * time)
-
         # フィッティング
         p0 = [np.mean(step_u0), 100, 100, 100]
-        popt, _ = curve_fit(sin_func, step_timet, step_u0, p0=p0, maxfev=10000)
+        print(step_timet-timet[0])
+        popt, _ = curve_fit(sin_func, step_timet-timet[0], step_u0, p0=p0, maxfev=10000)
         a0, a1, a2, a3 = popt
 
         # TODO 変更箇所
@@ -936,37 +939,37 @@ class DefunctionProblem(Chromosome):
             'a3_u': a3
         }
         # グラフの描画
-        # step_timet_year = np.array(step_timet) / (365 * 24 * 60 * 60)
-        # fit_t_year = np.linspace(min(step_timet_year), max(step_timet_year), 500)
-        # fit_t = np.linspace(min(step_timet), max(step_timet), 500)
-        # fit_u0 = sin_func(fit_t, a0_u, a1_u, a2_u, omega_u)
+        step_timet_year = np.array(step_timet) / (365 * 24 * 60 * 60)
+        fit_t_year = np.linspace(min(step_timet_year), max(step_timet_year), 500)
+        fit_t = np.linspace(min(step_timet), max(step_timet), 500)
+        fit_u0 = sin_func(fit_t-timet[0], a0, a1, a2, a3)
 
-        # plt.figure(figsize=(10, 5))
-        # plt.plot(step_timet_year, step_u0, drawstyle='steps-post', label='u0 (constant per cycle)')
-        # plt.plot(fit_t_year, fit_u0, 'k--', label='Fitted function')
+        plt.figure(figsize=(10, 5))
+        plt.plot(step_timet_year, step_u0, drawstyle='steps-post', label='u0 (constant per cycle)')
+        plt.plot(fit_t_year, fit_u0, 'k--', label='Fitted function')
         # plt.plot(timet/(365*60*60*24),uu0t ,'r', label='true value')
-        # plt.xlabel('Year')
-        # plt.ylabel('u0 (cm/s)')
+        plt.xlabel('Year')
+        plt.ylabel('u0 (cm/s)')
         # ymax = max(np.max(uu0t), np.max(step_u0),np.max(fit_u0)) * 1.1
         # plt.ylim(bottom=0, top=ymax)
-        # plt.title('Estimated u0 (constant between sunspot minima)')
-        # plt.grid(True)
-        # plt.legend()
-        # plt.tight_layout()
-        # plt.savefig("u0_step_plot.png", dpi=300)
-        # plt.clf()
+        plt.title('Estimated u0 (constant between sunspot minima)')
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig("u0_step_plot.png", dpi=300)
+        plt.clf()
 
-        # plt.figure(figsize=(12, 5))
-        # plt.plot(timet, Sunspot_N, label='Interpolated Sunspot Number', color='gray')
-        # plt.scatter(minima_timet, minima_values, color='red', label='Detected Minima', zorder=5)
-        # plt.xlabel('Year')
-        # plt.ylabel('Sunspot Number')
-        # plt.title('Detected Sunspot Minima in Time Series')
-        # plt.legend()
-        # plt.grid(True)
-        # plt.tight_layout()
-        # plt.savefig("sunspot_minima.png", dpi=300)
-        # plt.clf()
+        plt.figure(figsize=(12, 5))
+        plt.plot(timet, Sunspot_N, label='Interpolated Sunspot Number', color='gray')
+        plt.scatter(minima_timet, minima_values, color='red', label='Detected Minima', zorder=5)
+        plt.xlabel('Year')
+        plt.ylabel('Sunspot Number')
+        plt.title('Detected Sunspot Minima in Time Series')
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig("sunspot_minima.png", dpi=300)
+        plt.clf()
 
         return parameters
 

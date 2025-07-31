@@ -52,7 +52,8 @@ def moving_average(SunspotsNum, n_conv):
     return SN_smooth
 # 磁場エネルギー密度B^2(toroidal,15°,r_c)を黒点数の指標とする。
 def Karak_deffine(Bpht,base,cfg,grid):
-    SN = Bpht[base,np.argmin(abs(grid.th-75/180*np.pi)),:]**2
+    gamma = 5.8653520852  # 観測に基づいた調整パラメタ
+    SN = gamma*Bpht[base,np.argmin(abs(grid.th-75/180*np.pi)),:]**2
     SN2 = moving_average(SN, 4)
     return SN
 

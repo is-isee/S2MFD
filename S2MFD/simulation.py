@@ -297,7 +297,7 @@ class Simulation(S2MFD.Data):
             if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
             # if self.n % 20 == 0:
                 self.nd += 1
-                
+                print(self.nd,":",self.time/(86400*365),"year")
                 # magnetic field
                 # ax.clear()
                 # ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,self.Bph,vmax=5.e0,vmin=-5.e0,cmap='bwr',shading='auto')
@@ -1201,9 +1201,9 @@ class Simulation(S2MFD.Data):
         loca  =   np.argmin(abs(self.grid.th- 75/180*np.pi))
         locap =   np.argmin(abs(self.grid.th- 50/180*np.pi))
         locam =   np.argmin(abs(self.grid.th- 130/180*np.pi))
+        gamma = 5.8653520852
         
-        
-        SN = Bpht[base,loca]**2
+        SN = gamma*Bpht[base,loca]**2
         # SN = np.mean(Bpht[base_1:base_2,locap:locam]**2,axis=(0,1))
         
         # n_conv = 4 #移動平均の個数
@@ -1222,9 +1222,10 @@ class Simulation(S2MFD.Data):
         loca  =   np.argmin(abs(self.grid.th- 75/180*np.pi))
         locap =   np.argmin(abs(self.grid.th- 50/180*np.pi))
         locam =   np.argmin(abs(self.grid.th- 130/180*np.pi))
+        gamma = 5.8653520852
         
         
-        SN = Bpht[base,loca,:]**2
+        SN = gamma*Bpht[base,loca,:]**2
         # SN = np.mean(Bpht[base_1:base_2,locap:locam,:]**2,axis=(0,1))
         
         n_conv = 4 #移動平均の個数

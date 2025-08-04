@@ -83,7 +83,7 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
         threshold=0.881,
-        max_generations=200,  # 最大世代数
+        max_generations=70,  # 最大世代数
         mutation_probability=0.3,
         crossover_probability=0.8,
         selection_type=GeneticAlgorithm.SELECTION_TYPE_ASP_TOURNAMENT,  # 選択方式
@@ -732,6 +732,9 @@ class GeneticAlgorithm:
                 if best_chromosome.get_fitness() >= self._threshold:
                     print("=== 閾値到達個体で再シミュレーション ===")
                     args = self._prepare_simulation_args(best_chromosome)
+                    params = best_chromosome.get_parameters()
+                    param_path = os.path.join(chrom.output_dir, "parameters.txt")
+                    np.savetxt(param_path, params.reshape(1, -1), fmt="%.6f")
                     result = DefunctionProblem.run_last_simulation(**args)
                     print("再シミュレーション結果（相関係数）:", result)
                     
@@ -768,6 +771,15 @@ class GeneticAlgorithm:
             return best_chromosome
         
         except KeyboardInterrupt:
+            print("\n=== 実行が中断されました ===")
+            print("=== 現時点での最良個体を再計算します ===")
+            args = self._prepare_simulation_args(best_chromosome)
+            params = best_chromosome.get_parameters()
+            param_path = os.path.join(chrom.output_dir, "parameters.txt")
+            np.savetxt(param_path, params.reshape(1, -1), fmt="%.6f")
+            result = DefunctionProblem.run_last_simulation(**args)
+            print("再シミュレーション結果（相関係数）:", result)
+
             self.draw_population(
                 x=np.linspace(0,len(fitness_story[:generation_idx+1])-1,len(fitness_story[:generation_idx+1])),
                 y=fitness_story[:generation_idx+1],
@@ -784,11 +796,6 @@ class GeneticAlgorithm:
                 label_y="diversity",
                 file_name="diversity_time.png"
             )
-            print("\n=== 実行が中断されました ===")
-            print("=== 現時点での最良個体を再計算します ===")
-            args = self._prepare_simulation_args(best_chromosome)
-            result = DefunctionProblem.run_last_simulation(**args)
-            print("再シミュレーション結果（相関係数）:", result)
             return best_chromosome
     
     def _prepare_simulation_args(self, chromosome: Chromosome) -> Dict:
@@ -847,6 +854,10 @@ class DefunctionProblem(Chromosome):
         self.Sunspot_N = Sunspot_N
         self.output_dir = output_dir
         
+    def get_parameters(self) -> np.ndarray:
+        # パラメータ辞書の値を順序つきで取り出す
+        return np.array(list(self.parameters.values()))
+
     def get_fitness(self) -> float:
         """
         評価関数として利用するメソッド。

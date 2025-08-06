@@ -5,9 +5,10 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir = '../data_obs_1/'
+datadir = '../data_obs_5/'
 n0 = 210
-n1 = 417
+n1 = 686
+alpha = 0.9  # 評価関数の重み
 
 data = S2MFD.Data.initial_load(datadir)
 
@@ -140,5 +141,5 @@ plt.clf()
 cc   = np.sum((SN1-np.mean(SN1))*(SN2-np.mean(SN2)))/np.sqrt(np.sum((SN1-np.mean(SN1))**2)*np.sum((SN2-np.mean(SN2))**2))
 sd   = np.sqrt((np.sum(SN1) - np.sum(SN2))**2) / np.sum(SN1)
 print("----------------------------------------------")
-print("相関係数＝",cc,"誤差割合＝",sd)
-print("評価関数=",0.9*cc-0.1*sd)
+print("相関係数＝",cc,"誤差割合＝",sd,"(誤差割合はGA期間中の和の誤差)")
+print("評価関数=",alpha*cc-(1-alpha)*sd)

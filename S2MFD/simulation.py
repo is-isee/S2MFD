@@ -297,7 +297,7 @@ class Simulation(S2MFD.Data):
             if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
             # if self.n % 20 == 0:
                 self.nd += 1
-                print(self.nd,":",self.time/(86400*365),"year")
+                # print(self.nd,":",self.time/(86400*365),"year")
                 # magnetic field
                 # ax.clear()
                 # ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,self.Bph,vmax=5.e0,vmin=-5.e0,cmap='bwr',shading='auto')
@@ -340,6 +340,10 @@ class Simulation(S2MFD.Data):
                     parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'a3_u']} # sin関数用
                     self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time-timet[index_start]) 
                 
+                # s0を当てに行く際に利用する。
+                if hasattr(cfg, 'uu0_known'):
+                    self.cfg.uu0 = cfg.uu0_known(time=self.time-timet[index_start]) 
+                
                 self.setup = S2MFD.Setup(self.cfg, grid)
                 self.cfl_condition()
                 self.SN[self.nd-(index_start)] = self.snumbers_energy(Bpht=self.Bph)
@@ -367,7 +371,10 @@ class Simulation(S2MFD.Data):
         print("初期条件の生成を開始します。")
         self.Bph = np.load("Jouve_2008/Bpht_saved.npy")
         self.Aph = np.load("Jouve_2008/Apht_saved.npy")
-        self.cfg.uu0 = parameters['a0_u']
+        if 'a0_u' in parameters:
+            self.cfg.uu0 = parameters['a0_u']
+        else:
+            self.cfg.uu0 = cfg.uu0_const
         self.cfg.so0 = parameters['a0_s']
         self.time = 0.0
         self.setup = S2MFD.Setup(self.cfg, grid) # u0,s0のプロファイル更新
@@ -451,7 +458,10 @@ class Simulation(S2MFD.Data):
         print("初期条件の生成を開始します。")
         self.Bph = np.load("Jouve_2008/Bpht_saved.npy")
         self.Aph = np.load("Jouve_2008/Apht_saved.npy")
-        self.cfg.uu0 = parameters['a0_u']
+        if 'a0_u' in parameters:
+            self.cfg.uu0 = parameters['a0_u']
+        else:
+            self.cfg.uu0 = cfg.uu0_const
         self.cfg.so0 = parameters['a0_s']
         self.time = 0.0
         self.setup = S2MFD.Setup(self.cfg, grid) # u0,s0のプロファイル更新

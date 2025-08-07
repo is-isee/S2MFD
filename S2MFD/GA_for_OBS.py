@@ -465,7 +465,7 @@ class GeneticAlgorithm:
         eta_sbx = 2.0
         for attr in PARAMETER_NAMES:
             # 交叉する遺伝子（パラメタ）をランダムに決定
-            if random.random() > 0.5:
+            if random.random() > 0.2:
                 u_sbx = random.random()
                 if u_sbx <= 0.5:
                     beta_sbx = (2.0 * u_sbx) ** (1.0 / (eta_sbx + 1.0))

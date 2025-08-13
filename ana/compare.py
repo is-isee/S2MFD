@@ -5,14 +5,13 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir1 = '..//'
-datadir2 = '..//'
+datadir1 = '../data_sinsamp_u0s0/'
+datadir2 = '../data_num_1/'
 
-datadir1 = '../data_sinsamp_u0/'
-datadir2 = '../data_u0_sin/'
-n0 = 1463
-n1 = 1736
 
+n0 = 958
+n1 = 1355
+alpha = 0.9
 data = S2MFD.Data.initial_load(datadir1)
 
 cfg = data.cfg
@@ -186,6 +185,6 @@ so0t_dif = (so0t1/so0t2).mean()
 uu0t_dif = (uu0t1/uu0t2).mean()
 print("----------------------------------------------")
 print("相関係数＝",cc,"誤差割合＝",sd)
-print("評価関数=",0.5*cc+0.5*sd)
+print("評価関数=",alpha*cc-(1-alpha)*sd)
 print("so0の比=",so0t_dif)
 print("uu0の比=",uu0t_dif)

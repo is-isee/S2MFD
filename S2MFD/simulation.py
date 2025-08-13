@@ -347,6 +347,7 @@ class Simulation(S2MFD.Data):
                 self.setup = S2MFD.Setup(self.cfg, grid)
                 self.cfl_condition()
                 self.SN[self.nd-(index_start)] = self.snumbers_energy(Bpht=self.Bph)
+                self.ts[self.nd-(index_start)] = self.time
                 self.save()
 
             self.tvd_runge_kutta()
@@ -373,8 +374,10 @@ class Simulation(S2MFD.Data):
         self.Aph = np.load("Jouve_2008/Apht_saved.npy")
         if 'a0_u' in parameters:
             self.cfg.uu0 = parameters['a0_u']
+            print("子午面流を当てる")
         else:
             self.cfg.uu0 = cfg.uu0_const
+            print("α効果を当てる")
         self.cfg.so0 = parameters['a0_s']
         self.time = 0.0
         self.setup = S2MFD.Setup(self.cfg, grid) # u0,s0のプロファイル更新
@@ -417,6 +420,8 @@ class Simulation(S2MFD.Data):
                 self.time = timet[index_start]
                 self.SN = np.zeros_like(timet[index_start:index_end+1])
                 self.SN[0] = self.snumbers_energy(Bpht=self.Bph)
+                self.ts = np.zeros_like(timet[index_start:index_end+1])
+                self.ts[0] = self.time
                 # self.cfg.datadir = "T_"+dir_origin
                 # self.initialize_simulation()
                 print(f"{self.time/(86400*365)} [year]; u0={self.cfg.uu0}; s0={self.cfg.so0}")
@@ -581,7 +586,44 @@ class Simulation(S2MFD.Data):
         
         return sd
     # ========================================================================================== #
+    # 判定関数③（周期相関係数）
+    def judge3(self, Sunspot_N, timet):
+        """
+        Compares the period of sunspots with the simulation results
+        """
+        from scipy.signal import argrelextrema
+        
+        # 黒点数の極小を取得
+        indices_num = argrelextrema(Sunspot_N, np.less, order=30)[0]
+        indices_obs = argrelextrema(self.SN, np.less, order=30)[0]
+        
+        # 追加分
+        indices_num = np.insert(indices_num, 0, 0) # 先頭に追加
+        indices_obs = np.insert(indices_obs, 0, 0) # 先頭に追加
+        indices_num = np.insert(indices_num, len(indices_num),len(Sunspot_N)) # 最後に追加
+        indices_obs = np.insert(indices_obs, len(indices_obs),len(self.SN)) # 最後に追加
+        print("numの極小点のインデックス:", indices_num)
+        print("obsの極小点のインデックス:", indices_obs)
 
+        # 時間を調べる
+        timet_num = timet[indices_num]
+        timet_obs = self.ts[indices_obs]
+
+        # 周期を計算
+        period_num = np.diff(timet_num)/ 365/ 24 / 3600 # 秒から年に変換
+        period_obs = np.diff(timet_obs)/ 365/ 24 / 3600 # 秒から年に変換
+        print("numの周期:", period_num, "obsの周期:", period_obs)
+        
+        # 周期の相関係数を計算
+        if len(period_num) == len(period_obs):
+            period_corr = np.sum((period_num-np.mean(period_num))*(period_obs-np.mean(period_obs)))/np.sqrt(np.sum((period_num-np.mean(period_num))**2)\
+                            *np.sum((period_obs-np.mean(period_obs))**2))
+            print("周期の相関係数=", period_corr)
+        else:
+            print("周期の長さが異なるため、相関係数を計算できません。")
+            period_corr = 0.0
+        
+        return period_corr
     
         
     """

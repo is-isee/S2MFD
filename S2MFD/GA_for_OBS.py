@@ -82,7 +82,7 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     # TODO : 変更箇所②
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.872,
+        threshold=0.97,
         max_generations=70,  # 最大世代数
         mutation_probability=0.3,
         crossover_probability=0.8,
@@ -1015,12 +1015,12 @@ class DefunctionProblem(Chromosome):
         
         cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
-        # pd  = sim.judge3(Sunspot_N[startpoint:endpoint+1],timet[startpoint:endpoint+1])
+        pd  = sim.judge3(Sunspot_N[startpoint:endpoint+1],timet[startpoint:endpoint+1])
 
         # TODO 変更箇所④     
-        alpha = 0.9
-        eva = alpha*cc - (1-alpha)*sd
-        # eva = pd
+        # alpha = 0.9
+        # eva = alpha*cc - (1-alpha)*sd
+        eva = pd
         
         return eva
     @staticmethod
@@ -1040,12 +1040,12 @@ class DefunctionProblem(Chromosome):
         
         cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
-        # pd  = sim.judge3(Sunspot_N[startpoint:endpoint+1],timet[startpoint:endpoint+1])
+        pd  = sim.judge3(Sunspot_N[startpoint:endpoint+1],timet[startpoint:endpoint+1])
         
         # TODO 変更箇所⑤     
-        alpha = 0.9
-        eva = alpha*cc - (1-alpha)*sd
-        # eva = pd
+        # alpha = 0.9
+        # eva = alpha*cc - (1-alpha)*sd
+        eva = pd
         return eva
     @staticmethod
     def get_fitness_static(args):

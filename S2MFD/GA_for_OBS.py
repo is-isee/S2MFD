@@ -82,7 +82,7 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     # TODO : 変更箇所②
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.881,
+        threshold=0.872,
         max_generations=70,  # 最大世代数
         mutation_probability=0.3,
         crossover_probability=0.8,
@@ -729,7 +729,8 @@ class GeneticAlgorithm:
                 print("fitness:", fitness_story)
                 print("diversity:", diversity_story)
 
-                if best_chromosome.get_fitness() >= self._threshold:
+                if (best_chromosome.get_fitness() >= self._threshold 
+                    or generation_idx == self._max_generations - 1):
                     print("=== 閾値到達個体で再シミュレーション ===")
                     args = self._prepare_simulation_args(best_chromosome)
                     params = best_chromosome.get_parameters()
@@ -892,7 +893,7 @@ class DefunctionProblem(Chromosome):
             'a0_s': np.random.uniform(40, 65),
             # 'a1_s': np.random.uniform(-15, 15),
             # 'a2_s': np.random.uniform(-15, 15),
-            # 'a3_s': np.random.uniform(-15, 15),
+            # 'a3_s': np.random.uniform(-15, 15)
             'a0_u': np.random.uniform(500, 1100),
             'a1_u': np.random.uniform(-150, 150),
             'a2_u': np.random.uniform(-150, 150),
@@ -1014,10 +1015,12 @@ class DefunctionProblem(Chromosome):
         
         cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
-        
+        # pd  = sim.judge3(Sunspot_N[startpoint:endpoint+1],timet[startpoint:endpoint+1])
+
         # TODO 変更箇所④     
         alpha = 0.9
         eva = alpha*cc - (1-alpha)*sd
+        # eva = pd
         
         return eva
     @staticmethod
@@ -1037,11 +1040,12 @@ class DefunctionProblem(Chromosome):
         
         cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
+        # pd  = sim.judge3(Sunspot_N[startpoint:endpoint+1],timet[startpoint:endpoint+1])
         
         # TODO 変更箇所⑤     
         alpha = 0.9
         eva = alpha*cc - (1-alpha)*sd
-        
+        # eva = pd
         return eva
     @staticmethod
     def get_fitness_static(args):

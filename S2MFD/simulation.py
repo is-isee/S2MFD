@@ -509,6 +509,8 @@ class Simulation(S2MFD.Data):
                 self.time = timet[index_start]
                 self.SN = np.zeros_like(timet[index_start:index_end+1])
                 self.SN[0] = self.snumbers_energy(Bpht=self.Bph)
+                self.ts = np.zeros_like(timet[index_start:index_end+1])
+                self.ts[0] = self.time
                 self.cfg.datadir = dir_origin
                 self.initialize_simulation()
                 print(f"{self.time/(86400*365)} [year]; u0={self.cfg.uu0}; s0={self.cfg.so0}")
@@ -600,8 +602,8 @@ class Simulation(S2MFD.Data):
         # 追加分
         indices_num = np.insert(indices_num, 0, 0) # 先頭に追加
         indices_obs = np.insert(indices_obs, 0, 0) # 先頭に追加
-        indices_num = np.insert(indices_num, len(indices_num),len(Sunspot_N)) # 最後に追加
-        indices_obs = np.insert(indices_obs, len(indices_obs),len(self.SN)) # 最後に追加
+        indices_num = np.insert(indices_num, len(indices_num),len(Sunspot_N)-1) # 最後に追加
+        indices_obs = np.insert(indices_obs, len(indices_obs),len(self.SN)-1) # 最後に追加
         print("numの極小点のインデックス:", indices_num)
         print("obsの極小点のインデックス:", indices_obs)
 

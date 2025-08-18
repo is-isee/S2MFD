@@ -34,8 +34,8 @@ from scipy.optimize import curve_fit
 # TODO: 変更箇所①
 # PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u', 'u0_const', 's0_const']
 # PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s', 'u0_const', 's0_const']
-PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'a0_s']
-# PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s','a3_s']
+# PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'a0_s']
+PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s','a3_s']
 def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir=None, g_num=0):
     """
     観測データのインプット
@@ -82,7 +82,7 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     # TODO : 変更箇所②
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.97,
+        threshold=0.578,
         max_generations=70,  # 最大世代数
         mutation_probability=0.3,
         crossover_probability=0.8,
@@ -891,13 +891,13 @@ class DefunctionProblem(Chromosome):
         # TODO: 変更箇所③
         parameters = {
             'a0_s': np.random.uniform(40, 65),
-            # 'a1_s': np.random.uniform(-15, 15),
-            # 'a2_s': np.random.uniform(-15, 15),
-            # 'a3_s': np.random.uniform(-15, 15)
-            'a0_u': np.random.uniform(500, 1100),
-            'a1_u': np.random.uniform(-150, 150),
-            'a2_u': np.random.uniform(-150, 150),
-            'a3_u': np.random.uniform(-150, 150)
+            'a1_s': np.random.uniform(-15, 15),
+            'a2_s': np.random.uniform(-15, 15),
+            'a3_s': np.random.uniform(-15, 15)
+            # 'a0_u': np.random.uniform(500, 1100),
+            # 'a1_u': np.random.uniform(-150, 150),
+            # 'a2_u': np.random.uniform(-150, 150),
+            # 'a3_u': np.random.uniform(-150, 150)
         }
         problem = DefunctionProblem(parameters, parameter_file, timet, startpoint, endpoint, Sunspot_N, output_dir)
         return problem
@@ -1018,9 +1018,9 @@ class DefunctionProblem(Chromosome):
         pd  = sim.judge3(Sunspot_N[startpoint:endpoint+1],timet[startpoint:endpoint+1])
 
         # TODO 変更箇所④     
-        # alpha = 0.9
-        # eva = alpha*cc - (1-alpha)*sd
-        eva = pd
+        alpha = 0.6
+        eva = alpha*cc - (1-alpha)*sd
+        # eva = pd
         
         return eva
     @staticmethod
@@ -1043,9 +1043,10 @@ class DefunctionProblem(Chromosome):
         pd  = sim.judge3(Sunspot_N[startpoint:endpoint+1],timet[startpoint:endpoint+1])
         
         # TODO 変更箇所⑤     
-        # alpha = 0.9
-        # eva = alpha*cc - (1-alpha)*sd
-        eva = pd
+        alpha = 0.6
+        eva = alpha*cc - (1-alpha)*sd
+        # eva = pd
+        
         return eva
     @staticmethod
     def get_fitness_static(args):

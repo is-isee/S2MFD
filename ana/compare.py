@@ -6,7 +6,7 @@ import S2MFD
 
 # 分析範囲、対象は手で決める
 datadir1 = '../data_sinsamp_u0s0/'
-datadir2 = '../data_num_1/'
+datadir2 = '../data_num_u0/'
 
 
 n0 = 958
@@ -181,8 +181,8 @@ plt.clf()
 # ============================================================================== #
 cc   = np.sum((SN1-np.mean(SN1))*(SN2-np.mean(SN2)))/np.sqrt(np.sum((SN1-np.mean(SN1))**2)*np.sum((SN2-np.mean(SN2))**2))
 sd   = np.sqrt((np.sum(SN1) - np.sum(SN2))**2) / np.sum(SN1)
-so0t_dif = (so0t1/so0t2).mean()
-uu0t_dif = (uu0t1/uu0t2).mean()
+so0t_dif = (so0t2/so0t1).mean()
+uu0t_dif = (uu0t2/uu0t1).mean()
 print("----------------------------------------------")
 print("相関係数＝",cc,"誤差割合＝",sd)
 print("評価関数=",alpha*cc-(1-alpha)*sd)

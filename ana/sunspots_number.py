@@ -88,8 +88,8 @@ plt.xlabel('年', fontsize=3*size)
 plt.ylabel('黒点相対数', fontsize=3*size)
 plt.xticks(fontsize=2*size)  # x軸の数値サイズを調整
 plt.yticks(fontsize=2*size)  # y軸の数値サイズを調整
-plt.xlim(145, 190)  # x軸の範囲を調整
-plt.ylim(0, 150)  # y軸の範囲を
+# plt.xlim(145, 190)  # x軸の範囲を調整
+# plt.ylim(0, 150)  # y軸の範囲を
 plt.grid(True, linestyle='--', alpha=0.7)  # グリッドを追加
 plt.legend(fontsize=14, loc='upper right')
 plt.savefig("P_sunspots_number.png", dpi=300)  # 解像度を高める

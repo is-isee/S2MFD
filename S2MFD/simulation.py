@@ -372,6 +372,8 @@ class Simulation(S2MFD.Data):
         print("初期条件の生成を開始します。")
         self.Bph = np.load("Jouve_2008/Bpht_saved.npy")
         self.Aph = np.load("Jouve_2008/Apht_saved.npy")
+
+        # a0_uが変数として与えられているかで判定
         if 'a0_u' in parameters:
             self.cfg.uu0 = parameters['a0_u']
             print("子午面流を当てる")
@@ -463,6 +465,8 @@ class Simulation(S2MFD.Data):
         print("初期条件の生成を開始します。")
         self.Bph = np.load("Jouve_2008/Bpht_saved.npy")
         self.Aph = np.load("Jouve_2008/Apht_saved.npy")
+
+        # a0_uが変数として与えられているかで判定
         if 'a0_u' in parameters:
             self.cfg.uu0 = parameters['a0_u']
         else:

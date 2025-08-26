@@ -3,6 +3,7 @@ import numpy as np
 import os, sys
 sys.path.append('../')
 import S2MFD
+import matplotlib as mpl
 
 """
 # 黒点数の計上
@@ -81,7 +82,6 @@ plt.figure(figsize=(10, 6))  # グラフのサイズを調整
 # plt.xlim(110,500)  # x軸の範囲を調整
 # plt.ylim(0,2)  # x軸の範囲を調整
 plt.plot(time_y, SN2, 'r', label='Sunspots Number')  # ラベル名を明確に
-import matplotlib as mpl
 mpl.rcParams['font.family'] = 'IPAPGothic'
 plt.title("黒点数時間変化", fontsize=4*size)
 plt.xlabel('年', fontsize=3*size)

@@ -82,7 +82,7 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     # TODO : 変更箇所②
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.578,
+        threshold=0.872,
         max_generations=70,  # 最大世代数
         mutation_probability=0.3,
         crossover_probability=0.8,
@@ -1018,7 +1018,7 @@ class DefunctionProblem(Chromosome):
         pd  = sim.judge3(Sunspot_N[startpoint:endpoint+1],timet[startpoint:endpoint+1])
 
         # TODO 変更箇所④     
-        alpha = 0.6
+        alpha = 0.9
         eva = alpha*cc - (1-alpha)*sd
         # eva = pd
         
@@ -1043,7 +1043,7 @@ class DefunctionProblem(Chromosome):
         pd  = sim.judge3(Sunspot_N[startpoint:endpoint+1],timet[startpoint:endpoint+1])
         
         # TODO 変更箇所⑤     
-        alpha = 0.6
+        alpha = 0.9
         eva = alpha*cc - (1-alpha)*sd
         # eva = pd
         

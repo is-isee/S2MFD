@@ -631,6 +631,17 @@ class Simulation(S2MFD.Data):
         
         return period_corr
     
+    # ========================================================================================== #
+    # 判定関数④（黒点総の誤差）
+    def judge4(self, Sunspot_N):
+        """
+        Compares the number of sunspots with the simulation results
+        """
+        sd = 0.0
+        sd = np.sum(np.sqrt((Sunspot_N - self.SN)**2)) / np.sum(Sunspot_N)
+        print("黒点数の誤差=",sd)
+        
+        return sd
         
     """
     ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓

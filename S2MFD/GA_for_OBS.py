@@ -34,8 +34,8 @@ from scipy.optimize import curve_fit
 # TODO: 変更箇所①
 # PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u', 'u0_const', 's0_const']
 # PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s', 'u0_const', 's0_const']
-PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'a0_s']
-# PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s','a3_s']
+# PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'a0_s']
+PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s','a3_s']
 def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir=None, g_num=0):
     """
     観測データのインプット
@@ -721,10 +721,13 @@ class GeneticAlgorithm:
                     f'世代数 : {generation_idx}'
                     f' 最良個体情報 : {best_chromosome}'
                 )
-                # # 722行目付近に追加
+
+                ####途中経過を残す用のコード####
                 # args = self._prepare_simulation_args(best_chromosome)
                 # result = DefunctionProblem.run_instant_simulation(**args,number=generation_idx)
                 # print("最良個体シミュレーション")
+                ####途中経過を残す用のコード####
+                
                 fitness_story[generation_idx]   = best_chromosome.get_fitness()
                 diversity_story[generation_idx] = self.diversity()
                 # ASP使用
@@ -897,13 +900,13 @@ class DefunctionProblem(Chromosome):
         # TODO: 変更箇所③
         parameters = {
             'a0_s': np.random.uniform(40, 65),
-            # 'a1_s': np.random.uniform(-15, 15),
-            # 'a2_s': np.random.uniform(-15, 15),
-            # 'a3_s': np.random.uniform(-15, 15)
-            'a0_u': np.random.uniform(500, 1100),
-            'a1_u': np.random.uniform(-150, 150),
-            'a2_u': np.random.uniform(-150, 150),
-            'a3_u': np.random.uniform(-150, 150)
+            'a1_s': np.random.uniform(-15, 15),
+            'a2_s': np.random.uniform(-15, 15),
+            'a3_s': np.random.uniform(-15, 15)
+            # 'a0_u': np.random.uniform(500, 1100),
+            # 'a1_u': np.random.uniform(-150, 150),
+            # 'a2_u': np.random.uniform(-150, 150),
+            # 'a3_u': np.random.uniform(-150, 150)
         }
         problem = DefunctionProblem(parameters, parameter_file, timet, startpoint, endpoint, Sunspot_N, output_dir)
         return problem
@@ -1038,7 +1041,7 @@ class DefunctionProblem(Chromosome):
         print(", ".join([f"{key} = {value}" for key, value in parameters.items()]))
         cfg = S2MFD.Cfg(parameter_file)
         
-        cfg.datadir = "datavideo/"+output_dir+number
+        cfg.datadir = "datavideo/"+output_dir+str(number)
         sim = S2MFD.Simulation(cfg)
         sim.initialize_simulation()
         sim.cfl_condition()

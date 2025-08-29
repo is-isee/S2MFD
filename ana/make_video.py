@@ -4,9 +4,12 @@ import os, sys
 sys.path.append('../')
 import S2MFD
 from matplotlib.animation import FuncAnimation
+# 日本語使用可能
+import matplotlib as mpl
+mpl.rcParams['font.family'] = 'IPAPGothic'
 
 # TODO : 参照ファイル、動画を作成するためのディレクトリと出力ファイル名を指定
-datadir = '../data/'
+datadir = '../num_results/data_nearOBS/'
 image_directory = 'video_data'  # PNGファイルが保存されているディレクトリ
 output_video = os.path.join(image_directory, 'magnetic_field.mp4')  # 出力するMP4ファイル名
 
@@ -46,7 +49,7 @@ Apht = np.zeros((grid.ixg,grid.jxg,n1-n0))
 so0t = np.zeros(n1-n0)
 uu0t = np.zeros(n1-n0)
 dltt = np.zeros(n1-n0)
-
+size=18
 for n  in range(n0,n1):
     print(n)
     data.data_load(n)
@@ -71,11 +74,17 @@ for n  in range(n0,n1):
         ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4)
         radius = grid.rrmin/cfg.RSUN         
         ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4)
-        ax.set_xlabel(r'$r/R$', fontsize=20)
-        ax.set_ylabel(r'$r/R$', fontsize=20)
-        ax.set_title("Evolution of Internal Magnetic Field", fontsize=25)
+        ax.set_xlabel(r'$x/R_\odot$', fontsize=2*size)
+        ax.set_ylabel(r'$y/R_\odot$', fontsize=2*size)
+        ax.set_title("内部磁場時間発展", fontsize=3*size)
+        # 軸のメモリフォントサイズ
+        plt.xticks(fontsize=1.5*size)  # x軸の数値サイズを調整
+        plt.yticks(fontsize=1.5*size)  # y軸の数値サイズを調整
+        yticks = np.arange(-1.0, 1.01, 0.2)
+        plt.yticks(yticks)
         ax.set_xlim( 0,1)
         ax.set_ylim(-1,1)
+        plt.tight_layout()
         plt.savefig(os.path.join(image_directory, str(n).zfill(6) + '.png'), dpi=300)
     
 import os

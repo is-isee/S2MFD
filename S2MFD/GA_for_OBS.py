@@ -60,7 +60,9 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     """
     # 極小期の場所を調べられる
     minima_indices = argrelextrema(Sunspot_N, np.less, order=30)[0]
-    print("極小期リスト：",minima_indices)
+    print("極小期(index,年)=",minima_indices,timet[minima_indices]/365/24/3600)
+    print(timet[len(Sunspot_N)-1]/365/24/3600)
+    # print("極小期年リスト：",timet[minima_indices]/365/24/3600)
 
 
     defunction_initial_population: List[DefunctionProblem] = [
@@ -82,7 +84,7 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     # TODO : 変更箇所②
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.881,
+        threshold=0.872,
         max_generations=70,  # 最大世代数
         mutation_probability=0.3,
         crossover_probability=0.8,
@@ -719,6 +721,13 @@ class GeneticAlgorithm:
                     f'世代数 : {generation_idx}'
                     f' 最良個体情報 : {best_chromosome}'
                 )
+
+                ####途中経過を残す用のコード####
+                # args = self._prepare_simulation_args(best_chromosome)
+                # result = DefunctionProblem.run_instant_simulation(**args,number=generation_idx)
+                # print("最良個体シミュレーション")
+                ####途中経過を残す用のコード####
+                
                 fitness_story[generation_idx]   = best_chromosome.get_fitness()
                 diversity_story[generation_idx] = self.diversity()
                 # ASP使用
@@ -729,7 +738,8 @@ class GeneticAlgorithm:
                 print("fitness:", fitness_story)
                 print("diversity:", diversity_story)
 
-                if best_chromosome.get_fitness() >= self._threshold:
+                if (best_chromosome.get_fitness() >= self._threshold 
+                    or generation_idx == self._max_generations - 1):
                     print("=== 閾値到達個体で再シミュレーション ===")
                     args = self._prepare_simulation_args(best_chromosome)
                     params = best_chromosome.get_parameters()
@@ -892,7 +902,7 @@ class DefunctionProblem(Chromosome):
             'a0_s': np.random.uniform(40, 65),
             # 'a1_s': np.random.uniform(-15, 15),
             # 'a2_s': np.random.uniform(-15, 15),
-            # 'a3_s': np.random.uniform(-15, 15),
+            # 'a3_s': np.random.uniform(-15, 15)
             'a0_u': np.random.uniform(500, 1100),
             'a1_u': np.random.uniform(-150, 150),
             'a2_u': np.random.uniform(-150, 150),
@@ -1012,14 +1022,35 @@ class DefunctionProblem(Chromosome):
         sim.initial_for_OBS(parameters=parameters,timet=timet, index_start=startpoint, index_end=endpoint)
         sim.defunction_main_loop(parameters=parameters, timet=timet, index_start=startpoint, index_end=endpoint)
         
-        cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])
-        sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
-        
+        cc   = sim.judge(Sunspot_N[startpoint:endpoint+1])
+        sd   = sim.judge2(Sunspot_N[startpoint:endpoint+1])
+        pd   = sim.judge3(Sunspot_N[startpoint:endpoint+1],timet[startpoint:endpoint+1])
+        sd2  = sim.judge4(Sunspot_N[startpoint:endpoint+1])
+        MAPE = sim.judge5(Sunspot_N[startpoint:endpoint+1])
+
+
         # TODO 変更箇所④     
-        alpha = 0.9
-        eva = alpha*cc - (1-alpha)*sd
+        alpha = 0.5
+        eva = alpha*cc - (1-alpha)*MAPE
+        # eva = pd
         
         return eva
+    @staticmethod
+    def run_instant_simulation(parameter_file, parameters, timet, startpoint, endpoint, Sunspot_N, output_dir, number):
+        """
+        実行するシミュレーション
+        """
+        print(", ".join([f"{key} = {value}" for key, value in parameters.items()]))
+        cfg = S2MFD.Cfg(parameter_file)
+        
+        cfg.datadir = "datavideo/"+output_dir+str(number)
+        sim = S2MFD.Simulation(cfg)
+        sim.initialize_simulation()
+        sim.cfl_condition()
+        sim.initial_for_OBS(parameters=parameters,timet=timet, index_start=startpoint, index_end=endpoint)
+        sim.defunction_main_loop(parameters=parameters, timet=timet, index_start=startpoint, index_end=endpoint)
+        
+
     @staticmethod
     def run_last_simulation(parameter_file, parameters, timet, startpoint, endpoint, Sunspot_N, output_dir):
         """
@@ -1037,10 +1068,14 @@ class DefunctionProblem(Chromosome):
         
         cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
+        pd  = sim.judge3(Sunspot_N[startpoint:endpoint+1],timet[startpoint:endpoint+1])
+        sd2 = sim.judge4(Sunspot_N[startpoint:endpoint+1])
+        MAPE = sim.judge5(Sunspot_N[startpoint:endpoint+1])
         
         # TODO 変更箇所⑤     
-        alpha = 0.9
-        eva = alpha*cc - (1-alpha)*sd
+        alpha = 0.5
+        eva = alpha*cc - (1-alpha)*MAPE
+        # eva = pd
         
         return eva
     @staticmethod

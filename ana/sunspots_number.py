@@ -3,6 +3,7 @@ import numpy as np
 import os, sys
 sys.path.append('../')
 import S2MFD
+import matplotlib as mpl
 
 """
 # 黒点数の計上
@@ -73,7 +74,7 @@ SN2 = Karak_deffine(Bpht,base,cfg,grid)
 # time_s = np.linspace(0,data.cfg.tend,data.cfg.tend//data.cfg.dtout)
 time_s = timet
 time_y = time_s/data.cfg.d2s/365
-
+size = 8
 # グラフの描画
 # plt.plot(time_y,S_num2,'r',label = 'sunspots number')
 # Sunspots Number
@@ -81,10 +82,14 @@ plt.figure(figsize=(10, 6))  # グラフのサイズを調整
 # plt.xlim(110,500)  # x軸の範囲を調整
 # plt.ylim(0,2)  # x軸の範囲を調整
 plt.plot(time_y, SN2, 'r', label='Sunspots Number')  # ラベル名を明確に
-plt.xlabel('Years', fontsize=20)
-plt.ylabel('Sunspots Number', fontsize=20)
-plt.xticks(fontsize=14)  # x軸の数値サイズを調整
-plt.yticks(fontsize=14)  # y軸の数値サイズを調整
+mpl.rcParams['font.family'] = 'IPAPGothic'
+plt.title("黒点数時間変化", fontsize=4*size)
+plt.xlabel('年', fontsize=3*size)
+plt.ylabel('黒点相対数', fontsize=3*size)
+plt.xticks(fontsize=2*size)  # x軸の数値サイズを調整
+plt.yticks(fontsize=2*size)  # y軸の数値サイズを調整
+# plt.xlim(145, 190)  # x軸の範囲を調整
+# plt.ylim(0, 150)  # y軸の範囲を
 plt.grid(True, linestyle='--', alpha=0.7)  # グリッドを追加
 plt.legend(fontsize=14, loc='upper right')
 plt.savefig("P_sunspots_number.png", dpi=300)  # 解像度を高める

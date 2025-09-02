@@ -5,14 +5,13 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir1 = '..//'
-datadir2 = '..//'
+datadir1 = '../data_sinsamp_u0s0/'
+datadir2 = '../data_num_u0_s0/'
 
-datadir1 = '../data_sinsamp_u0/'
-datadir2 = '../data_u0_sin/'
-n0 = 1463
-n1 = 1736
 
+n0 = 958
+n1 = 1355
+alpha = 0.9
 data = S2MFD.Data.initial_load(datadir1)
 
 cfg = data.cfg
@@ -127,54 +126,63 @@ so0t2= so0t
 uu0t2 = uu0t
 time2 = timet/data.cfg.d2s/365
 # ============================================================================== #
+# 描画のための設定
+size = 10
+# 日本語使用可能
+import matplotlib as mpl
+mpl.rcParams['font.family'] = 'IPAPGothic'
 # グラフの描画
 plt.figure(figsize=(10, 6))  # グラフのサイズを調整
-plt.plot(time1, SN1, 'r--', label='Observation',linewidth=2.5)  # ラベル名を明確に
-plt.plot(time2, SN2, 'b', label='GA inference')  # ラベル名を明確に
+plt.plot(time1, SN1, 'r--', label='観測',linewidth=2.5)  # ラベル名を明確に
+plt.plot(time2, SN2, 'b', label='推定')  # ラベル名を明確に
 # 軸ラベル
-plt.xlabel('Years', fontsize=20)
-plt.ylabel('Sunspots Number', fontsize=20)
+plt.xlabel('年', fontsize=3*size)
+plt.ylabel('黒点相対数', fontsize=3*size)
+plt.title('黒点数時間変化', fontsize=4*size)  # タイトルを追加
 # 軸のメモリを細かく設定
-plt.xticks(fontsize=14)  # x軸の数値サイズを調整
-plt.yticks(fontsize=14)  # y軸の数値サイズを調整
+plt.xticks(fontsize=2*size)  # x軸の数値サイズを調整
+plt.yticks(fontsize=2*size)  # y軸の数値サイズを調整
 # グリッドを追加して見やすく
 plt.grid(True, linestyle='--', alpha=0.7)
 # 凡例を表示
-plt.legend(fontsize=14, loc='upper right')  # 凡例を右上に固定
+plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
+plt.tight_layout()
 # グラフを保存
 plt.savefig("P_sunspots_number_compare.png", dpi=300)  # 解像度を高める
 plt.clf()
 
-plt.plot(time1,uu0t1,'r--',label='Observation',linewidth=2.5)
-plt.plot(time2,uu0t2,'b',label='GA inference')
-plt.xlabel('Years',fontsize=20)
-plt.ylabel(r'$u_0(\rm{cm/s})$',fontsize=20)
+plt.plot(time1,uu0t1,'r--',label='観測',linewidth=2.5)
+plt.plot(time2,uu0t2,'b',label='推定')
+plt.xlabel('年',fontsize=3*size)
+plt.ylabel(r'$u_0(\rm{cm/s})$',fontsize=3*size)
+plt.title(r'$u_0$ 時間変化', fontsize=4*size)  # タイトルを追加
 ymax = max(np.max(uu0t1), np.max(uu0t2)) * 1.1
 plt.ylim(bottom=0, top=ymax)
 # 軸のメモリを細かく設定
-plt.xticks(fontsize=14)  # x軸の数値サイズを調整
-plt.yticks(fontsize=14)  # y軸の数値サイズを調整
+plt.xticks(fontsize=2*size)  # x軸の数値サイズを調整
+plt.yticks(fontsize=2*size)  # y軸の数値サイズを調整
 # グリッドを追加して見やすく
 plt.grid(True, linestyle='--', alpha=0.7)
 # 凡例を表示
-plt.legend(fontsize=14, loc='upper right')  # 凡例を右上に固定
+plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
 # グラフを保存
 plt.savefig("P_u0_compare.png", dpi=300)
 plt.clf()
 
-plt.plot(time1,so0t1,'r--',label='Observation',linewidth=2.5)
-plt.plot(time2,so0t2,'b',label='GA inference')
+plt.plot(time1,so0t1,'r--',label='観測',linewidth=2.5)
+plt.plot(time2,so0t2,'b',label='推定')
 ymax = max(np.max(so0t1), np.max(so0t2)) * 1.1
 plt.ylim(bottom=0, top=ymax)
-plt.xlabel('Years',fontsize=20)
-plt.ylabel(r'$s_0(\rm{cm/s})$',fontsize=20)
+plt.xlabel('年',fontsize=3*size)
+plt.ylabel(r'$s_0(\rm{cm/s})$',fontsize=3*size)
+plt.title(r'$s_0$ 時間変化', fontsize=4*size)  # タイトルを追加
 # 軸のメモリを細かく設定
-plt.xticks(fontsize=14)  # x軸の数値サイズを調整
-plt.yticks(fontsize=14)  # y軸の数値サイズを調整
+plt.xticks(fontsize=2*size)  # x軸の数値サイズを調整
+plt.yticks(fontsize=2*size)  # y軸の数値サイズを調整
 # グリッドを追加して見やすく
 plt.grid(True, linestyle='--', alpha=0.7)
 # 凡例を表示
-plt.legend(fontsize=14, loc='upper right')  # 凡例を右上に固定
+plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
 # グラフを保存
 plt.savefig("P_s0_compare.png", dpi=300)
 plt.clf()
@@ -182,10 +190,10 @@ plt.clf()
 # ============================================================================== #
 cc   = np.sum((SN1-np.mean(SN1))*(SN2-np.mean(SN2)))/np.sqrt(np.sum((SN1-np.mean(SN1))**2)*np.sum((SN2-np.mean(SN2))**2))
 sd   = np.sqrt((np.sum(SN1) - np.sum(SN2))**2) / np.sum(SN1)
-so0t_dif = (so0t1/so0t2).mean()
-uu0t_dif = (uu0t1/uu0t2).mean()
+so0t_dif = (so0t2/so0t1).mean()
+uu0t_dif = (uu0t2/uu0t1).mean()
 print("----------------------------------------------")
 print("相関係数＝",cc,"誤差割合＝",sd)
-print("評価関数=",0.5*cc+0.5*sd)
+print("評価関数=",alpha*cc-(1-alpha)*sd)
 print("so0の比=",so0t_dif)
 print("uu0の比=",uu0t_dif)

@@ -642,6 +642,13 @@ class Simulation(S2MFD.Data):
         print("黒点数の誤差=",sd)
         
         return sd
+
+    # 評価関数⑤（MAPE）
+    def judge5(self, Sunspot_N):
+        MAPE = 0.0
+        MAPE = np.sum(abs((Sunspot_N - self.SN) / Sunspot_N)) / len(Sunspot_N)
+
+        return MAPE
         
     """
     ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓

@@ -84,8 +84,8 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     # TODO : 変更箇所②
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.872,
-        max_generations=70,  # 最大世代数
+        threshold=0.881,
+        max_generations=50,  # 最大世代数
         mutation_probability=0.3,
         crossover_probability=0.8,
         selection_type=GeneticAlgorithm.SELECTION_TYPE_ASP_TOURNAMENT,  # 選択方式
@@ -1025,14 +1025,14 @@ class DefunctionProblem(Chromosome):
         cc   = sim.judge(Sunspot_N[startpoint:endpoint+1])
         sd   = sim.judge2(Sunspot_N[startpoint:endpoint+1])
         pd   = sim.judge3(Sunspot_N[startpoint:endpoint+1],timet[startpoint:endpoint+1])
-        sd2  = sim.judge4(Sunspot_N[startpoint:endpoint+1])
+        nmse  = sim.judge4(Sunspot_N[startpoint:endpoint+1])
         MAPE = sim.judge5(Sunspot_N[startpoint:endpoint+1])
 
 
         # TODO 変更箇所④     
-        alpha = 0.5
-        eva = alpha*cc - (1-alpha)*MAPE
-        # eva = pd
+        alpha = 0.9
+        eva = alpha*cc - (1-alpha)*nmse
+        # eva = cc
         
         return eva
     @staticmethod
@@ -1043,7 +1043,7 @@ class DefunctionProblem(Chromosome):
         print(", ".join([f"{key} = {value}" for key, value in parameters.items()]))
         cfg = S2MFD.Cfg(parameter_file)
         
-        cfg.datadir = "datavideo/"+output_dir+str(number)
+        cfg.datadir = "datavideo/data"+str(number)+"/"
         sim = S2MFD.Simulation(cfg)
         sim.initialize_simulation()
         sim.cfl_condition()
@@ -1069,13 +1069,13 @@ class DefunctionProblem(Chromosome):
         cc  = sim.judge(Sunspot_N[startpoint:endpoint+1])
         sd  = sim.judge2(Sunspot_N[startpoint:endpoint+1])
         pd  = sim.judge3(Sunspot_N[startpoint:endpoint+1],timet[startpoint:endpoint+1])
-        sd2 = sim.judge4(Sunspot_N[startpoint:endpoint+1])
+        nmse = sim.judge4(Sunspot_N[startpoint:endpoint+1])
         MAPE = sim.judge5(Sunspot_N[startpoint:endpoint+1])
         
         # TODO 変更箇所⑤     
-        alpha = 0.5
-        eva = alpha*cc - (1-alpha)*MAPE
-        # eva = pd
+        alpha = 0.9
+        eva = alpha*cc - (1-alpha)*nmse
+        # eva = cc
         
         return eva
     @staticmethod

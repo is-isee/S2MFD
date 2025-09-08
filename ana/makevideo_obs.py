@@ -5,9 +5,9 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-image_directory = 'video'  # PNGファイルが保存されているディレクトリ
-n0 = 2226
-n1 = 2702
+image_directory = 'video_s0'  # PNGファイルが保存されているディレクトリ
+n0 = 685
+n1 = 1215
 def initial_load(i,datadir):
     """ 
     Load initial configuration, grid, and setup from the specified directory.
@@ -71,8 +71,11 @@ SN1 = data[n0:n1, 3]
 # ============================================================================== #
 # datadir2
 for i in range(0,42):
-    datadir = '../datavideo/data_18/'+str(i)+'/'
-    cfg,grid,setup = initial_load(i,datadir)
+    datadir = '../datavideo/data'+str(i)+'/'
+    data = S2MFD.Data.initial_load(datadir)
+    cfg = data.cfg
+    grid = data.grid
+    setup = data.setup
 
     # ============================================================================== #
     # 黒点などを割り出すための関数
@@ -111,22 +114,22 @@ for i in range(0,42):
     uu0t = np.zeros(n1-n0)
     dltt = np.zeros(n1-n0)
 
-    for nn in range(n0,n1):
-        print(nn)
-        Bph, Aph, time, n, nd = data_load(datadir,i,nn)
-        Brr, Bth = S2MFD.physics.poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
-        d = np.load(file=datadir+str(i)+'data.'+str(nn).zfill(6)+'.npz')
-        timet[nn-n0] = d['time']
-        nt[nn-n0] = d['n']
-        ndt[nn-n0] = d['nd']
-        Brrt[:,:,nn-n0] = Brr
-        Btht[:,:,nn-n0] = Bth
-        Bpht[:,:,nn-n0] = d['Bph']
-        Apht[:,:,nn-n0] = d['Aph']
-        so0t[nn-n0] = d['so0']
-        uu0t[nn-n0] = d['uu0']
+    for n  in range(n0,n1):
+        print(n)
+        data.data_load(n)
+        Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+        d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')
+        timet[n-n0] = d['time']
+        nt[n-n0] = d['n']
+        ndt[n-n0] = d['nd']
+        Brrt[:,:,n-n0] = Brr
+        Btht[:,:,n-n0] = Bth
+        Bpht[:,:,n-n0] = d['Bph']
+        Apht[:,:,n-n0] = d['Aph']
+        so0t[n-n0] = d['so0']
+        uu0t[n-n0] = d['uu0']
         if 'dl' in d:
-            dltt[nn-n0] = d['dl']
+            dltt[n-n0] = d['dl']
         
     SN2 = Karak_deffine(Bpht,base,cfg,grid)
     so0t2= so0t

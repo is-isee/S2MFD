@@ -4,7 +4,7 @@ import os, sys
 sys.path.append('../')
 import S2MFD
 
-datadir = '../data_u0_sin/Lead_Time/'
+datadir = '../num_results/data_nearOBS/'
 data = S2MFD.Data.initial_load(datadir)
 
 cfg = data.cfg

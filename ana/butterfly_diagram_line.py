@@ -22,9 +22,8 @@ time_y = timet/data.cfg.d2s/365
 B_range = 0.05
 plt.clf()
 plt.close('all')
-fig = plt.figure('Butterfly Diagram',figsize=(10,10))
-ax1 = fig.add_subplot(2,1,1)
-ax2 = fig.add_subplot(2,1,2)
+fig = plt.figure('Butterfly Diagram',figsize=(10,5))
+ax = fig.add_subplot(1,1,1)
 
 # 描画範囲指定→年数で指定
 # ax1.set_xlim(145,190)
@@ -37,8 +36,8 @@ size=8
 
 # Hotta+2010の場合
 # B_0 = 4.e4
-c1 = ax1.pcolormesh(time_y[ns:ne], grid.th/np.pi*180, B_0*Bpht_c[:,ns:ne], cmap='bwr', shading='auto')
-c2 = ax2.pcolormesh(time_y[ns:ne],grid.th/np.pi*180,B_0*Brrt_s[:,ns:ne],vmax=B_range,vmin=-B_range,cmap='bwr',shading='auto')
+c1 = ax.pcolormesh(time_y[ns:ne], grid.th/np.pi*180, B_0*Bpht_c[:,ns:ne], cmap='bwr', shading='auto')
+c2 = ax.contour(time_y[ns:ne],grid.th/np.pi*180,B_0*Brrt_s[:,ns:ne],vmax=B_range,vmin=-B_range,colors='black',levels=np.linspace(-0.02,0.02,10))
 # c2 = ax2.pcolormesh(time_y[ns:ne],grid.th/np.pi*180,B_0*Brrt_s[:,ns:ne], cmap='bwr',shading='auto')
 # 描画範囲で色を綺麗にしたい場合
 # c1 = ax1.pcolormesh(time_y[ns:ne], grid.th/np.pi*180, B_0*Bpht_c[:,ns:ne],vmax=B_0*np.max(Bpht_c[:,2000:2500]),vmin=-B_0*np.max(Bpht_c[:,2000:2500]), cmap='bwr', shading='auto')
@@ -46,7 +45,7 @@ c2 = ax2.pcolormesh(time_y[ns:ne],grid.th/np.pi*180,B_0*Brrt_s[:,ns:ne],vmax=B_r
 # c2 = ax2.pcolormesh(time_y[ns:ne], grid.th/np.pi*180, B_0*Brrt_s[:,ns:ne], cmap='bwr', shading='auto')
 
 # カラーバーを追加
-fig.colorbar(c1, ax=ax1, orientation='vertical').set_label(r'$B_\phi$', fontsize=3*size)
+fig.colorbar(c1, ax=ax, orientation='vertical').set_label(r'$B_\phi$', fontsize=3*size)
 # fig.colorbar(c2, ax=ax2, orientation='vertical').set_label(r'$B_r$ (G)', fontsize=20)
 # cbar1 = fig.colorbar(c1, ax=ax1, orientation='vertical')
 # cbar1.set_label(r'$B_\phi$', fontsize=3*size)
@@ -68,13 +67,10 @@ mask_m = Bpht_lim < -3.0
 import matplotlib as mpl
 mpl.rcParams['font.family'] = 'IPAPGothic'
 # ax1.set_title("蝶形図", fontsize=4*size)
-ax1.set_xlabel(r'$t~[\rm{yr}]$',fontsize=3*size)
-ax2.set_xlabel(r'$t~[\rm{yr}]$',fontsize=3*size)
-ax1.set_ylabel("Latitude [degree]",fontsize=2*size)
-ax2.set_ylabel('Latitude [degree]',fontsize=2*size)
-ax1.tick_params(axis='both', which='major', labelsize=15)
-ax2.tick_params(axis='both', which='major', labelsize=15)
-
+ax.set_xlabel(r'$t~[\rm{yr}]$',fontsize=3*size)
+ax.set_ylabel('Latitude [degree]',fontsize=2*size)
+ax.tick_params(axis='both', which='major', labelsize=15)
+plt.tight_layout()
 plt.savefig("P_butterfly.png")
 plt.clf()
 plt.close('all')

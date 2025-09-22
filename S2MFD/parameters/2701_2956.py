@@ -16,10 +16,10 @@ def so0_time_dependent(a0_s,a1_s,a2_s,a3_s,time):
 
 def uu0_known(time):
     omega_u = 2*np.pi/(28*365*60*60*100)
-    a0_u=684.701447
-    a1_u=100.102742
-    a2_u=-43.932706
-    a3_u=-53.352890
+    a0_u=645.865306
+    a1_u=-72.702397
+    a2_u=122.933904
+    a3_u=-15.331953
     u0t = a0_u + a1_u*np.sin(1.0*omega_u*time) + a2_u*np.sin(2.0*omega_u*time) + a3_u*np.sin(3.0*omega_u*time)
     return u0t 
-uu0_const = 684.701447
+uu0_const = 645.865306

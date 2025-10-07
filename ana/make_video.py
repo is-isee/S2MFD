@@ -9,7 +9,7 @@ import matplotlib as mpl
 mpl.rcParams['font.family'] = 'IPAPGothic'
 
 # TODO : 参照ファイル、動画を作成するためのディレクトリと出力ファイル名を指定
-datadir = '../num_results/data_nearOBS/'
+datadir = '../../num_results/data_nearOBS/'
 image_directory = 'video_data'  # PNGファイルが保存されているディレクトリ
 output_video = os.path.join(image_directory, 'magnetic_field.mp4')  # 出力するMP4ファイル名
 
@@ -76,14 +76,17 @@ for n  in range(n0,n1):
         ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4)
         ax.set_xlabel(r'$x/R_\odot$', fontsize=2*size)
         ax.set_ylabel(r'$y/R_\odot$', fontsize=2*size)
-        ax.set_title("内部磁場時間発展", fontsize=3*size)
+        # ax.set_title("内部磁場時間発展", fontsize=3*size)
         # 軸のメモリフォントサイズ
         plt.xticks(fontsize=1.5*size)  # x軸の数値サイズを調整
-        plt.yticks(fontsize=1.5*size)  # y軸の数値サイズを調整
+        plt.yticks(fontsize=1.5*size)  # y軸の数値サイズを調整ß
         yticks = np.arange(-1.0, 1.01, 0.2)
         plt.yticks(yticks)
         ax.set_xlim( 0,1)
         ax.set_ylim(-1,1)
+        ax.text(0.05, 0.9, f"time = {d['time']:.2f} yr",
+                transform=ax.transAxes, fontsize=2*size,
+                bbox=dict(facecolor='white', alpha=0.6, edgecolor='none'))
         plt.tight_layout()
         plt.savefig(os.path.join(image_directory, str(n).zfill(6) + '.png'), dpi=300)
     

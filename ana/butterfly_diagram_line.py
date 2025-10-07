@@ -32,12 +32,14 @@ ax = fig.add_subplot(1,1,1)
 B_0 = 1
 
 # 軸ラベルなどのフォントサイズを一気に指定
-size=8
+size=10
 
 # Hotta+2010の場合
 # B_0 = 4.e4
-c1 = ax.pcolormesh(time_y[ns:ne], grid.th/np.pi*180, B_0*Bpht_c[:,ns:ne], cmap='bwr', shading='auto')
-c2 = ax.contour(time_y[ns:ne],grid.th/np.pi*180,B_0*Brrt_s[:,ns:ne],vmax=B_range,vmin=-B_range,colors='black',levels=np.linspace(-0.02,0.02,10))
+# c1 = ax.pcolormesh(time_y[ns:ne], grid.th/np.pi*180, B_0*Bpht_c[:,ns:ne], cmap='bwr', shading='auto')
+# c2 = ax.contour(time_y[ns:ne],grid.th/np.pi*180,B_0*Brrt_s[:,ns:ne],vmax=B_range,vmin=-B_range,colors='black',levels=np.linspace(-0.02,0.02,10))
+c1 = ax.pcolormesh(time_y[ns:ne], grid.th/np.pi*180, B_0*Brrt_s[:,ns:ne],vmax=B_range,vmin=-B_range, cmap='bwr', shading='auto')
+c2 = ax.contour(time_y[ns:ne],grid.th/np.pi*180,B_0*Bpht_c[:,ns:ne],colors='black',levels=np.linspace(-6,6,12))
 # c2 = ax2.pcolormesh(time_y[ns:ne],grid.th/np.pi*180,B_0*Brrt_s[:,ns:ne], cmap='bwr',shading='auto')
 # 描画範囲で色を綺麗にしたい場合
 # c1 = ax1.pcolormesh(time_y[ns:ne], grid.th/np.pi*180, B_0*Bpht_c[:,ns:ne],vmax=B_0*np.max(Bpht_c[:,2000:2500]),vmin=-B_0*np.max(Bpht_c[:,2000:2500]), cmap='bwr', shading='auto')
@@ -45,7 +47,8 @@ c2 = ax.contour(time_y[ns:ne],grid.th/np.pi*180,B_0*Brrt_s[:,ns:ne],vmax=B_range
 # c2 = ax2.pcolormesh(time_y[ns:ne], grid.th/np.pi*180, B_0*Brrt_s[:,ns:ne], cmap='bwr', shading='auto')
 
 # カラーバーを追加
-fig.colorbar(c1, ax=ax, orientation='vertical').set_label(r'$B_\phi$', fontsize=3*size)
+# fig.colorbar(c1, ax=ax, orientation='vertical').set_label(r'$B_\phi$', fontsize=3*size)
+fig.colorbar(c1, ax=ax, orientation='vertical').set_label(r'$B_r$', fontsize=3*size)
 # fig.colorbar(c2, ax=ax2, orientation='vertical').set_label(r'$B_r$ (G)', fontsize=20)
 # cbar1 = fig.colorbar(c1, ax=ax1, orientation='vertical')
 # cbar1.set_label(r'$B_\phi$', fontsize=3*size)
@@ -69,7 +72,10 @@ mpl.rcParams['font.family'] = 'IPAPGothic'
 # ax1.set_title("蝶形図", fontsize=4*size)
 ax.set_xlabel(r'$t~[\rm{yr}]$',fontsize=3*size)
 ax.set_ylabel('Latitude [degree]',fontsize=2*size)
-ax.tick_params(axis='both', which='major', labelsize=15)
+plt.xticks(fontsize=3*size)  # x軸の数値サイズを調整
+plt.yticks(fontsize=3*size)  # y軸の数値サイズを調整
+ax.tick_params(axis='both', which='major', labelsize=20)
+plt.title('(e)',fontsize=2.8*size)
 plt.tight_layout()
 plt.savefig("P_butterfly.png")
 plt.clf()

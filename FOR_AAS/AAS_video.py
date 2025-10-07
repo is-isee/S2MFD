@@ -1,0 +1,143 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import os, sys
+sys.path.append('../')
+import S2MFD
+from matplotlib.animation import FuncAnimation
+import matplotlib as mpl
+import matplotlib.ticker as ticker
+
+datadir = '../num_results/data_nearOBS/'
+image_directory = 'video_data_new'  # PNGファイルが保存されているディレクトリ
+output_video = os.path.join(image_directory, 'magnetic_field.mp4')  # 出力するMP4ファイル名
+
+# ディレクトリが存在しない場合は作成
+if not os.path.exists(image_directory):
+    os.makedirs(image_directory)
+
+data = S2MFD.Data.initial_load(datadir)
+
+cfg = data.cfg
+grid = data.grid
+setup = data.setup
+plt.clf()
+plt.close('all')
+
+
+n1 = 0
+if os.path.isdir(datadir):
+    # dataディレクトリ内の最も大きな番号を探る
+    # 特定のステップから始めたい場合は、そのステップを手で指定する
+    files = os.listdir(datadir)
+    for file in files:
+        filel = file.split('.')
+        if filel[0] == 'data':
+            n1 = max(n1, int(filel[1]))
+
+n0 = 1500
+tau_diff = data.cfg.RSUN**2/data.cfg.ett
+timet = np.zeros(n1-n0)
+nt = np.zeros(n1-n0)
+ndt = np.zeros(n1-n0)
+Brrt = np.zeros((grid.ixg,grid.jxg,n1-n0))
+Btht = np.zeros((grid.ixg,grid.jxg,n1-n0))
+Bpht = np.zeros((grid.ixg,grid.jxg,n1-n0))
+Apht = np.zeros((grid.ixg,grid.jxg,n1-n0))
+so0t = np.zeros(n1-n0)
+uu0t = np.zeros(n1-n0)
+dltt = np.zeros(n1-n0)
+
+size=22
+fig = plt.figure('dynamo',figsize=(12,16))
+ax = fig.add_subplot(111, aspect='equal')
+# cbar = fig.colorbar(c1, ax=ax, orientation='vertical')
+# cbar.set_label(r"$B_\phi$", fontsize=2.5*size)
+# cbar.ax.tick_params(labelsize=1.5*size)   
+for n  in range(1505,n1):
+    print(n)
+    data.data_load(n)
+    Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+    d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')
+    timet[n-n0] = d['time']
+    nt[n-n0] = d['n']
+    ndt[n-n0] = d['nd']
+    Brrt[:,:,n-n0] = Brr
+    Btht[:,:,n-n0] = Bth
+    Bpht[:,:,n-n0] = d['Bph']
+    Apht[:,:,n-n0] = d['Aph']
+    so0t[n-n0] = d['so0']
+    uu0t[n-n0] = d['uu0']
+    if 'dl' in d:
+        dltt[n-n0] = d['dl']
+    if n % 35 == 0:
+        ax.clear()
+        plt.close(fig)
+        fig = plt.figure('dynamo',figsize=(12,16))
+        ax = fig.add_subplot(111, aspect='equal')
+        fig.texts.clear()
+        c1 = ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,d['Bph'],vmax=6.1,vmin=-6.1,cmap='bwr',shading='auto',rasterized=True)
+        # c1 = ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,d['Aph'],vmax=1,vmin=-1,cmap='bwr',shading='auto',rasterized=True)
+        ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*d['Aph']/cfg.RSUN,colors='black',levels=np.linspace(-0.02,0.02,16), linewidths=3.5)
+        radius = grid.rrmax/cfg.RSUN
+        ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4,linewidth=2.5)
+        radius = grid.rrmin/cfg.RSUN         
+        ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color='black',alpha=0.4,linewidth=2.5)
+        ax.set_xlabel(r'$x/R_\odot$',fontsize=2.5*size)
+        ax.set_ylabel(r'$y/R_\odot$',fontsize=2.5*size)
+        # ax.set_title("(a)", fontsize=2.5*size)
+        # ax.set_title("内部磁場時間発展", fontsiz.5e=3*size)
+        # 軸のメモリフォントサイズ
+        ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
+        ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
+        plt.xticks(fontsize=1.8*size)  # x軸の数値サイズを調整
+        plt.yticks(fontsize=1.8*size)  # y軸の数値サイズを調整ß
+        yticks = np.arange(-0.9, 1.01, 0.2)
+        plt.yticks(yticks)
+        ax.set_xlim( 0,1)
+        ax.set_ylim(-1,1)
+        fig.text(0.85, 0.98, f"$t= {d['time']/365/3600/24:.2f}\\, [\\mathrm{{yr}}]$",
+                ha='right', va='top',
+                fontsize=2*size,
+                bbox=dict(facecolor='white', alpha=0.6, edgecolor='none'))
+        # カラーバーは毎回削除してから新しく作成
+        cbar = fig.colorbar(c1, ax=ax, orientation='vertical')
+        cbar.set_label(r"$B_\phi$", fontsize=2.5*size)
+        cbar.ax.tick_params(labelsize=1.5*size)
+        plt.title('(c)',fontsize=2.5*size)
+        plt.tight_layout()
+        plt.savefig(os.path.join(image_directory, str(n).zfill(6) + '.png'), dpi=150)
+    
+import sys
+sys.exit()
+
+import os
+import imageio
+
+def create_video_from_images(image_dir, output_file, fps=10):
+    """
+    PNGファイルを統合してMP4動画を作成する。
+
+    Parameters
+    ----------
+    image_dir : str
+        PNGファイルが保存されているディレクトリのパス。
+    output_file : str
+        出力するMP4ファイルのパス。
+    fps : int
+        動画のフレームレート（1秒あたりのフレーム数）。
+    """
+    # ディレクトリ内のPNGファイルを取得してソート
+    images = sorted([os.path.join(image_dir, f) for f in os.listdir(image_dir) if f.endswith('.png')])
+    if not images:
+        print("No PNG files found in the specified directory.")
+        return
+
+    # 動画を作成
+    with imageio.get_writer(output_file, fps=fps, codec="libx264") as writer:
+        for image_file in images:
+            print(f"Adding {image_file} to video...")
+            image = imageio.imread(image_file)
+            writer.append_data(image)
+
+    print(f"Video saved as {output_file}")
+# create_video_from_images(image_directory, output_video, fps=10)

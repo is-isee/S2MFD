@@ -622,12 +622,17 @@ class Simulation(S2MFD.Data):
         
         # 周期の相関係数を計算
         if len(period_num) == len(period_obs):
-            period_corr = np.sum((period_num-np.mean(period_num))*(period_obs-np.mean(period_obs)))/np.sqrt(np.sum((period_num-np.mean(period_num))**2)\
-                            *np.sum((period_obs-np.mean(period_obs))**2))
-            print("周期の相関係数=", period_corr)
+            # period_corr = np.sum((period_num-np.mean(period_num))*(period_obs-np.mean(period_obs)))/np.sqrt(np.sum((period_num-np.mean(period_num))**2)\
+            #                 *np.sum((period_obs-np.mean(period_obs))**2))
+            # print("周期の相関係数=", period_corr)
+            for i in range(len(period_num)):
+                print(f"周期{i+1}：観測値{period_obs[i]:.2f}年, シミュレーション値{period_num[i]:.2f}年, 差分{abs(period_num[i]-period_obs[i]):.2f}年")
+            print("周期の2乗平均誤差=", np.mean((period_num - period_obs)**2))
+            period_corr = -np.mean((period_num - period_obs)**2)
         else:
             print("周期の長さが異なるため、相関係数を計算できません。")
             period_corr = 0.0
+            period_corr = -100
         
         return period_corr
     

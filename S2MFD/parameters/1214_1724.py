@@ -4,15 +4,16 @@ tend = 91000*d2s
 # boundary condition
 boundary_condition_type = 'potential'
 
-def uu0_time_dependent(a0_u,a1_u,a2_u,a3_u,time):
-    omega_u = 2*np.pi/(56*365*60*60*24)
-    u0t = a0_u + a1_u*np.sin(1.0*omega_u*time) + a2_u*np.sin(2.0*omega_u*time) + a3_u*np.sin(3.0*omega_u*time)
+def uu0_time_dependent(as_u,ae_u,a1_u,a2_u,a4_u,time):
+    # 最適化区間の2倍で定義
+    inf_year = 56
+    omega_u = 2*np.pi/(inf_year*365*60*60*24*2)
+    # 線形関数
+    lin  = (as_u*(time[-1]-time)+ae_u*(time-time[0]))/(time[-1]-time[0])
+    u0t = lin + a1_u*np.sin(1.0*omega_u*time) + a2_u*np.sin(2.0*omega_u*time) + a4_u*np.sin(4.0*omega_u*time)
     return u0t
-
-# def so0_time_dependent(a0_s,a1_s,a2_s,a3_s,time):
-#     omega_s = 2*np.pi/(56*365*60*60*24)
-#     s0t = a0_s + a1_s*np.sin(1.0*omega_s*time) + a2_s*np.sin(2.0*omega_s*time) + a3_s*np.sin(3.0*omega_s*time)
-#     return s0t
+# TODO s0の推定関数を書くこと
+# TODO uu0_knownを書き直すこと
 
 # def uu0_known(time):
 #     omega_u = 2*np.pi/(56*365*60*60*24)

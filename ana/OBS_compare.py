@@ -5,10 +5,34 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir = '../OBS_results/data_obs_6_1723_1775/'
-n0 = 210
-n1 = 686
+datadir = '../OBS_results_no2/data_2226_2701_s0/'
+n0 = 2226
+n1 = 2702
+inf_year = 52
 alpha = 0.9  # 評価関数の重み
+################################################
+# split_function_prot
+# parameters.txtからパラメータを自動読み取り
+# param_path = datadir+'parameters.txt'
+# params = np.loadtxt(param_path)
+# # u0読取の場合
+# if len(params) == 5:
+#     a_0, a_1, a_2, a_4 = params[1:]
+# # so0読取の場合
+# else:
+#     a_0, a_1, a_2, a_4 = params
+# inf_year = 52
+################################################
+# split_function_now
+# parameters.txtからパラメータを自動読み取り
+param_path = datadir+'parameters.txt'
+params = np.loadtxt(param_path)
+# u0読取の場合
+if len(params) == 6:
+    a_s, a_e, a_1, a_2, a_4 = params[1:]
+# so0読取の場合
+else:
+    a_s, a_e, a_1, a_2, a_4 = params
 
 data = S2MFD.Data.initial_load(datadir)
 
@@ -156,6 +180,52 @@ plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
 plt.savefig("P_s0_compare.png", dpi=300)
 plt.clf()
 
+
+# =============================================================================== #
+# split_function_prot 100にして間違えたもの
+def split_function_prot(a_0,a_1,a_2,a_3,inf_year,time2):
+    # time２が年単位なのでd2s(day to second)と365をかけて元の単位に戻す
+    time = (time2 - time2[0])*data.cfg.d2s*365
+    omega = 2*np.pi/(inf_year*365*60*60*100)
+    sin1 = a_1*np.sin(1.0*omega*time)
+    sin2 = a_2*np.sin(2.0*omega*time)
+    sin3 = a_3*np.sin(3.0*omega*time)
+    plt.plot(time,a_0+sin1+sin2+sin3,'g',linewidth=3,label='元関数')
+    plt.plot(time,a_0+sin1,'r--',label='1次成分')
+    plt.plot(time,a_0+sin2,'m--',label='2次成分')
+    plt.plot(time,a_0+sin3,'c--',label='3次成分')
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
+    plt.tight_layout()
+    plt.savefig("split_functions_prot.png", dpi=300)  # 解像度を高める
+    plt.clf()
+# split_function_prot(a_0,a_1,a_2,a_3,inf_year,time2)
+# ============================================================================== #
+# split_function_now
+def split_function_now(a_s,a_e,a_1,a_2,a_4,inf_year,time2):
+
+    # time２が年単位なのでd2s(day to second)と365をかけて元の単位に戻す
+    time = (time2 - time2[0])*data.cfg.d2s*365
+
+    # 最適化区間の倍をとる（大スケールの再現を行うため）
+    omega = 2*np.pi/(inf_year*365*60*60*24*2)
+
+    sin1 = a_1*np.sin(1.0*omega*time)
+    sin2 = a_2*np.sin(2.0*omega*time)
+    sin4 = a_4*np.sin(4.0*omega*time)
+    lin  = (a_s*(time[-1]-time)+a_e*(time-time[0]))/(time[-1]-time[0])
+
+    plt.plot(time,lin+sin1+sin2+sin4,'g',linewidth=3,label='元関数')
+    plt.plot(time,lin+sin1,'r--',label='1次成分')
+    plt.plot(time,lin+sin2,'m--',label='2次成分')
+    plt.plot(time,lin+sin4,'c--',label='4次成分')
+    plt.plot(time,lin,'k--',label='線形成分')
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.legend(fontsize=1.6*size, loc='upper left')  # 凡例を右上に固定
+    plt.tight_layout()
+    plt.savefig("split_functions_now.png", dpi=300)  # 解像度を高める
+    plt.clf()
+# split_function_now(a_s,a_e,a_1,a_2,a_4,inf_year,time2)
 # ============================================================================== #
 cc   = np.sum((SN1-np.mean(SN1))*(SN2-np.mean(SN2)))/np.sqrt(np.sum((SN1-np.mean(SN1))**2)*np.sum((SN2-np.mean(SN2))**2))
 sd   = np.sqrt((np.sum(SN1) - np.sum(SN2))**2) / np.sum(SN1)

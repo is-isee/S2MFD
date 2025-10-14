@@ -8,7 +8,7 @@ import matplotlib as mpl
 import matplotlib.ticker as ticker
 
 datadir = '../num_results/data_nearOBS/'
-image_directory = 'video_data_new'  # PNGファイルが保存されているディレクトリ
+image_directory = 'video_data_IS'  # PNGファイルが保存されているディレクトリ
 output_video = os.path.join(image_directory, 'magnetic_field.mp4')  # 出力するMP4ファイル名
 
 # ディレクトリが存在しない場合は作成
@@ -34,7 +34,7 @@ if os.path.isdir(datadir):
         if filel[0] == 'data':
             n1 = max(n1, int(filel[1]))
 
-n0 = 1500
+n0 = 0
 tau_diff = data.cfg.RSUN**2/data.cfg.ett
 timet = np.zeros(n1-n0)
 nt = np.zeros(n1-n0)
@@ -53,7 +53,7 @@ ax = fig.add_subplot(111, aspect='equal')
 # cbar = fig.colorbar(c1, ax=ax, orientation='vertical')
 # cbar.set_label(r"$B_\phi$", fontsize=2.5*size)
 # cbar.ax.tick_params(labelsize=1.5*size)   
-for n  in range(1505,n1):
+for n  in range(0,n1):
     print(n)
     data.data_load(n)
     Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
@@ -69,7 +69,7 @@ for n  in range(1505,n1):
     uu0t[n-n0] = d['uu0']
     if 'dl' in d:
         dltt[n-n0] = d['dl']
-    if n % 35 == 0:
+    if n % 4 == 0:
         ax.clear()
         plt.close(fig)
         fig = plt.figure('dynamo',figsize=(12,16))
@@ -95,7 +95,7 @@ for n  in range(1505,n1):
         plt.yticks(yticks)
         ax.set_xlim( 0,1)
         ax.set_ylim(-1,1)
-        fig.text(0.85, 0.98, f"$t= {d['time']/365/3600/24:.2f}\\, [\\mathrm{{yr}}]$",
+        fig.text(0.74, 0.97, f"$t= {d['time']/365/3600/24:.2f}\\, [\\mathrm{{yr}}]$",
                 ha='right', va='top',
                 fontsize=2*size,
                 bbox=dict(facecolor='white', alpha=0.6, edgecolor='none'))
@@ -103,7 +103,7 @@ for n  in range(1505,n1):
         cbar = fig.colorbar(c1, ax=ax, orientation='vertical')
         cbar.set_label(r"$B_\phi$", fontsize=2.5*size)
         cbar.ax.tick_params(labelsize=1.5*size)
-        plt.title('(c)',fontsize=2.5*size)
+        # plt.title('(c)',fontsize=2.5*size)
         plt.tight_layout()
         plt.savefig(os.path.join(image_directory, str(n).zfill(6) + '.png'), dpi=150)
     
@@ -140,4 +140,4 @@ def create_video_from_images(image_dir, output_file, fps=10):
             writer.append_data(image)
 
     print(f"Video saved as {output_file}")
-# create_video_from_images(image_directory, output_video, fps=10)
+create_video_from_images(image_directory, output_video, fps=10)

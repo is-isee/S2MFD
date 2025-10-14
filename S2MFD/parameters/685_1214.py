@@ -4,25 +4,41 @@ tend = 91000*d2s
 # boundary condition
 boundary_condition_type = 'potential'
 
-def uu0_time_dependent(as_u,ae_u,a1_u,a2_u,a4_u,time):
+# def uu0_time_dependent(as_u,ae_u,a1_u,a2_u,a4_u,time):
+#     # 最適化区間の2倍で定義
+    # inf_year = 57.97260273972347
+    # omega_u = 2*np.pi/(inf_year*365*60*60*24*2)
+    # T_s = 0.0
+    # T_e = inf_year*365*60*60*24
+    # # 線形関数
+    # lin  = (as_u*(T_e-time)+ae_u*(time-T_s))/(T_e-T_s)
+    # u0t = lin + a1_u*np.sin(1.0*omega_u*time) + a2_u*np.sin(2.0*omega_u*time) + a4_u*np.sin(4.0*omega_u*time)
+#     return u0t
+# TODO s0の推定関数を書くこと
+def so0_time_dependent(as_s,ae_s,a1_s,a2_s,a4_s,time):
     # 最適化区間の2倍で定義
     inf_year = 57.97260273972347
-    omega_u = 2*np.pi/(inf_year*365*60*60*24*2)
+    omega_s = 2*np.pi/(inf_year*365*60*60*24*2)
     T_s = 0.0
     T_e = inf_year*365*60*60*24
     # 線形関数
-    lin  = (as_u*(T_e-time)+ae_u*(time-T_s))/(T_e-T_s)
-    u0t = lin + a1_u*np.sin(1.0*omega_u*time) + a2_u*np.sin(2.0*omega_u*time) + a4_u*np.sin(4.0*omega_u*time)
-    return u0t
-# TODO s0の推定関数を書くこと
+    lin  = (as_s*(T_e-time)+ae_s*(time-T_s))/(T_e-T_s)
+    so0t = lin + a1_s*np.sin(1.0*omega_s*time) + a2_s*np.sin(2.0*omega_s*time) + a4_s*np.sin(4.0*omega_s*time)
+    return so0t
 # TODO uu0_knownを書き直すこと
 
-# def uu0_known(time):
-#     omega_u = 2*np.pi/(58*365*60*60*24)
-#     a0_u=775.302217
-#     a1_u= -60.638295
-#     a2_u= -139.314257
-#     a3_u=-16.080739
-#     u0t = a0_u + a1_u*np.sin(1.0*omega_u*time) + a2_u*np.sin(2.0*omega_u*time) + a3_u*np.sin(3.0*omega_u*time)
-#     return u0t 
-# uu0_const = 775.302217
+def uu0_known(time):
+    inf_year = 57.97260273972347
+    omega_u = 2*np.pi/(inf_year*365*60*60*24*2)
+    as_u= 679.839393
+    ae_u= 638.075606
+    a1_u= -56.635055
+    a2_u= -74.484081
+    a4_u= 203.685084
+    T_s = 0.0
+    T_e = inf_year*365*60*60*24
+    lin  = (as_u*(T_e-time)+ae_u*(time-T_s))/(T_e-T_s)
+    u0t = lin + a1_u*np.sin(1.0*omega_u*time) + a2_u*np.sin(2.0*omega_u*time) + a4_u*np.sin(4.0*omega_u*time)
+
+    return u0t 
+uu0_const = 679.839393

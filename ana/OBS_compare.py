@@ -5,10 +5,10 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir = '../OBS_results_no2/data_2226_2701_s0/'
-n0 = 2226
-n1 = 2702
-inf_year = 52
+datadir = '../OBS_results_no4/data_685_1214_s0_2dim/'
+n0 = 685
+n1 = 1215
+inf_year = 57.97260273972347
 alpha = 0.9  # 評価関数の重み
 ################################################
 # split_function_prot
@@ -29,7 +29,7 @@ param_path = datadir+'parameters.txt'
 params = np.loadtxt(param_path)
 # u0読取の場合
 if len(params) == 6:
-    a_s, a_e, a_1, a_2, a_4 = params[1:]
+    a_s, a_e, a_1, a_2, a_4 = params[0:5]
 # so0読取の場合
 else:
     a_s, a_e, a_1, a_2, a_4 = params
@@ -93,7 +93,8 @@ for n  in range(n0,n1):
     print(n)
     data.data_load(n)
     Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
-    d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')
+    # d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')
+    d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz', allow_pickle=True)
     timet[n-n0] = d['time']
     nt[n-n0] = d['n']
     ndt[n-n0] = d['nd']
@@ -116,18 +117,18 @@ size = 10
 
 # 日本語使用可能
 import matplotlib as mpl
-mpl.rcParams['font.family'] = 'IPAPGothic'
+# mpl.rcParams['font.family'] = 'IPAPGothic'
 # ============================================================================== #
 # 黒点数の比較グラフ
 # グラフの描画
 plt.figure(figsize=(10, 6))  # グラフのサイズを調整
-plt.plot(time1, SN1, 'r--', label='観測',linewidth=2.5)
-plt.plot(time2, SN2, 'b', label='推定')
+plt.plot(time1, SN1, 'r--', label='observation',linewidth=2.5)
+plt.plot(time2, SN2, 'r', label='GA inference',linewidth=2.5)
 
 # 軸ラベル・タイトル
-plt.title('黒点数時間変化', fontsize=4*size)  # タイトルを追加
-plt.xlabel('年', fontsize=3*size)
-plt.ylabel('黒点相対数', fontsize=3*size)
+# plt.title('黒点数時間変化', fontsize=4*size)  # タイトルを追加
+# plt.xlabel(r't~[\mathrm{yr}]', fontsize=3*size)
+plt.ylabel(r'$\rm{SSN}$', fontsize=3*size)
 
 # 軸のメモリフォントサイズ
 plt.xticks(fontsize=2*size)  # x軸の数値サイズを調整
@@ -136,7 +137,7 @@ plt.yticks(fontsize=2*size)  # y軸の数値サイズを調整
 # グリッドを追加して見やすく
 plt.grid(True, linestyle='--', alpha=0.7)
 # 凡例を表示
-plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
+# plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
 plt.tight_layout()
 # グラフを保存
 plt.savefig("P_sunspots_number_compare.png", dpi=300)  # 解像度を高める
@@ -144,10 +145,10 @@ plt.clf()
 
 # ============================================================================== #
 # u0の比較グラフ
-plt.plot(time2,uu0t2,'b',label='推定')
-plt.xlabel('年',fontsize=3*size)
+plt.plot(time2,uu0t2,'r',label='GA inference')
+# plt.xlabel('年',fontsize=3*size)
 plt.ylabel(r'$u_0(\rm{cm/s})$',fontsize=3*size)
-plt.title(r'$u_0$ 時間変化', fontsize=4*size)  # タイトルを追加
+# plt.title(r'$u_0$ 時間変化', fontsize=4*size)  # タイトルを追加
 ymax = max(np.max(uu0t2), np.max(uu0t2)) * 1.1
 plt.ylim(bottom=0, top=ymax)
 # 軸のメモリを細かく設定
@@ -156,27 +157,29 @@ plt.yticks(fontsize=2*size)  # y軸の数値サイズを調整
 # グリッドを追加して見やすく
 plt.grid(True, linestyle='--', alpha=0.7)
 # 凡例を表示
-plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
+# plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
 # グラフを保存
 plt.savefig("P_u0_compare.png", dpi=300)
 plt.clf()
 
 # ============================================================================== #
 # so0の比較グラフ
-plt.plot(time2,so0t2,'b',label='推定')
+plt.plot(time2,so0t2,'r',label='GA inference')
 ymax = max(np.max(so0t2), np.max(so0t2)) * 1.1
 plt.ylim(bottom=0, top=ymax)
-plt.xlabel('年',fontsize=3*size)
+# plt.xlabel('年',fontsize=3*size)
+plt.xlabel(r'$t~[\rm{yr}]$', fontsize=3*size)
 plt.ylabel(r'$s_0(\rm{cm/s})$',fontsize=3*size)
-plt.title(r'$s_0$ 時間変化', fontsize=4*size)  # タイトルを追加
+# plt.title(r'$s_0$ 時間変化', fontsize=4*size)  # タイトルを追加
 # 軸のメモリを細かく設定
 plt.xticks(fontsize=2*size)  # x軸の数値サイズを調整
 plt.yticks(fontsize=2*size)  # y軸の数値サイズを調整
 # グリッドを追加して見やすく
 plt.grid(True, linestyle='--', alpha=0.7)
 # 凡例を表示
-plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
+# plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
 # グラフを保存
+plt.tight_layout()
 plt.savefig("P_s0_compare.png", dpi=300)
 plt.clf()
 
@@ -202,10 +205,13 @@ def split_function_prot(a_0,a_1,a_2,a_3,inf_year,time2):
 # split_function_prot(a_0,a_1,a_2,a_3,inf_year,time2)
 # ============================================================================== #
 # split_function_now
+mpl.rcParams['font.family'] = 'IPAPGothic'
 def split_function_now(a_s,a_e,a_1,a_2,a_4,inf_year,time2):
 
     # time２が年単位なのでd2s(day to second)と365をかけて元の単位に戻す
     time = (time2 - time2[0])*data.cfg.d2s*365
+    T_s = 0.0
+    T_e = inf_year*365*60*60*24 # 厳密には
 
     # 最適化区間の倍をとる（大スケールの再現を行うため）
     omega = 2*np.pi/(inf_year*365*60*60*24*2)
@@ -213,8 +219,8 @@ def split_function_now(a_s,a_e,a_1,a_2,a_4,inf_year,time2):
     sin1 = a_1*np.sin(1.0*omega*time)
     sin2 = a_2*np.sin(2.0*omega*time)
     sin4 = a_4*np.sin(4.0*omega*time)
-    lin  = (a_s*(time[-1]-time)+a_e*(time-time[0]))/(time[-1]-time[0])
-
+    # lin  = (a_s*(time[-1]-time)+a_e*(time-time[0]))/(time[-1]-time[0])
+    lin  = (a_s*(T_e-time)+a_e*(time-T_s))/(T_e-T_s)
     plt.plot(time,lin+sin1+sin2+sin4,'g',linewidth=3,label='元関数')
     plt.plot(time,lin+sin1,'r--',label='1次成分')
     plt.plot(time,lin+sin2,'m--',label='2次成分')
@@ -225,12 +231,10 @@ def split_function_now(a_s,a_e,a_1,a_2,a_4,inf_year,time2):
     plt.tight_layout()
     plt.savefig("split_functions_now.png", dpi=300)  # 解像度を高める
     plt.clf()
-# split_function_now(a_s,a_e,a_1,a_2,a_4,inf_year,time2)
+split_function_now(a_s,a_e,a_1,a_2,a_4,inf_year,time2)
 # ============================================================================== #
 cc   = np.sum((SN1-np.mean(SN1))*(SN2-np.mean(SN2)))/np.sqrt(np.sum((SN1-np.mean(SN1))**2)*np.sum((SN2-np.mean(SN2))**2))
-sd   = np.sqrt((np.sum(SN1) - np.sum(SN2))**2) / np.sum(SN1)
-sd2  = np.sum(np.sqrt((SN1 - SN2)**2)) / np.sum(SN1)
-MAPE = np.sum(abs((SN1 - SN2) / SN1)) / len(SN1)
+sd = np.sum((SN1 - SN2)**2) / np.sum(SN1**2)
 print("----------------------------------------------")
-print("相関係数＝",cc,"総数誤差割合＝",sd,"(誤差割合はGA期間中の和の誤差)","黒点誤差(自身で考案)=",sd2,"MAPE=",MAPE)
+print("相関係数＝",cc,"NMSE=",sd)
 print("評価関数=",alpha*cc-(1-alpha)*sd)

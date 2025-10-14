@@ -5,8 +5,8 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir = '../OBS_results/data_obs_6/'
-datadir1 = '../data_obs_random/'
+datadir = '../OBS_results_no1/data_obs_6_1723_1775/'
+datadir1 = '../../master_results/trash/data_obs_random/'
 n0 = 210
 n1 = 686
 alpha = 0.9  # 評価関数の重み
@@ -135,19 +135,19 @@ time3 = timet/data.cfg.d2s/365
 size = 10
 
 # 日本語使用可能
-import matplotlib as mpl
-mpl.rcParams['font.family'] = 'IPAPGothic'
+# import matplotlib as mpl
+# mpl.rcParams['font.family'] = 'IPAPGothic'
 # ============================================================================== #
 # 黒点数の比較グラフ
 # グラフの描画
 plt.figure(figsize=(10, 6))  # グラフのサイズを調整
-plt.plot(time1, SN1, 'salmon',lw=6,label='観測')
-plt.plot(time3, SN3, 'b--',label='推定初期')
-plt.plot(time2, SN2, 'b',lw=2.5,label='最適解')
+plt.plot(time1, SN1, 'salmon',lw=6,label='observation')
+plt.plot(time3, SN3, 'b--',label='First inference')
+plt.plot(time2, SN2, 'b',lw=2.5,label='optimal solution')
 # 軸ラベル・タイトル
-plt.title('黒点数時間変化', fontsize=4*size)  # タイトルを追加
-plt.xlabel('年', fontsize=3*size)
-plt.ylabel('黒点相対数', fontsize=3*size)
+plt.title('Sun Spot Number Time Variation', fontsize=3.5*size)  # タイトルを追加
+plt.xlabel(r'$t~[\rm{yr}]$', fontsize=3*size)
+plt.ylabel(r'$\rm{SSN}$', fontsize=3*size)
 
 # 軸のメモリフォントサイズ
 plt.xticks(fontsize=2*size)  # x軸の数値サイズを調整
@@ -156,7 +156,7 @@ plt.yticks(fontsize=2*size)  # y軸の数値サイズを調整
 # グリッドを追加して見やすく
 plt.grid(True, linestyle='--', alpha=0.7)
 # 凡例を表示
-plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
+plt.legend(fontsize=1.6*size, loc='upper left')  # 凡例を右上に固定
 plt.tight_layout()
 # グラフを保存
 plt.savefig("P_sunspots_number_compare_forpre.png", dpi=300)  # 解像度を高める

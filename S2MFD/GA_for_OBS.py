@@ -34,8 +34,11 @@ from scipy.optimize import curve_fit
 # TODO: 変更箇所①
 # PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u', 'u0_const', 's0_const']
 # PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s', 'u0_const', 's0_const']
-PARAMETER_NAMES = ['a0_u', 'a1_u', 'a2_u', 'a3_u', 'a0_s']
+# PARAMETER_NAMES = ['a0_u', 'a1_u','a2_u','a3_u','a0_s']
 # PARAMETER_NAMES = ['a0_s', 'a1_s', 'a2_s','a3_s']
+# PARAMETER_NAMES = ['as_u','ae_u','a1_u','a2_u','a4_u','a0_s']
+PARAMETER_NAMES = ['as_s','ae_s','a1_s','a2_s','a4_s']
+# PARAMETER_NAMES = ['as_u','ae_u','a1_u','a2_u','a0_s']
 def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoint=0, output_dir=None, g_num=0):
     """
     観測データのインプット
@@ -897,16 +900,32 @@ class DefunctionProblem(Chromosome):
             値が設定される。
         """
         import numpy as np
-        # TODO: 変更箇所③
+        # TODO: 変更箇所③ ここの順番はPARAMETER_NAMESと一致させること, この順番でpramaters.txtに保存される
         parameters = {
-            'a0_s': np.random.uniform(40, 65),
+            ############### u0推定 ################
+            # 'as_u': np.random.uniform(500, 900),
+            # 'ae_u': np.random.uniform(500, 900),
+            # 'a1_u': np.random.uniform(-150, 150),
+            # 'a2_u': np.random.uniform(-150, 150),
+            # 'a4_u': np.random.uniform(-150, 150),
+            # 'a0_s': np.random.uniform(40, 65)
+            ############### s0推定 ################
+            'as_s': np.random.uniform(40, 65),
+            'ae_s': np.random.uniform(40, 65),
+            'a1_s': np.random.uniform(-15, 15),
+            'a2_s': np.random.uniform(-15, 15),
+            'a4_s': np.random.uniform(-15, 15)
+
+
+            ############### 以下は履歴 ################
+            # 'a0_s': np.random.uniform(40, 65),
             # 'a1_s': np.random.uniform(-15, 15),
             # 'a2_s': np.random.uniform(-15, 15),
             # 'a3_s': np.random.uniform(-15, 15)
-            'a0_u': np.random.uniform(500, 1100),
-            'a1_u': np.random.uniform(-150, 150),
-            'a2_u': np.random.uniform(-150, 150),
-            'a3_u': np.random.uniform(-150, 150)
+            # 'a0_u': np.random.uniform(500, 1100),
+            # 'a1_u': np.random.uniform(-150, 150),
+            # 'a2_u': np.random.uniform(-150, 150),
+            # 'a3_u': np.random.uniform(-150, 150)
         }
         problem = DefunctionProblem(parameters, parameter_file, timet, startpoint, endpoint, Sunspot_N, output_dir)
         return problem
@@ -942,7 +961,7 @@ class DefunctionProblem(Chromosome):
         for i in range(len(u0_values)):
             step_timet.extend([minima_timet[i], minima_timet[i+1]])
             step_u0.extend([u0_values[i], u0_values[i]])
-        # TODO 変更箇所
+        #変更箇所
         def sin_func(time, a0, a1, a2, a3):
             omega = 2*np.pi/(150*365*60*60*100)
             return a0 + a1 * np.sin(omega * time) + a2 * np.sin(2.0 * omega * time) + a3 * np.sin(3.0 * omega * time)
@@ -952,7 +971,7 @@ class DefunctionProblem(Chromosome):
         popt, _ = curve_fit(sin_func, step_timet-timet[0], step_u0, p0=p0, maxfev=10000)
         a0, a1, a2, a3 = popt
 
-        # TODO 変更箇所
+        #変更箇所
         parameters = {
             'a0_u': a0,
             'a1_u': a1,

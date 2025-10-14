@@ -254,6 +254,7 @@ class Simulation(S2MFD.Data):
         'a1_s': 0.0,
         'a2_s': 0.0,
         'a3_s': 0.0,
+        'a4_s': 0.0,
         'b1_s': 0.0,
         'b2_s': 0.0,
         'b3_s': 0.0,
@@ -262,12 +263,17 @@ class Simulation(S2MFD.Data):
         'a1_u': 0.0,
         'a2_u': 0.0,
         'a3_u': 0.0,
+        'a4_u': 0.0,
         'b1_u': 0.0,
         'b2_u': 0.0,
         'b3_u': 0.0,
         'omega_u': 0.0,
         'u0_const': 0.0,
-        's0_const': 0.0
+        's0_const': 0.0,
+        'as_u': 0.0,
+        'ae_u': 0.0,
+        'as_s': 0.0,
+        'ae_s': 0.0
         }
     def defunction_main_loop(self,parameters: Dict[str, float],timet,index_start,index_end):
         """
@@ -331,14 +337,15 @@ class Simulation(S2MFD.Data):
                 if hasattr(cfg, 'so0_time_dependent'):
                     # parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s', 'omega_s']}
                     # self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time) # フーリエ級数用
-                    parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'a3_s']}
+                    parameters_s = {key: parameters[key] for key in ['as_s', 'ae_s', 'a1_s', 'a2_s', 'a4_s']}
                     self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time-timet[index_start]) # sin関数用
                 
                 if hasattr(cfg, 'uu0_time_dependent'):
                     # parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'b1_u', 'b2_u', 'omega_u']}
                     # self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time) # フーリエ級数用
-                    parameters_u = {key: parameters[key] for key in ['a0_u', 'a1_u', 'a2_u', 'a3_u']} # sin関数用
-                    self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time-timet[index_start]) 
+                    parameters_u = {key: parameters[key] for key in ['as_u', 'ae_u', 'a1_u', 'a2_u', 'a4_u']} # sin関数用
+                    # parameters_u = {key: parameters[key] for key in ['as_u', 'ae_u', 'a1_u', 'a2_u']} # sin関数用
+                    self.cfg.uu0 = cfg.uu0_time_dependent(**parameters_u,time=self.time-timet[index_start]) # baseを0にする操作をしてある
                 
                 # s0を当てに行く際に利用する。
                 if hasattr(cfg, 'uu0_known'):
@@ -373,14 +380,15 @@ class Simulation(S2MFD.Data):
         self.Bph = np.load("Jouve_2008/Bpht_saved.npy")
         self.Aph = np.load("Jouve_2008/Apht_saved.npy")
 
-        # a0_uが変数として与えられているかで判定
-        if 'a0_u' in parameters:
-            self.cfg.uu0 = parameters['a0_u']
+        # TODO 特定の変数が与えられているかで判定
+        if 'as_u' in parameters:
+            self.cfg.uu0 = parameters['as_u']
+            self.cfg.so0 = parameters['a0_s']
             print("子午面流を当てる")
         else:
             self.cfg.uu0 = cfg.uu0_const
+            self.cfg.so0 = parameters['as_s']
             print("α効果を当てる")
-        self.cfg.so0 = parameters['a0_s']
         self.time = 0.0
         self.setup = S2MFD.Setup(self.cfg, grid) # u0,s0のプロファイル更新
         
@@ -466,12 +474,13 @@ class Simulation(S2MFD.Data):
         self.Bph = np.load("Jouve_2008/Bpht_saved.npy")
         self.Aph = np.load("Jouve_2008/Apht_saved.npy")
 
-        # a0_uが変数として与えられているかで判定
-        if 'a0_u' in parameters:
-            self.cfg.uu0 = parameters['a0_u']
+        # TODO 特定の変数として与えられているかで判定
+        if 'as_u' in parameters:
+            self.cfg.uu0 = parameters['as_u']
+            self.cfg.so0 = parameters['a0_s']
         else:
             self.cfg.uu0 = cfg.uu0_const
-        self.cfg.so0 = parameters['a0_s']
+            self.cfg.so0 = parameters['as_s']
         self.time = 0.0
         self.setup = S2MFD.Setup(self.cfg, grid) # u0,s0のプロファイル更新
         
@@ -546,7 +555,6 @@ class Simulation(S2MFD.Data):
         self.cfg.uu0 = uu0t[index]
         self.cfg.so0 = so0t[index]
         self.time = timet[index]
-        # TODO パラメタ変更時に設定
         if hasattr(cfg, 'so0_time_dependent'):
             parameters_s = {key: parameters[key] for key in ['a0_s', 'a1_s', 'a2_s', 'b1_s', 'b2_s','omega_s']}
             self.cfg.so0 = cfg.so0_time_dependent(**parameters_s,time=self.time)
@@ -600,14 +608,16 @@ class Simulation(S2MFD.Data):
         from scipy.signal import argrelextrema
         
         # 黒点数の極小を取得
-        indices_num = argrelextrema(Sunspot_N, np.less, order=30)[0]
-        indices_obs = argrelextrema(self.SN, np.less, order=30)[0]
+        # TODO 多分、Sunspot_Nとself.SNを逆にすべき（そこまで影響はないが）
+        indices_num = argrelextrema(self.SN, np.less, order=30)[0]
+        indices_obs = argrelextrema(Sunspot_N, np.less, order=30)[0]
         
         # 追加分
         indices_num = np.insert(indices_num, 0, 0) # 先頭に追加
         indices_obs = np.insert(indices_obs, 0, 0) # 先頭に追加
-        indices_num = np.insert(indices_num, len(indices_num),len(Sunspot_N)-1) # 最後に追加
         indices_obs = np.insert(indices_obs, len(indices_obs),len(self.SN)-1) # 最後に追加
+        # if not len(indices_num) == len(indices_obs):
+        indices_num = np.insert(indices_num, len(indices_num),len(Sunspot_N)-1) # 最後に追加
         print("numの極小点のインデックス:", indices_num)
         print("obsの極小点のインデックス:", indices_obs)
 

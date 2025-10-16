@@ -5,10 +5,10 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir = '../OBS_results_no4/data_685_1214_s0_2dim/'
-n0 = 685
-n1 = 1215
-inf_year = 57.97260273972347
+datadir = '../OBS_results_no4/data_210_685_s0/'
+n0 = 210
+n1 = 686
+inf_year = 52.05479452054692
 alpha = 0.9  # 評価関数の重み
 ################################################
 # split_function_prot
@@ -123,7 +123,7 @@ import matplotlib as mpl
 # グラフの描画
 plt.figure(figsize=(10, 6))  # グラフのサイズを調整
 plt.plot(time1, SN1, 'r--', label='observation',linewidth=2.5)
-plt.plot(time2, SN2, 'r', label='GA inference',linewidth=2.5)
+plt.plot(time2, SN2, 'b', label='GA inference',linewidth=2.5)
 
 # 軸ラベル・タイトル
 # plt.title('黒点数時間変化', fontsize=4*size)  # タイトルを追加
@@ -145,7 +145,7 @@ plt.clf()
 
 # ============================================================================== #
 # u0の比較グラフ
-plt.plot(time2,uu0t2,'r',label='GA inference')
+plt.plot(time2,uu0t2,'b',label='GA inference')
 # plt.xlabel('年',fontsize=3*size)
 plt.ylabel(r'$u_0(\rm{cm/s})$',fontsize=3*size)
 # plt.title(r'$u_0$ 時間変化', fontsize=4*size)  # タイトルを追加
@@ -164,7 +164,7 @@ plt.clf()
 
 # ============================================================================== #
 # so0の比較グラフ
-plt.plot(time2,so0t2,'r',label='GA inference')
+plt.plot(time2,so0t2,'b',label='GA inference')
 ymax = max(np.max(so0t2), np.max(so0t2)) * 1.1
 plt.ylim(bottom=0, top=ymax)
 # plt.xlabel('年',fontsize=3*size)

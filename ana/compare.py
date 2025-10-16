@@ -6,11 +6,11 @@ import S2MFD
 
 # 分析範囲、対象は手で決める
 datadir1 = '../num_results/data_sinsamp_u0s0/'
-datadir2 = '../num_results/data_num_u0/'
+datadir2 = '../OBS_results_no4/data_sim_u0/'
 
 
-n0 = 958
-n1 = 1355
+n0 = 863
+n1 = 1356
 alpha = 0.9
 data = S2MFD.Data.initial_load(datadir1)
 
@@ -127,13 +127,13 @@ uu0t2 = uu0t
 time2 = timet/data.cfg.d2s/365
 # ============================================================================== #
 # 描画のための設定
-size = 18
+size = 12
 # 日本語使用可能
 import matplotlib as mpl
 mpl.rcParams['font.family'] = 'IPAPGothic'
 # グラフの描画
 plt.figure(figsize=(10, 6))  # グラフのサイズを調整
-plt.plot(time1, SN1, 'r--', label='ground truth',linewidth=2.5)  # ラベル名を明確に
+plt.plot(time1, SN1, 'r', label='ground truth',linewidth=2.5)  # ラベル名を明確に
 plt.plot(time2, SN2, 'b', label='GA inference')  # ラベル名を明確に
 # plt.plot(time1, SN1, 'r--',linewidth=2.5)  # ラベル名を明確に
 # plt.plot(time2, SN2, 'b')  # ラベル名を明確に
@@ -157,7 +157,7 @@ plt.clf()
 
 
 
-plt.plot(time1,uu0t1,'r--',linewidth=2.5)
+plt.plot(time1,uu0t1,'r',linewidth=2.5)
 plt.plot(time2,uu0t2,'b')
 # plt.xlabel('年',fontsize=3*size)
 plt.xlabel(r'$t~[\rm{yr}]$', fontsize=2.5*size)
@@ -176,7 +176,7 @@ plt.grid(True, linestyle='--', alpha=0.7)
 plt.savefig("P_u0_compare.png", dpi=300)
 plt.clf()
 
-plt.plot(time1,so0t1,'r--',linewidth=2.5)
+plt.plot(time1,so0t1,'r',linewidth=2.5)
 plt.plot(time2,so0t2,'b')
 ymax = max(np.max(so0t1), np.max(so0t2)) * 1.1
 plt.ylim(bottom=0, top=ymax)

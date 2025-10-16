@@ -118,3 +118,8 @@ plt.grid(True, linestyle='--', alpha=0.7)  # グリッドを追加
 plt.legend(fontsize=14, loc='upper right')
 plt.savefig("P_s0.png", dpi=300)  # 解像度を高める
 plt.clf()
+
+from scipy.signal import argrelextrema
+minima_indices = argrelextrema(SN2, np.less, order=30)[0]
+print("極小期(index,年)=",minima_indices,time_y[minima_indices])
+print(time_y[len(SN2)-1])

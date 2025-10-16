@@ -6,11 +6,11 @@ import S2MFD
 
 # 分析範囲、対象は手で決める
 datadir1 = '../num_results/data_sinsamp_u0s0/'
-datadir2 = '../num_results/data_num_u0_s0/'
+datadir2 = '../OBS_results_no4/data_sim_s0/'
 
 
-n0 = 958
-n1 = 1355
+n0 = 863
+n1 = 1356
 alpha = 0.9
 data = S2MFD.Data.initial_load(datadir1)
 
@@ -214,15 +214,15 @@ fig.tight_layout()
 fig.savefig("P_sunspots_number_compare.png", dpi=300)  # 解像度を高める
 
 import sys
-sys.exit()
+# sys.exit()
 
 # ============================================================================== #
 cc   = np.sum((SN1-np.mean(SN1))*(SN2-np.mean(SN2)))/np.sqrt(np.sum((SN1-np.mean(SN1))**2)*np.sum((SN2-np.mean(SN2))**2))
-sd   = np.sqrt((np.sum(SN1) - np.sum(SN2))**2) / np.sum(SN1)
+sd = np.sum((SN1 - SN2)**2) / np.sum(SN1**2)
 so0t_dif = (so0t2/so0t1).mean()
 uu0t_dif = (uu0t2/uu0t1).mean()
 print("----------------------------------------------")
-print("相関係数＝",cc,"誤差割合＝",sd)
+print("相関係数＝",cc,"NMSE＝",sd)
 print("評価関数=",alpha*cc-(1-alpha)*sd)
-print("so0の比=",so0t_dif)
-print("uu0の比=",uu0t_dif)
+print("so0のMPE=",100*abs(1-so0t_dif))
+print("uu0のMPE=",100*abs(1-uu0t_dif))

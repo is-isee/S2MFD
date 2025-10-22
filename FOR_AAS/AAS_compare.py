@@ -5,7 +5,7 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir = '../OBS_results_no2/data_obs_full/'
+datadir = '../OBS_results_no4/data_obs_full/'
 n0 = 210
 n1 = 2957
 alpha = 0.9  # 評価関数の重み
@@ -323,6 +323,10 @@ axes[0].tick_params(axis='both', labelsize=8*size2)
 axes[0].grid(True, linestyle="--", alpha=0.6)
 axes[0].set_title("(a)", fontsize=10*size2, loc='left')
 # --- 中央 ---
+coef = np.polyfit(time2, uu0t2, 90)          # 係数を求める
+fit_func = np.poly1d(coef)                   # 多項式関数を生成
+uu0t2_fit = fit_func(time2)                  # フィット値を計算
+axes[1].plot(time2, uu0t2_fit, 'r', linewidth=5, label='10th-degree fit')
 axes[1].plot(time2, uu0t2, 'b', linewidth=2.5)
 ymax = max(np.max(uu0t2), np.max(uu0t2)) * 1.1
 axes[1].set_ylim(bottom=0, top=ymax)
@@ -333,6 +337,10 @@ axes[1].tick_params(axis='both', labelsize=8*size2)
 axes[1].grid(True, linestyle="--", alpha=0.6)
 axes[1].set_title("(b)", fontsize=10*size2, loc='left')
 # --- 一番下 ---
+coef = np.polyfit(time2, so0t2, 90)          # 係数を求める
+fit_func = np.poly1d(coef)                   # 多項式関数を生成
+so0t2_fit = fit_func(time2)                  # フィット値を計算
+axes[2].plot(time2, so0t2_fit, 'r', linewidth=5, label='10th-degree fit')
 axes[2].plot(time2, so0t2, 'b', linewidth=2.5)
 ymax = max(np.max(so0t2), np.max(so0t2)) * 1.1
 axes[2].set_ylim(bottom=0, top=ymax)

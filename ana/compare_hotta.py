@@ -219,10 +219,22 @@ import sys
 # ============================================================================== #
 cc   = np.sum((SN1-np.mean(SN1))*(SN2-np.mean(SN2)))/np.sqrt(np.sum((SN1-np.mean(SN1))**2)*np.sum((SN2-np.mean(SN2))**2))
 sd = np.sum((SN1 - SN2)**2) / np.sum(SN1**2)
-so0t_dif = (so0t2/so0t1).mean()
-uu0t_dif = (uu0t2/uu0t1).mean()
+# so0t_dif = (so0t2/so0t1).mean()
+# uu0t_dif = (uu0t2/uu0t1).mean()
+uu0t_mpe = (abs((uu0t2-uu0t1)/uu0t1)).mean()*100
+so0t_mpe = (abs((so0t2-so0t1)/so0t1)).mean()*100
+uu0tt_nmse = np.sum((uu0t1 - uu0t2)**2) / np.sum(uu0t1**2)
+so0tt_nmse = np.sum((so0t1 - so0t2)**2) / np.sum(so0t1**2)
+
 print("----------------------------------------------")
-print("相関係数＝",cc,"NMSE＝",sd)
+print("r_sunspot=",cc,"e_sunspot",sd)
 print("評価関数=",alpha*cc-(1-alpha)*sd)
-print("so0のMPE=",100*abs(1-so0t_dif))
-print("uu0のMPE=",100*abs(1-uu0t_dif))
+# print("uu0の比率=",uu0t_dif)
+# print("so0の比率=",so0t_dif)
+# print("uu0の誤差=",100*abs(1-uu0t_dif))
+# print("so0の誤差=",100*abs(1-so0t_dif))
+# print("u0_nmse=",uu0tt_nmse)
+# print("s0_nmse=",so0tt_nmse)
+print("----------発表資料には以下を使用----------")
+print("uu0のMPE＝",uu0t_mpe)
+print("so0のMPE＝",so0t_mpe)

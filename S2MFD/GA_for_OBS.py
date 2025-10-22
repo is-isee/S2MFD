@@ -76,7 +76,6 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     # fit_params = DefunctionProblem.approximation_parameters(
     #     timet[startpoint:endpoint+1], Sunspot_N[startpoint:endpoint+1]
     # )
-    # # TODO
     # for key_ap in ['a0_u', 'a1_u', 'a2_u', 'a3_u']:
     #     defunction_initial_population[3].parameters[key_ap] = fit_params[key_ap]
     #     defunction_initial_population[4].parameters[key_ap] = fit_params[key_ap]

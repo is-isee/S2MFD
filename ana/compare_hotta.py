@@ -5,12 +5,12 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir1 = '../num_results/data_sinsamp_u0s0/'
-datadir2 = '../OBS_results_no4/data_sim_s0/'
+datadir1 = '../num_results/data_ground/'
+datadir2 = '../OBS_results_no4/data_gt_s0/'
 
 
-n0 = 863
-n1 = 1356
+n0 = 2266
+n1 = 2768
 alpha = 0.9
 data = S2MFD.Data.initial_load(datadir1)
 

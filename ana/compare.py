@@ -6,7 +6,7 @@ import S2MFD
 
 # 分析範囲、対象は手で決める
 datadir1 = '../num_results/data_ground/'
-datadir2 = '../OBS_results_no4/data_gt_s0/'
+datadir2 = '../OBS_results_no4/data_gt_u0/'
 
 
 n0 = 2266

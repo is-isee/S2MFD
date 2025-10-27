@@ -4,7 +4,8 @@ import os, sys
 sys.path.append('../')
 import S2MFD
 
-datadir = '../num_results/data_nearOBS/'
+datadir = '../num_results/data_ground_2/'
+# datadir = "../num_results/data_nearOBS/"
 data = S2MFD.Data.initial_load(datadir)
 
 cfg = data.cfg
@@ -23,7 +24,7 @@ if os.path.isdir(datadir):
         if filel[0] == 'data':
             n1 = max(n1, int(filel[1]))
 
-n0 = 0
+n0 = 2266
 tau_diff = data.cfg.RSUN**2/data.cfg.ett
 timet = np.zeros(n1-n0)
 nt = np.zeros(n1-n0)

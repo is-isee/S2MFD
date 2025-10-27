@@ -6,7 +6,7 @@ import S2MFD
 
 # 分析範囲、対象は手で決める
 datadir1 = '../num_results/data_ground/'
-datadir2 = '../OBS_results_no4/data_gt_s0/'
+datadir2 = '../OBS_results_no4/data_gt_u0/'
 
 
 n0 = 2266
@@ -153,17 +153,17 @@ ax1.plot(time2, SN2, 'b', label='GA inference')  # ラベル名を明確に
 # plt.ylabel('黒点相対数', fontsize=3*size)
 # plt.title('黒点数時間変化', fontsize=4*size)  # タイトルを追加
 # ax1.set_xlabel(r'$t~[\rm{yr}]$')
-ax1.set_ylabel('Sunspot number')
+ax1.set_ylabel('Sunspot number',fontsize=40)
 # 軸のメモリを細かく設定
 # ax1.tick_params(labelsize=40)  # 目盛りの文字サイズを20に
 # plt.xticks(fontsize=2*size)  # x軸の数値サイズを調整
 # plt.yticks(fontsize=2*size)  # y軸の数値サイズを調整
 # グリッドを追加して見やすく
 ax1.grid(True, linestyle='--', alpha=0.7)
-ax1.set_ylim(0, 300)
+ax1.set_ylim(0, 250)
 # # 凡例を表示
 # ax1.legend(fontsize=25, loc='upper left',frameon=False)  # 凡例を右上に固定
-ax1.set_title('(b)')
+ax1.set_title('(a)')
 # グラフを保存
 
 
@@ -184,7 +184,7 @@ ax2.set_ylim(bottom=0, top=ymax)
 # plt.yticks(fontsize=2*size)  # y軸の数値サイズを調整
 # グリッドを追加して見やすく
 ax2.grid(True, linestyle='--', alpha=0.7)
-ax2.set_title('(d)')
+ax2.set_title('(c)')
 # 凡例を表示
 # plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
 # グラフを保存
@@ -203,7 +203,7 @@ ax3.set_ylabel(r'$s_0~[\rm{cm~s^{-1}}]$',fontsize=50)
 # ax3.yticks(fontsize=2*size)  # y軸の数値サイズを調整
 # グリッドを追加して見やすく
 ax3.grid(True, linestyle='--', alpha=0.7)
-ax3.set_title('(f)')
+ax3.set_title('(e)')
 # 凡例を表示
 # plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
 # グラフを保存

@@ -15,10 +15,10 @@ def uu0_time_dependent(time, ett, RSUN):
     T_s = 0.0
     T_e = inf_year*365*60*60*24
     as_u=694.88761297
-    ae_u=736
-    a1_u=-70
-    a2_u=11.5
-    a4_u=3.8
+    ae_u=580
+    a1_u=-90
+    a2_u=30
+    a4_u=11
     # 線形関数
     lin  = (as_u*(T_e-time)+ae_u*(time-T_s))/(T_e-T_s)
     u0t = lin + a1_u*np.sin(1.0*omega_u*time) + a2_u*np.sin(2.0*omega_u*time) + a4_u*np.sin(4.0*omega_u*time)

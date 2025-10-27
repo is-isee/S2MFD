@@ -81,41 +81,44 @@ size = 8
 plt.figure(figsize=(10, 6))  # グラフのサイズを調整
 # plt.xlim(110,500)  # x軸の範囲を調整
 # plt.ylim(0,2)  # x軸の範囲を調整
-plt.plot(time_y, SN2, 'r', label='Sunspots Number')  # ラベル名を明確に
-mpl.rcParams['font.family'] = 'IPAPGothic'
-plt.title("黒点数時間変化", fontsize=4*size)
-plt.xlabel('年', fontsize=3*size)
-plt.ylabel('黒点相対数', fontsize=3*size)
+plt.plot(time_y, SN2, 'r')  # ラベル名を明確に
+# mpl.rcParams['font.family'] = 'IPAPGothic'
+# plt.title("黒点数時間変化", fontsize=4*size)
+plt.xlabel(r'$t~[\mathrm{yr}]$', fontsize=3*size)
+plt.ylabel('SSN', fontsize=3*size)
 plt.xticks(fontsize=2*size)  # x軸の数値サイズを調整
 plt.yticks(fontsize=2*size)  # y軸の数値サイズを調整
 # plt.xlim(145, 190)  # x軸の範囲を調整
 # plt.ylim(0, 150)  # y軸の範囲を
+# plt.ylim(0, np.max(SN2)*1.1)  # y軸の範囲を調整
 plt.grid(True, linestyle='--', alpha=0.7)  # グリッドを追加
-plt.legend(fontsize=14, loc='upper right')
+# plt.legend(fontsize=14, loc='upper right')
 plt.savefig("P_sunspots_number.png", dpi=300)  # 解像度を高める
 plt.clf()
 
 # Meridional Flow Speed
 plt.figure(figsize=(10, 6))  # グラフのサイズを調整
-plt.plot(time_y, uu0t, 'r', label='Meridional Flow Speed')  # ラベル名を明確に
-plt.xlabel('Years', fontsize=20)
-plt.ylabel(r'$u_0(\rm{cm/s})$', fontsize=20)  # LaTeX形式で表示
+plt.plot(time_y, uu0t, 'r')  # ラベル名を明確に
+plt.xlabel(r'$t~[\mathrm{yr}]$', fontsize=3*size)
+plt.ylabel(r'$u_0~[\mathrm{cm~s^{-1}}]$', fontsize=20)  # LaTeX形式で表示
 plt.xticks(fontsize=14)  # x軸の数値サイズを調整
 plt.yticks(fontsize=14)  # y軸の数値サイズを調整
 plt.grid(True, linestyle='--', alpha=0.7)  # グリッドを追加
-plt.legend(fontsize=14, loc='upper right')
+# plt.legend(fontsize=14, loc='upper right')
+plt.ylim(0, np.max(uu0t)*1.1)  # y軸の範囲を調整
 plt.savefig("P_u0.png", dpi=300)  # 解像度を高める
 plt.clf()
 
 # Alpha Effect
 plt.figure(figsize=(10, 6))  # グラフのサイズを調整
-plt.plot(time_y, so0t, 'r', label='Alpha Effect')  # ラベル名を明確に
-plt.xlabel('Years', fontsize=20)
-plt.ylabel(r'$s_0(\rm{cm/s})$', fontsize=20)  # LaTeX形式で表示
+plt.plot(time_y, so0t, 'r')  # ラベル名を明確に
+plt.xlabel(r'$t~[\mathrm{yr}]$', fontsize=3*size)
+plt.ylabel(r'$s_0~[\mathrm{cm~s^{-1}}]$', fontsize=20)  # LaTeX形式で表示
 plt.xticks(fontsize=14)  # x軸の数値サイズを調整
 plt.yticks(fontsize=14)  # y軸の数値サイズを調整
 plt.grid(True, linestyle='--', alpha=0.7)  # グリッドを追加
-plt.legend(fontsize=14, loc='upper right')
+# plt.legend(fontsize=14, loc='upper right')
+plt.ylim(0, np.max(so0t)*1.1)  # y軸の範囲を調整
 plt.savefig("P_s0.png", dpi=300)  # 解像度を高める
 plt.clf()
 

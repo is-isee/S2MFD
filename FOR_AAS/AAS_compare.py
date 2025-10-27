@@ -326,7 +326,7 @@ axes[0].set_title("(a)", fontsize=10*size2, loc='left')
 coef = np.polyfit(time2, uu0t2, 90)          # 係数を求める
 fit_func = np.poly1d(coef)                   # 多項式関数を生成
 uu0t2_fit = fit_func(time2)                  # フィット値を計算
-axes[1].plot(time2, uu0t2_fit, 'r', linewidth=5, label='10th-degree fit')
+# axes[1].plot(time2, uu0t2_fit, 'r', linewidth=5, label='10th-degree fit')
 axes[1].plot(time2, uu0t2, 'b', linewidth=2.5)
 ymax = max(np.max(uu0t2), np.max(uu0t2)) * 1.1
 axes[1].set_ylim(bottom=0, top=ymax)
@@ -340,7 +340,7 @@ axes[1].set_title("(b)", fontsize=10*size2, loc='left')
 coef = np.polyfit(time2, so0t2, 90)          # 係数を求める
 fit_func = np.poly1d(coef)                   # 多項式関数を生成
 so0t2_fit = fit_func(time2)                  # フィット値を計算
-axes[2].plot(time2, so0t2_fit, 'r', linewidth=5, label='10th-degree fit')
+# axes[2].plot(time2, so0t2_fit, 'r', linewidth=5, label='10th-degree fit')
 axes[2].plot(time2, so0t2, 'b', linewidth=2.5)
 ymax = max(np.max(so0t2), np.max(so0t2)) * 1.1
 axes[2].set_ylim(bottom=0, top=ymax)
@@ -361,6 +361,12 @@ sd   = np.sqrt((np.sum(SN1) - np.sum(SN2))**2) / np.sum(SN1)
 sd2  = np.sum(np.sqrt((SN1 - SN2)**2)) / np.sum(SN1)
 MAPE = np.sum(abs((SN1 - SN2) / SN1)) / len(SN1)
 NMSE = np.sum((SN1 - SN2)**2) / np.sum(SN1**2)
+u0_dlp = (np.max(uu0t2) - np.mean(uu0t2))/np.mean(uu0t2)
+s0_dlp = (np.max(so0t2) - np.mean(so0t2))/np.mean(so0t2)
+u0_dlm = (np.min(uu0t2) - np.mean(uu0t2))/np.mean(uu0t2)
+s0_dlm = (np.min(so0t2) - np.mean(so0t2))/np.mean(so0t2)
 print("----------------------------------------------")
 print("相関係数＝",cc,"総数誤差割合＝",sd,"(誤差割合はGA期間中の和の誤差)","黒点誤差(自身で考案)=",sd2,"MAPE=",MAPE,"NMSE=",NMSE)
 print("評価関数=",alpha*cc-(1-alpha)*NMSE)
+print("u0変動率 +=",u0_dlp*100," -=",u0_dlm*100)
+print("s0変動率 +=",s0_dlp*100," -=",s0_dlm*100)

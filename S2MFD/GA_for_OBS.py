@@ -86,7 +86,7 @@ def GA_for_OBS(cfg=None, parameter_file=None, datadir=None, startpoint=0, endpoi
     # TODO : 変更箇所②
     ga: GeneticAlgorithm = GeneticAlgorithm(
         initial_population=defunction_initial_population,
-        threshold=0.97,
+        threshold=0.99,
         max_generations=50,  # 最大世代数
         mutation_probability=0.3,
         crossover_probability=0.8,

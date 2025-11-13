@@ -5,10 +5,13 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir1 = '../num_results/data_ground/'
-datadir2 = '../OBS_results_no4/data_gt_u0/'
+# datadir1 = '../../master_results/bisection_results/data_sample_source/'
+# datadir2 = '../../master_results/bisection_results/data_sunspot_to_source/'
+datadir1 = '../num_results/data_ground_no2/'
+datadir2 = '../OBS_results_no4/data_gt_s0_no2/'
 
-
+# n0 = 501
+# n1 = 525
 n0 = 2266
 n1 = 2768
 alpha = 0.9
@@ -133,10 +136,10 @@ import matplotlib as mpl
 mpl.rcParams['font.family'] = 'IPAPGothic'
 # グラフの描画
 plt.figure(figsize=(10, 6))  # グラフのサイズを調整
-plt.plot(time1, SN1, 'r', label='ground truth',linewidth=2.5)  # ラベル名を明確に
-plt.plot(time2, SN2, 'b', label='GA inference')  # ラベル名を明確に
-# plt.plot(time1, SN1, 'r--',linewidth=2.5)  # ラベル名を明確に
-# plt.plot(time2, SN2, 'b')  # ラベル名を明確に
+# plt.plot(time1, SN1, 'r', label='ground truth',linewidth=2.5)  # ラベル名を明確に
+# plt.plot(time2, SN2, 'b', label='GA inference')  # ラベル名を明確に
+plt.plot(time1, SN1, 'r',linewidth=2.5)  # ラベル名を明確に
+plt.plot(time2, SN2, 'b')  # ラベル名を明確に
 # 軸ラベル
 # plt.xlabel('年', fontsize=3*size)
 # plt.ylabel('黒点相対数', fontsize=3*size)
@@ -149,7 +152,7 @@ plt.yticks(fontsize=2*size)  # y軸の数値サイズを調整
 # グリッドを追加して見やすく
 plt.grid(True, linestyle='--', alpha=0.7)
 # 凡例を表示
-plt.legend(fontsize=1.6*size, loc='upper left')  # 凡例を右上に固定
+# plt.legend(fontsize=1.6*size, loc='upper left')  # 凡例を右上に固定
 plt.tight_layout()
 # グラフを保存
 plt.savefig("P_sunspots_number_compare.png", dpi=300)  # 解像度を高める
@@ -173,6 +176,7 @@ plt.grid(True, linestyle='--', alpha=0.7)
 # 凡例を表示
 # plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
 # グラフを保存
+plt.tight_layout()
 plt.savefig("P_u0_compare.png", dpi=300)
 plt.clf()
 
@@ -192,6 +196,7 @@ plt.grid(True, linestyle='--', alpha=0.7)
 # 凡例を表示
 # plt.legend(fontsize=1.6*size, loc='upper right')  # 凡例を右上に固定
 # グラフを保存
+plt.tight_layout()
 plt.savefig("P_s0_compare.png", dpi=300)
 plt.clf()
 

@@ -5,9 +5,9 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir = '../OBS_results_no4/data_210_685_s0/'
-n0 = 210
-n1 = 686
+datadir = '../OBS_results_no4/data_yr_1775_1833/'
+n0 = 685
+n1 = 1215
 inf_year = 52.05479452054692
 alpha = 0.9  # 評価関数の重み
 ################################################
@@ -122,12 +122,12 @@ import matplotlib as mpl
 # 黒点数の比較グラフ
 # グラフの描画
 plt.figure(figsize=(10, 6))  # グラフのサイズを調整
-plt.plot(time1, SN1, 'r--', label='observation',linewidth=2.5)
+plt.plot(time1, SN1, 'r', label='observation',linewidth=2.5)
 plt.plot(time2, SN2, 'b', label='GA inference',linewidth=2.5)
 
 # 軸ラベル・タイトル
 # plt.title('黒点数時間変化', fontsize=4*size)  # タイトルを追加
-# plt.xlabel(r't~[\mathrm{yr}]', fontsize=3*size)
+plt.xlabel(r'$t~[\rm{yr}]$', fontsize=3*size)
 plt.ylabel(r'$\rm{SSN}$', fontsize=3*size)
 
 # 軸のメモリフォントサイズ
@@ -146,7 +146,7 @@ plt.clf()
 # ============================================================================== #
 # u0の比較グラフ
 plt.plot(time2,uu0t2,'b',label='GA inference')
-# plt.xlabel('年',fontsize=3*size)
+plt.xlabel(r'$t~[\rm{yr}]$', fontsize=3*size)
 plt.ylabel(r'$u_0(\rm{cm/s})$',fontsize=3*size)
 # plt.title(r'$u_0$ 時間変化', fontsize=4*size)  # タイトルを追加
 ymax = max(np.max(uu0t2), np.max(uu0t2)) * 1.1

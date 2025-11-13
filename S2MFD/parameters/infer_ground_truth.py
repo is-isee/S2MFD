@@ -29,15 +29,15 @@ def so0_time_dependent(as_s,ae_s,a1_s,a2_s,a4_s,time):
 def uu0_known(time):
     inf_year = 55
     omega_u = 2*np.pi/(inf_year*365*60*60*24*2)
-    as_u= 618.035364
-    ae_u= 820.482390 
-    a1_u= -37.475468 
-    a2_u= 65.740923 
-    a4_u= 26.017596
+    as_u= 599.326604
+    ae_u= 569.309671
+    a1_u= -49.353873
+    a2_u= 77.233003
+    a4_u= 97.265465 
     T_s = 0.0
     T_e = inf_year*365*60*60*24
     lin  = (as_u*(T_e-time)+ae_u*(time-T_s))/(T_e-T_s)
     u0t = lin + a1_u*np.sin(1.0*omega_u*time) + a2_u*np.sin(2.0*omega_u*time) + a4_u*np.sin(4.0*omega_u*time)
 
     return u0t 
-uu0_const = 618.035364
+uu0_const = 599.326604

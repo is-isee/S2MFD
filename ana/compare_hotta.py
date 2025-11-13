@@ -5,8 +5,8 @@ sys.path.append('../')
 import S2MFD
 
 # 分析範囲、対象は手で決める
-datadir1 = '../num_results/data_ground/'
-datadir2 = '../OBS_results_no4/data_gt_u0/'
+datadir1 = '../num_results/data_ground_no2/'
+datadir2 = '../OBS_results_no4/data_gt_u0_no2/'
 
 
 n0 = 2266
@@ -160,7 +160,7 @@ ax1.set_ylabel('Sunspot number',fontsize=40)
 # plt.yticks(fontsize=2*size)  # y軸の数値サイズを調整
 # グリッドを追加して見やすく
 ax1.grid(True, linestyle='--', alpha=0.7)
-ax1.set_ylim(0, 250)
+ax1.set_ylim(0, np.max([SN1,SN2])*1.1)
 # # 凡例を表示
 # ax1.legend(fontsize=25, loc='upper left',frameon=False)  # 凡例を右上に固定
 ax1.set_title('(a)')

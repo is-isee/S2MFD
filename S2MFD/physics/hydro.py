@@ -54,7 +54,9 @@ from S2MFD.physics.conservative import (
 
 __all__ = [
     'HydroWork', 'cfl_dt',
-    'mass_rhs', 'angular_momentum_rhs',
+    'mass_rhs', 'angular_momentum_rhs', 'momentum_rhs',
+    'viscous_meridional_rhs',
+    'entropy_rhs', 'add_dissipative_heating', 'add_ohmic_heating',
     'to_primitive_om1', 'to_primitive_ro1',
 ]
 
@@ -216,7 +218,8 @@ def mass_rhs(dq_ro, vrr, vth, JV, JVY, izeta2, drr, dth, margin, ffr, ffth, cen)
 @njit(fastmath=False)
 def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
                          JL, JLY, JV, JVY, W2, RR, RRm, sinTH, sinTHm,
-                         ro0, ro0m, lam_rp, lam_tp, om0, nu, drr, dth, margin,
+                         ro0, ro0m, lam_rp, lam_tp, om0,
+                         nu_dif, nu_dif_m, nu_lam, nu_lam_m, drr, dth, margin,
                          magnetic, consistent_advection, ffr, ffth, cen):
     """角運動量方程式の右辺を ``dq_om`` に加算する.
 
@@ -310,8 +313,8 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
         rm = RRm[i, 0]
         rm3 = rm*rm*rm
         rm4 = rm3*rm
-        cvis = -nu*ro0m[i]*rm4
-        clam = -nu*ro0m[i]*rm3
+        cvis = -nu_dif_m[i]*ro0m[i]*rm4
+        clam = -nu_lam_m[i]*ro0m[i]*rm3
         for j in range(jxg):
             s = sinTH[i, j]
             s2 = s*s
@@ -356,8 +359,8 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
     for i in range(ixg):
         r = RR[i, 0]
         r2 = r*r
-        cvis = -nu*ro0[i]*r2
-        clam = -nu*ro0[i]*r2
+        cvis = -nu_dif[i]*ro0[i]*r2
+        clam = -nu_lam[i]*ro0[i]*r2
         for j in range(margin, jxg - margin + 1):
             sm = sinTHm[i, j]
             sm2 = sm*sm
@@ -512,7 +515,7 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
 # ---------------------------------------------------------------------------
 @njit(fastmath=False)
 def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
-                           nu, drr, dth, margin, ffr, ffth):
+                           nu_dif, nu_dif_m, drr, dth, margin, ffr, ffth):
     """子午面運動量に働く粘性力を加算する.
 
     圧縮性の粘性応力テンソル
@@ -554,7 +557,7 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
                      - sinTH[i, j - 1]*vth[i, j - 1])*0.5*idth
             div_b = (sinTH[i - 1, j + 1]*vth[i - 1, j + 1]
                      - sinTH[i - 1, j - 1]*vth[i - 1, j - 1])*0.5*idth
-            ffr[i, j] = -nu*(c43*rop3*sinTH[i, j]*dvr
+            ffr[i, j] = -nu_dif_m[i]*(c43*rop3*sinTH[i, j]*dvr
                              - c23*0.5*(rop1a*div_a + rop1b*div_b))
     zero_boundary_faces_r(ffr, margin)
 
@@ -566,7 +569,7 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
                                 - vth[i - 1, j]/rr[i - 1])*0.5*idrr
             sh_b = sinTH[i, j - 1]*(vth[i + 1, j - 1]/rr[i + 1]
                                     - vth[i - 1, j - 1]/rr[i - 1])*0.5*idrr
-            ffth[i, j] = -nu*ro0[i]*(
+            ffth[i, j] = -nu_dif[i]*ro0[i]*(
                 r2*0.5*(sh_a + sh_b)
                 + 0.5*(sinTH[i, j] + sinTH[i, j - 1])*(vrr[i, j] - vrr[i, j - 1])*idth)
     zero_boundary_faces_th(ffth, margin)
@@ -580,7 +583,7 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
             dvr = (vrr[i + 1, j]/rr[i + 1] - vrr[i - 1, j]/rr[i - 1])*0.5*idrr
             dsv = (sinTH[i, j + 1]*vth[i, j + 1]
                    - sinTH[i, j - 1]*vth[i, j - 1])*0.5*idth
-            dq_mr[i, j] += -nu*ro0[i]*(-c43*r2*sinTH[i, j]*dvr + c23*dsv)
+            dq_mr[i, j] += -nu_dif[i]*ro0[i]*(-c43*r2*sinTH[i, j]*dvr + c23*dsv)
 
     # =====================================================================
     # theta 方向運動量
@@ -593,7 +596,7 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
             dvt = (vth[i, j]/rr[i] - vth[i - 1, j]/rr[i - 1])*idrr
             dva = (vrr[i, j + 1] - vrr[i, j - 1])*0.5*idth
             dvb = (vrr[i - 1, j + 1] - vrr[i - 1, j - 1])*0.5*idth
-            ffr[i, j] = -nu*sinTH[i, j]*(rop3*dvt
+            ffr[i, j] = -nu_dif_m[i]*sinTH[i, j]*(rop3*dvt
                                          + 0.5*(rop1a*dva + rop1b*dvb))
     zero_boundary_faces_r(ffr, margin)
 
@@ -604,7 +607,7 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
                                 - vrr[i - 1, j]/rr[i - 1])*0.5*idrr
             sh_b = sinTH[i, j - 1]*(vrr[i + 1, j - 1]/rr[i + 1]
                                     - vrr[i - 1, j - 1]/rr[i - 1])*0.5*idrr
-            ffth[i, j] = -nu*ro0[i]*(
+            ffth[i, j] = -nu_dif[i]*ro0[i]*(
                 -c23*r2*0.5*(sh_a + sh_b)
                 + c43*0.5*(sinTH[i, j] + sinTH[i, j - 1])*(vth[i, j] - vth[i, j - 1])*idth
                 - c23*0.5*(cosTH[i, j]*vth[i, j] + cosTH[i, j - 1]*vth[i, j - 1]))
@@ -621,10 +624,162 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
             dvr_r = (vrr[i + 1, j]/rr[i + 1] - vrr[i - 1, j]/rr[i - 1])*0.5*idrr
             dvr_t = (vrr[i, j + 1] - vrr[i, j - 1])*0.5*idth
             dvt_t = (vth[i, j + 1] - vth[i, j - 1])*0.5*idth
-            dq_mt[i, j] += nu*ro0[i]*(
+            dq_mt[i, j] += nu_dif[i]*ro0[i]*(
                 r2*s*dvt_r + s*dvr_t
                 + c23*r2*c*dvr_r + c23*c*dvt_t
                 - c43*c*c/s*vth[i, j])
+
+
+# ---------------------------------------------------------------------------
+# エントロピー
+# ---------------------------------------------------------------------------
+@njit(fastmath=False)
+def entropy_rhs(dse1, se1, vrr, vth, ro0, tm0, pr0, hp, delta, kappa, kappa_m,
+                JM, iJM, rr, sinTH, sinTHm, gamma, drr, dth, margin, ffr, ffth):
+    """エントロピー方程式の右辺を ``dse1`` に加算する (Rempel 2006 式 5).
+
+    .. math::
+       \\frac{\\partial s_1}{\\partial t}
+         = -v_r\\frac{\\partial s_1}{\\partial r}
+           -\\frac{v_\\theta}{r}\\frac{\\partial s_1}{\\partial\\theta}
+           + v_r\\frac{\\gamma\\delta}{H_p}
+           + \\frac{1}{\\rho_0 T_0}
+             \\nabla\\cdot\\!\\left(\\kappa_t\\rho_0 T_0\\nabla s_1\\right)
+
+    加熱項 (:math:`Q` とオーム散逸) は :func:`add_dissipative_heating` で
+    別に加える.
+
+    :math:`s_1` の規格化
+    ---------------------
+    Rempel は :math:`s=\\ln(p\\rho^{-\\gamma})` を :math:`c_v` で割った
+    **無次元エントロピー**を使う (:math:`c_p` ではない). 状態方程式は
+
+    .. math:: p_1 = p_0\\left(\\gamma\\frac{\\rho_1}{\\rho_0} + s_1\\right)
+
+    で, 齋藤 (2024) コードの ``en1`` と同一の量である.
+
+    背景エントロピー勾配
+    --------------------
+    Rempel 2005 式 (8) より :math:`ds_0/dr = -\\gamma\\delta/H_p` なので,
+    移流項 :math:`-v_r\\,ds_0/dr` は :math:`+v_r\\gamma\\delta/H_p` になる.
+    :math:`\\delta=\\nabla-\\nabla_{\\rm ad}` は超断熱度で, 正が対流不安定.
+
+    形式について
+    ------------
+    移流は Rempel に合わせて**移流形** (保存形ではない) で書く. 熱伝導だけは
+    面フラックス配列を使い, 境界面をゼロにすることで境界条件
+    :math:`\\partial s_1/\\partial r=0` を厳密に実装する.
+    エントロピーは保存量ではない (散逸で生成される) ので, 移流形でよい.
+    """
+    ixg, jxg = dse1.shape
+    idrr = 1.0/drr
+    idth = 1.0/dth
+
+    # --- 熱伝導フラックス (面で1回だけ計算) ------------------------------
+    for i in range(margin, ixg - margin + 1):
+        # 面上の kappa*rho0*T0. 隣接2セルで同じ値を使う
+        c = kappa_m[i]*0.5*(ro0[i]*tm0[i] + ro0[i - 1]*tm0[i - 1])
+        rm2 = 0.25*(rr[i] + rr[i - 1])*(rr[i] + rr[i - 1])
+        for j in range(jxg):
+            ffr[i, j] = -c*rm2*sinTH[i, j]*(se1[i, j] - se1[i - 1, j])*idrr
+    zero_boundary_faces_r(ffr, margin)
+
+    for i in range(ixg):
+        c = kappa[i]*ro0[i]*tm0[i]
+        for j in range(margin, jxg - margin + 1):
+            ffth[i, j] = -c*sinTHm[i, j]*(se1[i, j] - se1[i, j - 1])*idth
+    zero_boundary_faces_th(ffth, margin)
+
+    # --- 移流 + 背景勾配 + 熱伝導 ----------------------------------------
+    for i in range(margin, ixg - margin):
+        for j in range(margin, jxg - margin):
+            dsdr = (se1[i + 1, j] - se1[i - 1, j])*0.5*idrr
+            dsdt = (se1[i, j + 1] - se1[i, j - 1])*0.5*idth
+            cond = -((ffr[i + 1, j] - ffr[i, j])*idrr
+                     + (ffth[i, j + 1] - ffth[i, j])*idth)
+            dse1[i, j] += (-vrr[i, j]*dsdr - vth[i, j]*dsdt/rr[i]
+                           + vrr[i, j]*gamma*delta[i]/hp[i]
+                           + cond*iJM[i, j]/(ro0[i]*tm0[i]))
+
+
+@njit(fastmath=False)
+def add_dissipative_heating(dse1, dq_mr, dq_mt, dq_om, vrr, vth, om1, om0,
+                            pr0, iJM, gamma, margin):
+    """散逸で失われた運動エネルギーをエントロピーに戻す.
+
+    ``dq_mr``, ``dq_mt``, ``dq_om`` には**散逸項だけ**の寄与を渡すこと
+    (移流や圧力勾配を含めてはいけない). 単位体積・単位時間あたりの
+    運動エネルギー変化率は
+
+    .. math::
+       \\frac{\\partial}{\\partial t}
+       \\left(\\tfrac12\\rho_0 v^2 + \\tfrac12\\rho_0\\varpi^2\\Omega^2\\right)
+       = \\frac{1}{r^2\\sin\\theta}\\left[
+          v_r\\dot q_{m,r} + v_\\theta\\dot q_{m,\\theta}
+          + (\\Omega_0+\\Omega_1)\\dot q_L\\right]
+
+    であり, これを符号反転したものが加熱率 :math:`Q` になる.
+    無次元エントロピー (:math:`c_v` で規格化) では
+    :math:`\\rho_0T_0c_v = p_0/(\\gamma-1)` なので
+
+    .. math:: \\frac{\\partial s_1}{\\partial t} \\mathrel{+}=
+              \\frac{\\gamma-1}{p_0}\\,Q
+
+    となる (Rempel 2006 式 5 の第 4 項と同じ係数).
+
+    なぜ応力から直接 :math:`Q` を組み立てないのか
+    ----------------------------------------------
+    粘性散逸を :math:`\\tau_{ij}E_{ij}/2` の形で別途離散化すると, 運動量
+    方程式で実際に失われた量と一致する保証がない. 「運動量方程式が奪った分を
+    そのまま渡す」ようにすれば, **離散化がどうであれエネルギー移送が厳密**に
+    なり, 係数もちょうど 1 になる. ユーザー要求「人工粘性によって散逸した
+    運動エネルギー・磁場エネルギーをエントロピーの式に足す」を離散レベルで
+    満たすにはこの形が確実である.
+
+    正値性は保証されない (これは仕様). 散逸項が本当に散逸的なら符号は
+    自動的に正になり, もし負が出ればそれは応力の実装が壊れている合図なので,
+    握りつぶさずテストで検出する (``test_viscosity_always_dissipates_kinetic_energy``).
+    """
+    ixg, jxg = dse1.shape
+    for i in range(margin, ixg - margin):
+        c = (gamma - 1.0)/pr0[i]
+        for j in range(margin, jxg - margin):
+            dke = (vrr[i, j]*dq_mr[i, j] + vth[i, j]*dq_mt[i, j]
+                   + (om0 + om1[i, j])*dq_om[i, j])
+            dse1[i, j] -= c*dke*iJM[i, j]
+
+
+@njit(fastmath=False)
+def add_ohmic_heating(dse1, brr, bth, bph, eta, pr0, RR, sinTH,
+                      gamma, drr, dth, margin):
+    """オーム散逸をエントロピーに加える (Rempel 2006 式 5 の最終項).
+
+    .. math::
+       \\frac{\\partial s_1}{\\partial t}\\mathrel{+}=
+         \\frac{\\gamma-1}{p_0}\\,\\frac{\\eta_t|\\nabla\\times B|^2}{4\\pi}
+
+    原論文の式 (5) と式 (33) には :math:`\\mu_0` が印字されていないが,
+    次元が合わないため補っている (CGS なので :math:`1/4\\pi`).
+    式 (25) の :math:`E_B=\\int B_\\Phi^2/(2\\mu_0)\\,dV` には
+    :math:`\\mu_0` があることから, 印刷上の脱落と判断した.
+    詳細は ``doc/dev_records/2026-08-19_rempel_equations.md`` §11.
+    """
+    ixg, jxg = dse1.shape
+    idrr = 1.0/drr
+    idth = 1.0/dth
+    for i in range(margin, ixg - margin):
+        c = (gamma - 1.0)/pr0[i]/FOUR_PI
+        for j in range(margin, jxg - margin):
+            r = RR[i, j]
+            s = sinTH[i, j]
+            jr = (sinTH[i, j + 1]*bph[i, j + 1]
+                  - sinTH[i, j - 1]*bph[i, j - 1])*0.5*idth/(r*s)
+            jt = -(RR[i + 1, j]*bph[i + 1, j]
+                   - RR[i - 1, j]*bph[i - 1, j])*0.5*idrr/r
+            jp = ((RR[i + 1, j]*bth[i + 1, j]
+                   - RR[i - 1, j]*bth[i - 1, j])*0.5*idrr
+                  - (brr[i, j + 1] - brr[i, j - 1])*0.5*idth)/r
+            dse1[i, j] += c*eta[i, j]*(jr*jr + jt*jt + jp*jp)
 
 
 # ---------------------------------------------------------------------------

@@ -53,7 +53,59 @@ class Setup(NpzIO):
       self.build_flow(cfg, grid)
 
       if getattr(cfg, 'dynamics', 'kinematic') != 'kinematic':
+         self.build_turbulent_transport(cfg, grid)
          self.build_lambda(cfg, grid)
+
+   def build_turbulent_transport(self, cfg, grid):
+      """乱流粘性 ν_t(r) と乱流熱伝導 κ_t(r) を構築する (Rempel 2005 式 27-30)。
+
+      .. math::
+         \\nu_\\Lambda &= \\frac{\\nu_0}{2}
+            \\left[1+\\tanh\\frac{r-r_{\\rm tran}+\\Delta}{d_{\\kappa\\nu}}\\right]
+            f_c(r) \\\\
+         f_c(r) &= \\frac12\\left[1+\\tanh\\frac{r-r_{\\rm bc}}{d_{\\rm bc}}\\right],
+         \\quad
+         \\Delta = d_{\\kappa\\nu}\\,{\\rm artanh}(2\\alpha_{\\kappa\\nu}-1)
+
+      :math:`\\Delta` は「:math:`r=r_{\\rm tran}` で
+      :math:`\\nu_\\Lambda=\\alpha_{\\kappa\\nu}\\nu_0` になる」ようにずらす量。
+
+      拡散項用とΛ効果用で粘性が違う
+      ------------------------------
+      Rempel 2005 §2.4 は、**Λ効果による角運動量輸送**には上の
+      プロファイルをそのまま使い、**レイノルズ応力の拡散項**に使う粘性には
+      対流層値の 2%(熱伝導は 0.2%)の下限を張る、としている。
+
+      理由は下部境界の :math:`\\Omega_1=0` 条件との間にせん断層
+      (タコクライン)を現実的な時間で形成させるため。放射層で粘性が
+      ゼロまで落ちると、そこに角運動量を運べず定常解に到達しない。
+
+      なお「2% にする」は原文では放射層に限定した書き方になっていないが、
+      対流層全体で 2% にすると論文表 1 の
+      :math:`Q_\\nu^\\Omega/Q_\\Lambda=0.574`
+      (粘性散逸がΛ効果入力の 57%)と桁が合わなくなるため、下限として
+      解釈している。
+      """
+      rr = grid.rr
+      dkn = cfg.d_kn
+      # r = r_tran で alpha_kn * nu0 になるようにずらす
+      shift = dkn*np.arctanh(2.0*cfg.alpha_kn - 1.0)
+      fc = 0.5*(1.0 + np.tanh((rr - cfg.rr_bc)/cfg.d_bc))
+      shape = 0.5*(1.0 + np.tanh((rr - cfg.r_tran + shift)/dkn))*fc
+
+      self.nu_lam = cfg.nu0*shape                          # Λ効果用
+      self.nu_dif = np.maximum(cfg.nu0*shape,
+                               cfg.nu_floor_frac*cfg.nu0)  # 拡散項用
+      self.kappa_t = np.maximum(cfg.kappa0*shape,
+                                cfg.kappa_floor_frac*cfg.kappa0)
+
+      # r 面上の値 (面 i はセル i-1 と i の境界)。拡散フラックスの係数として
+      # 隣接2セルで同一の値を使うために必要。
+      for name in ('nu_lam', 'nu_dif', 'kappa_t'):
+         arr = getattr(self, name)
+         face = np.zeros_like(arr)
+         face[1:] = 0.5*(arr[1:] + arr[:-1])
+         setattr(self, name + '_m', face)
 
    def build_lambda(self, cfg, grid):
       """Λ効果 (非等方レイノルズ応力) のプロファイルを構築する。
@@ -119,6 +171,13 @@ class Setup(NpzIO):
          self.et = cfg.etc + 0.5*(cfg.ett - cfg.etc)*(1 + erf((grid.RR-cfg.rrc)/cfg.d))
       elif cfg.diffusive_type == 'H10':
          self.et = cfg.etc + 0.5*cfg.ett*(1 + erf((grid.RR-cfg.rrc)/cfg.dh1)) + 0.5*cfg.ets*(1 + erf((grid.RR-cfg.r1)/cfg.dh2))
+      elif cfg.diffusive_type == 'R06':
+         # Rempel (2006) 式 (13)-(15)
+         #   eta_t = eta_c + f_c(r)[eta_bc - eta_c + f_cz(r)(eta_cz - eta_bc)]
+         fc = 0.5*(1 + np.tanh((grid.RR - cfg.rr_bc)/cfg.d_bc))
+         fcz = 0.5*(1 + np.tanh((grid.RR - cfg.r_cz)/cfg.d_cz))
+         self.et = cfg.eta_c + fc*(cfg.eta_bc - cfg.eta_c
+                                   + fcz*(cfg.eta_cz - cfg.eta_bc))
       else:
          raise ValueError(f"unknown diffusive_type: {cfg.diffusive_type!r}")
       self.etrr = drr2(self.et, grid.drr)
@@ -138,6 +197,25 @@ class Setup(NpzIO):
          self.so = cfg.so0*3*np.sqrt(3)/4 \
             *(1 + erf((grid.RR-cfg.rrc)/cfg.d)) \
                *grid.sinTH**2*grid.cosTH
+      elif cfg.alpha_type == 'R06':
+         # Rempel (2006) 式 (16)-(19)。B_phi の動径平均に比例する非局所ソース
+         #   S = alpha0 * Bbar_phi(theta) * f_alpha(r) * g_alpha(theta)
+         # ここでは r, theta 依存の形状 f_alpha*g_alpha だけを so に入れ、
+         # Bbar_phi(theta) との積は時間積分カーネル側で取る
+         # (so に B_phi を含められないため)。
+         fal = np.maximum(0.0, 1.0 - (grid.RR - grid.rrmax)**2/cfg.d_alpha**2)
+         gnum = grid.sinTH**2*grid.cosTH
+         i0, i1 = grid.margin, grid.ixg - grid.margin
+         j0, j1 = grid.margin, grid.jxg - grid.margin
+         self.so = cfg.alpha0*fal*gnum/np.abs(gnum[i0:i1, j0:j1]).max()
+
+         # B_phi を平均する放物線カーネル h(r): r_h_bot と r_h_top でゼロ、
+         # 中間でピーク。int h(r) dr = 1 に規格化する。
+         hker = np.maximum(0.0, (grid.rr - cfg.r_h_bot)*(cfg.r_h_top - grid.rr))
+         hker[:i0] = 0.0
+         hker[i1:] = 0.0
+         norm = hker.sum()*grid.drr
+         self.alpha_kernel = hker/norm if norm > 0 else hker
       elif cfg.alpha_type == 'H10':
          self.so = cfg.so1*0.25 \
             *(1+erf((grid.RR-cfg.r4)/cfg.dh4))*(1-erf((grid.RR-cfg.r5)/cfg.dh5)) \

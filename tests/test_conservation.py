@@ -15,6 +15,7 @@ import S2MFD
 from S2MFD.stratification import Stratification
 from S2MFD.physics import conservative as cons
 from S2MFD.physics import hydro
+from S2MFD.physics import artdif
 
 from conftest import make_cfg, make_grid
 
@@ -175,8 +176,9 @@ def _angmom_step(q_om, om1, vrr, vth, bb, grid, strat, setup, cfg, dt, work,
             dq, om1, vrr, vth, bb[0], bb[1], bb[2],
             strat.JL, strat.JLY, strat.JV, strat.JVY, strat.W2,
             grid.RR, grid.RRm, grid.sinTH, grid.sinTHm,
-            strat.ro0, strat.ro0m, setup.lam_rp, setup.lam_tp,
-            cfg.om0, cfg.nu_turb, grid.drr, grid.dth, m, magnetic,
+            strat.ro0, strat.ro0m, setup.lam_rp, setup.lam_tp, cfg.om0,
+            setup.nu_dif, setup.nu_dif_m, setup.nu_lam, setup.nu_lam_m,
+            grid.drr, grid.dth, m, magnetic,
             consistent, work.ffr, work.ffth, work.cen)
         return dq
 
@@ -295,8 +297,9 @@ def test_perturbation_form_beats_total_form(setup_dynamic):
                 strat.JL, strat.JLY, strat.JV, strat.JVY, strat.W2,
                 grid.RR, grid.RRm, grid.sinTH,
                 grid.sinTHm, strat.ro0, strat.ro0m,
-                setup.lam_rp, setup.lam_tp,
-                cfg.om0, cfg.nu_turb, grid.drr, grid.dth, m, False,
+                setup.lam_rp, setup.lam_tp, cfg.om0,
+                setup.nu_dif, setup.nu_dif_m, setup.nu_lam, setup.nu_lam_m,
+                grid.drr, grid.dth, m, False,
                 False, work.ffr, work.ffth, work.cen)
             return dq
 
@@ -336,7 +339,7 @@ def test_viscosity_always_dissipates_kinetic_energy(setup_dynamic, seed):
     :math:`\\int(v_r\\,\\dot q_{m,r} + v_\\theta\\,\\dot q_{m,\\theta})
     \\,dr\\,d\\theta` になる。
     """
-    cfg, grid, strat, _ = setup_dynamic
+    cfg, grid, strat, setup = setup_dynamic
     m = grid.margin
     rng = np.random.default_rng(seed)
     work_arr = hydro.HydroWork(grid)
@@ -351,7 +354,8 @@ def test_viscosity_always_dissipates_kinetic_energy(setup_dynamic, seed):
     dmr = np.zeros((grid.ixg, grid.jxg))
     dmt = np.zeros((grid.ixg, grid.jxg))
     hydro.viscous_meridional_rhs(dmr, dmt, vrr, vth, grid.rr, grid.sinTH,
-                                 grid.cosTH, strat.ro0, cfg.nu_turb,
+                                 grid.cosTH, strat.ro0,
+                                 setup.nu_dif, setup.nu_dif_m,
                                  grid.drr, grid.dth, m, work_arr.ffr, work_arr.ffth)
 
     dkedt = (vrr[sl]*dmr[sl] + vth[sl]*dmt[sl]).sum()*grid.drr*grid.dth
@@ -368,7 +372,7 @@ def test_lorentz_force_matches_magnetic_pressure_scale(setup_dynamic):
     符号や :math:`4\\pi` の入れ忘れ、回転の幾何因子の取り違えを検出する
     ための粗い次元チェック。
     """
-    cfg, grid, strat, _ = setup_dynamic
+    cfg, grid, strat, setup = setup_dynamic
     m = grid.margin
     work_arr = hydro.HydroWork(grid)
     z = np.zeros((grid.ixg, grid.jxg))
@@ -395,7 +399,7 @@ def test_lorentz_force_matches_magnetic_pressure_scale(setup_dynamic):
 
 def test_momentum_rhs_is_finite(setup_dynamic):
     """非自明な状態で運動量の右辺が有限であること (極の 1/sinθ を含む)。"""
-    cfg, grid, strat, _ = setup_dynamic
+    cfg, grid, strat, setup = setup_dynamic
     m = grid.margin
     work_arr = hydro.HydroWork(grid)
 
@@ -416,9 +420,105 @@ def test_momentum_rhs_is_finite(setup_dynamic):
                        cfg.om0, grid.drr, grid.dth, m, False,
                        work_arr.ffr, work_arr.ffth, work_arr.cen)
     hydro.viscous_meridional_rhs(dmr, dmt, vrr, vth, grid.rr, grid.sinTH,
-                                 grid.cosTH, strat.ro0, cfg.nu_turb,
+                                 grid.cosTH, strat.ro0,
+                                 setup.nu_dif, setup.nu_dif_m,
                                  grid.drr, grid.dth, m, work_arr.ffr, work_arr.ffth)
     assert np.all(np.isfinite(dmr)) and np.all(np.isfinite(dmt))
+
+
+# ---------------------------------------------------------------------------
+# 人工拡散 (slope-limited diffusion)
+# ---------------------------------------------------------------------------
+def _sld_setup(setup_dynamic):
+    cfg, grid, strat, setup = setup_dynamic
+    m = grid.margin
+    shape = (grid.ixg, grid.jxg)
+    # 面上の特性速度 (定数でよい: ここで見たいのはリミタの振る舞い)
+    csp = np.full(shape, 1.0e5)
+    # r 面のヤコビアン (角運動量と同じ形)
+    jac_r = np.zeros(shape)
+    jac_r[1:] = 0.5*(strat.JL[1:] + strat.JL[:-1])
+    jac_th = np.zeros(shape)
+    jac_th[:, 1:] = 0.5*(strat.JLY[:, 1:] + strat.JLY[:, :-1])
+    return cfg, grid, strat, m, csp, jac_r, jac_th
+
+
+def test_sld_conserves_exactly(setup_dynamic):
+    """人工拡散が保存量を厳密に保存すること。
+
+    齋藤 (2024) コードの人工粘性 artdif.f90 は、本体と異なる保存量に対して
+    定義されているために角運動量保存を壊し、その結果として無効化されている
+    (mhd.f90 で呼び出しがコメントアウトされている)。本実装は同じ枠組みの
+    面フラックスとして書いているので保存が成り立つ。
+    """
+    cfg, grid, strat, m, csp, jac_r, jac_th = _sld_setup(setup_dynamic)
+    rng = np.random.default_rng(7)
+    # 格子スケールの振動を含む Omega1 (人工拡散が最も強く効く状況)
+    om1 = np.ascontiguousarray(
+        -0.05*cfg.om0*grid.cosTH**2
+        + 0.01*cfg.om0*rng.standard_normal((grid.ixg, grid.jxg)))
+    ffr = np.zeros_like(om1)
+    ffth = np.zeros_like(om1)
+    dq = np.zeros_like(om1)
+    artdif.sld_diffuse(dq, om1, jac_r, jac_th, csp, csp, 1.0,
+                       grid.drr, grid.dth, m, ffr, ffth)
+
+    total = cons.cell_integral(dq, grid.drr, grid.dth, m)
+    scale = cons.cell_integral(np.abs(dq), grid.drr, grid.dth, m)
+    assert scale > 0, '人工拡散が何も効いていない'
+    assert abs(total)/scale < 1e-14, f'人工拡散が保存を壊している: {total/scale:.2e}'
+
+
+@pytest.mark.parametrize('seed', range(4))
+def test_sld_always_dissipates(setup_dynamic, seed):
+    """人工拡散が必ずエネルギーを減らすこと (反拡散にならない)。
+
+    符号ガード (jump が勾配と逆符号ならフラックスをゼロ) が効いていれば
+    構造的に保証される。ここはエネルギー注入という最悪の失敗モードを
+    直接押さえる回帰テスト。
+    """
+    cfg, grid, strat, m, csp, jac_r, jac_th = _sld_setup(setup_dynamic)
+    rng = np.random.default_rng(seed)
+    om1 = np.ascontiguousarray(
+        -0.05*cfg.om0*grid.cosTH**2
+        + 0.02*cfg.om0*rng.standard_normal((grid.ixg, grid.jxg)))
+    ffr = np.zeros_like(om1)
+    ffth = np.zeros_like(om1)
+    dq = np.zeros_like(om1)
+    artdif.sld_diffuse(dq, om1, jac_r, jac_th, csp, csp, 1.0,
+                       grid.drr, grid.dth, m, ffr, ffth)
+
+    sl = (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
+    dke = ((cfg.om0 + om1[sl])*dq[sl]).sum()*grid.drr*grid.dth
+    assert dke < 0.0, f'人工拡散がエネルギーを注入している: {dke:.3e}'
+
+
+def test_sld_is_negligible_for_resolved_fields(setup_dynamic):
+    """滑らかで解像された場では人工拡散がほぼ効かないこと。
+
+    これが成り立たないと、人工拡散が物理的な差動回転そのものを削って
+    しまう。格子スケールの振動に対する応答と比較して桁で小さいことを見る。
+    """
+    cfg, grid, strat, m, csp, jac_r, jac_th = _sld_setup(setup_dynamic)
+    ffr = np.zeros((grid.ixg, grid.jxg))
+    ffth = np.zeros((grid.ixg, grid.jxg))
+
+    def response(field):
+        dq = np.zeros((grid.ixg, grid.jxg))
+        artdif.sld_diffuse(dq, np.ascontiguousarray(field), jac_r, jac_th,
+                           csp, csp, 1.0, grid.drr, grid.dth, m, ffr, ffth)
+        return cons.cell_integral(np.abs(dq), grid.drr, grid.dth, m)
+
+    smooth = -0.05*cfg.om0*grid.cosTH**2*np.sin(
+        np.pi*(grid.RR - grid.rrmin)/(grid.rrmax - grid.rrmin))
+    # 1 セルおきに符号が変わる格子スケールの振動
+    ii = np.arange(grid.ixg)[:, None]
+    jj = np.arange(grid.jxg)[None, :]
+    zigzag = 0.05*cfg.om0*((-1.0)**ii)*((-1.0)**jj)*np.ones_like(grid.RR)
+
+    r_smooth, r_zig = response(smooth), response(zigzag)
+    assert r_smooth < 0.02*r_zig, (
+        f'滑らかな場にも人工拡散が効きすぎている: {r_smooth/r_zig:.3f}')
 
 
 # ---------------------------------------------------------------------------
@@ -446,7 +546,7 @@ def test_cfl_includes_alfven_speed(setup_dynamic):
         c = make_cfg('parameters/rempel06.py', ix=48, jx=48, rsst_zeta=zeta)
         s = Stratification(c, grid)
         args = (s.ro0, ro1, s.cs_eff, grid.rr, grid.drr, grid.dth,
-                cfg.nu_turb, m, cfg.cfl_safety)
+                cfg.nu0, m, cfg.cfl_safety)
         return (hydro.cfl_dt(vrr, vth, z, z, z, *args, False),
                 hydro.cfl_dt(vrr, vth, z, z, bph, *args, True))
 

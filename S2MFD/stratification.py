@@ -134,6 +134,12 @@ class Stratification(NpzIO):
         self.cv = self.rgas/(gm - 1.0)
         self.cp = gm*self.cv
 
+        # --- 超断熱度 delta(r) と背景エントロピー勾配 --------------------
+        self.delta = self._build_delta(cfg, grid)
+        # Rempel 2005 式 (8): ds0/dr = -gamma*delta/Hp
+        # エントロピー方程式にはこの符号を反転した +v_r*gamma*delta/Hp が入る。
+        self.dsdr0 = -gm*self.delta/self.hp
+
         # --- 音速と RSST ------------------------------------------------
         self.cs0 = np.sqrt(gm*self.pr0/self.ro0)
         self.zeta = self._build_zeta(cfg, grid)
@@ -157,6 +163,35 @@ class Stratification(NpzIO):
         self.iJM = _safe_reciprocal(self.JM, grid)
         self.iJV = _safe_reciprocal(self.JV, grid)
         self.iJL = _safe_reciprocal(self.JL, grid)
+
+    def _build_delta(self, cfg, grid):
+        """超断熱度 :math:`\\delta = \\nabla - \\nabla_{\\rm ad}` (Rempel 2005 式 25-26).
+
+        .. math::
+           \\delta &= \\delta_{\\rm conv}
+             + \\tfrac12(\\delta_{\\rm os}-\\delta_{\\rm conv})
+               \\left[1-\\tanh\\frac{r-r_{\\rm tran}}{d_{\\rm tran}}\\right] \\\\
+           \\delta_{\\rm conv} &= \\delta_{\\rm top}
+               e^{(r-r_{\\max})/d_{\\rm top}}
+             + \\delta_{\\rm cz}\\frac{r-r_{\\rm sub}}{r_{\\max}-r_{\\rm sub}}
+
+        :math:`\\delta>0` が超断熱 (対流不安定), :math:`\\delta<0` が亜断熱.
+        Rempel 2006 の参照モデル (= 2005 の case 1) は対流層が断熱
+        (:math:`\\delta_{\\rm conv}=0`) で, オーバーシュート層のみ
+        :math:`\\delta_{\\rm os}=-1.5\\times10^{-5}` の亜断熱になる.
+
+        音速抑制法では :math:`\\delta` が :math:`\\xi_s^2` 倍にスケールされる
+        (Rempel 2005 式 34) ため, 太陽の放射層の実際の値
+        :math:`\\delta\\sim-0.1` は表現できない. オーバーシュート程度の
+        :math:`10^{-5}` なら問題ない, と原論文が明記している.
+        """
+        rmax = grid.rrmax
+        d_top = getattr(cfg, 'd_top', 0.0125*cfg.RSUN)
+        d_conv = (getattr(cfg, 'delta_top', 0.0)*np.exp((grid.rr - rmax)/d_top)
+                  + getattr(cfg, 'delta_cz', 0.0)
+                  * (grid.rr - cfg.r_sub)/(rmax - cfg.r_sub))
+        return d_conv + 0.5*(cfg.delta_os - d_conv)*(
+            1.0 - np.tanh((grid.rr - cfg.r_tran)/cfg.d_tran))
 
     def _build_zeta(self, cfg, grid):
         """音速抑制係数 :math:`\\xi_s(r)` を作る.
@@ -195,11 +230,16 @@ class Stratification(NpzIO):
         raise ValueError(f'unknown rsst_type: {kind!r}')
 
     def pressure_perturbation(self, ro1, se1):
-        """線形化した圧力摂動 :math:`p_1` を返す.
+        """線形化した圧力摂動 :math:`p_1` を返す (Rempel 2005 式 6).
 
-        :math:`p_1 = p_0(\\gamma\\rho_1/\\rho_0 + s_1/c_v)`
+        .. math:: p_1 = p_0\\left(\\gamma\\frac{\\rho_1}{\\rho_0} + s_1\\right)
+
+        :math:`s_1` は **:math:`c_v` で規格化された無次元エントロピー**
+        (:math:`s=\\ln(p\\rho^{-\\gamma})`). :math:`c_p` ではないことに注意.
+        物理エントロピーとの関係は :math:`s_{\\rm phys}=c_v s_1`.
+        齋藤 (2024) コードの ``en1`` と同一の量.
         """
-        return self.pr0[:, None]*(self.gamma*ro1/self.ro0[:, None] + se1/self.cv)
+        return self.pr0[:, None]*(self.gamma*ro1/self.ro0[:, None] + se1)
 
 
 def _safe_reciprocal(jac, grid):

@@ -146,9 +146,33 @@ GA は同じ探索軌跡をたどり、同じ最適解に、同じ世代数で�
 所要時間は原実装 (30ワーカー) が約1時間、最適化版 (15ワーカー、
 しかも別ジョブと競合しながら) が **10.5分**だった。
 
-## 5. 残された検証
+## 5. 再現手順
 
-- 他の推定区間 (1723–1775, 1775–1833, 1833–1889, 1889–1944, 1996–2024) は未実行。
-  最適化後なら全6区間で約1.5時間で回せる。
-- ダルトンミニマム区間 (1775–1833) は `--fitness period` の切替が要る
-  (論文4.2章)。実装済みだが未検証。
+集計:
+
+```bash
+python doc/dev_records/verification/summarize_all_intervals.py <結果ルート ...>
+```
+
+全区間の実行 (paris で約21分、個体数30を30ワーカーで):
+
+```bash
+for w in "1723.51 1775.57" "1775.57 1833.54" "1833.54 1889.43"          "1889.43 1944.45" "1944.45 1996.50" "1996.50 2024.40"; do
+    python -m S2MFD.inference.cli --start-year  --end-year          --pop 30 --generations 50 --target-fitness 0.80 --seed 42         --workers 30 --output results_full
+done
+```
+
+ダルトン期は論文 4.2 章に従い Step 1 のみ周期適応度を使う:
+
+```bash
+python -m S2MFD.inference.cli --start-year 1775.57 --end-year 1833.54     --fitness-stage1 period --pop 30 --generations 50 --seed 42     --workers 30 --output results_dalton
+```
+
+## 6. 残された検証
+
+- 論文図4.6 相当の統計 (全区間を通した黒点数相関・周期相関・極大期相関、
+  Waldmeier 効果) は未算出。各区間の `stage_result.json` と
+  スナップショットから計算できる。
+- 区間をまたぐ u0(t), s0(t) の不連続 (論文5.1章の課題) は本実装でも
+  そのまま残っている。区間の終端が制約されにくいこと (§2 参照) と
+  合わせて、連続推定の実装が次の一手になる。

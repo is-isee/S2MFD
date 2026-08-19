@@ -165,3 +165,6 @@ data*/
 .DS_Store
 doc/source/api
 S2MFD/_version.py
+
+# Reference papers (PDFs etc.) — kept locally, not in the repository
+reference/

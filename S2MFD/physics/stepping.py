@@ -167,6 +167,7 @@ def advance_to(sim, t_stop):
         pot_op = np.zeros((grid.margin, grid.jx, grid.jx))
 
     sep, factors = separable_profiles(setup)
+    sep = sep and fast
     fn = get_advance(fast, alpha_code == 0, bc_code, sep)
     Bph, Aph, time, n = fn(
         sim.Bph, sim.Aph, float(sim.time), float(sim.dt), float(t_stop),
@@ -280,6 +281,7 @@ def advance_until_minimum(sim, t_limit, sn_history, base, loca, gamma):
     """
     fast, alpha_code, bc_code = _kernel_keys(sim)
     sep, factors = separable_profiles(sim.setup)
+    sep = sep and fast
     key = (fast, alpha_code == 0, bc_code, sep)
     fn = _ADVANCE_MIN.get(key)
     if fn is None:

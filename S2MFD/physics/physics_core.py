@@ -633,7 +633,10 @@ def time_marching(Bph, Aph, dt, cfg, grid, setup):
    alpha_fac = b_src/(1 + b_src**2)
 
    fast = not getattr(cfg, 'exact_arithmetic', False)
+   # exact_arithmetic では参照実装とのビット一致を保つため、
+   # 背景場は 2D 配列のまま使う (rank-1 再構成は丸めが変わる)
    sep, factors = separable_profiles(setup)
+   sep = sep and fast
    kernel = get_time_marching_kernel(fast, alpha_code == 0, sep)
    return kernel(Bph, Aph, dt, rr, sth, rrm, sthm, grid.drr, grid.dth,
                  setup.urr, setup.uth, setup.et, setup.etrr,

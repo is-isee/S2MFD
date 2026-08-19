@@ -345,14 +345,13 @@ class DynamicSolver:
                                     self.csp_r, self.csp_th,
                                self.sld_fh, self.sld_ep,
                                     grid.drr, grid.dth, m, w.ffr, w.ffth)
-            artdif.sld_diffuse(ds_mr, self.vrr, self.jacV_r, self.jacV_th,
-                               self.csp_r, self.csp_th,
-                               self.sld_fh, self.sld_ep,
-                               grid.drr, grid.dth, m, w.ffr, w.ffth)
-            artdif.sld_diffuse(ds_mt, self.vth, self.jacV_r, self.jacV_th,
-                               self.csp_r, self.csp_th,
-                               self.sld_fh, self.sld_ep,
-                               grid.drr, grid.dth, m, w.ffr, w.ffth)
+            # 子午面速度はベクトル成分なので、theta 掃引で基底が回る分の
+            # 幾何項が要る (v_r と v_theta が混ざる)
+            artdif.sld_diffuse_meridional(
+                ds_mr, ds_mt, self.vrr, self.vth,
+                self.jacV_r, self.jacV_th, self.csp_r, self.csp_th,
+                self.sld_fh, self.sld_ep, grid.drr, grid.dth, m,
+                w.ffr, w.ffth, w.ffr2, w.ffth2)
             # 密度にも掛ける (音波の格子スケール振動を抑える)。保存量は
             # ∫ζ²ρ1 dV なので、連続の式と同じく発散に 1/ζ² を掛ける
             artdif.sld_diffuse_scaled(dq_ro, self.ro1, self.jacM_r,

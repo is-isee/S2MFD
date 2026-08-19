@@ -117,7 +117,7 @@ from S2MFD.physics.conservative import (
     add_flux_divergence, add_flux_divergence_scaled, add_flux_work,
 )
 
-__all__ = ['sld_slope_r', 'sld_slope_th', 'sld_flux_r', 'sld_flux_th',
+__all__ = ['sld_flux_r', 'sld_flux_th', 'sld_diffuse_meridional',
            'sld_diffuse', 'sld_diffuse_work', 'sld_diffuse_scaled',
            'sld_diffuse_primitive', 'sld_diffusivity_max']
 
@@ -289,3 +289,56 @@ def sld_diffusivity_max(csp_r, csp_th, drr, dth, rr, margin):
             if k > kmax:
                 kmax = k
     return kmax
+
+
+@njit(fastmath=False)
+def sld_diffuse_meridional(dq_mr, dq_mt, vrr, vth, jac_r, jac_th,
+                           csp_r, csp_th, fh, ep, drr, dth, margin,
+                           ffr1, ffth1, ffr2, ffth2):
+    """子午面速度 :math:`(v_r, v_\\theta)` に人工拡散を掛ける (幾何項つき).
+
+    球座標の基底ベクトルは :math:`\\theta` に依存する
+    (:math:`\\partial\\hat e_r/\\partial\\theta=\\hat e_\\theta`,
+    :math:`\\partial\\hat e_\\theta/\\partial\\theta=-\\hat e_r`) ので,
+    :math:`v_r` と :math:`v_\\theta` をスカラーとして独立に拡散させると
+    **間違いになる**. :math:`\\theta` 方向の掃引では
+
+    .. math::
+       \\frac{\\partial}{\\partial\\theta}(F_r\\hat e_r + F_\\theta\\hat e_\\theta)
+       = (\\partial_\\theta F_r - F_\\theta)\\hat e_r
+       + (\\partial_\\theta F_\\theta + F_r)\\hat e_\\theta
+
+    となるので, 成分が混ざる項を足す必要がある. 保存量にヤコビアンを
+    吸収した本実装では, 面フラックス配列をそのままセル中心へ平均して
+
+    .. math::
+       \\dot q_{m,r} \\mathrel{+}= \\langle F^\\theta_{v_\\theta}\\rangle,
+       \\qquad
+       \\dot q_{m,\\theta} \\mathrel{-}= \\langle F^\\theta_{v_r}\\rangle
+
+    と書ける (R2D2 の ``artdif_spherical.F90`` の ``j1==1`` ブロックと同じ).
+
+    :math:`r` 方向の掃引には幾何項は要らない (基底は :math:`r` に依らない).
+    :math:`\\Omega_1`, :math:`\\rho_1`, :math:`s_1` はスカラーなので
+    そもそも不要.
+    """
+    # --- v_r ---------------------------------------------------------------
+    sld_flux_r(vrr, jac_r, csp_r, fh, ep, margin, ffr1)
+    zero_boundary_faces_r(ffr1, margin)
+    sld_flux_th(vrr, jac_th, csp_th, fh, ep, margin, ffth1)
+    zero_boundary_faces_th(ffth1, margin)
+    add_flux_divergence(dq_mr, ffr1, ffth1, drr, dth, margin)
+
+    # --- v_theta -----------------------------------------------------------
+    sld_flux_r(vth, jac_r, csp_r, fh, ep, margin, ffr2)
+    zero_boundary_faces_r(ffr2, margin)
+    sld_flux_th(vth, jac_th, csp_th, fh, ep, margin, ffth2)
+    zero_boundary_faces_th(ffth2, margin)
+    add_flux_divergence(dq_mt, ffr2, ffth2, drr, dth, margin)
+
+    # --- 幾何項 (theta 掃引での基底の回転) ---------------------------------
+    ixg, jxg = dq_mr.shape
+    for i in range(margin, ixg - margin):
+        for j in range(margin, jxg - margin):
+            dq_mr[i, j] += 0.5*(ffth2[i, j] + ffth2[i, j + 1])
+            dq_mt[i, j] -= 0.5*(ffth1[i, j] + ffth1[i, j + 1])

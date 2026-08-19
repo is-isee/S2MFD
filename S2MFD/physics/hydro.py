@@ -76,6 +76,9 @@ class HydroWork:
         self.ffth = np.zeros(shape)
         self.cen = np.zeros(shape)
         self.cen2 = np.zeros(shape)
+        # 子午面速度の人工拡散は 2 成分を同時に扱うので面配列がもう 1 組要る
+        self.ffr2 = np.zeros(shape)
+        self.ffth2 = np.zeros(shape)
 
 
 @njit(fastmath=False)

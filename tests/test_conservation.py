@@ -920,3 +920,62 @@ def test_kinematic_mode_is_unaffected_by_dynamic_additions():
     ref = time_marching_reference(bph.copy(), aph.copy(), 1.0e4, cfg, grid, setup)
     for a, b in zip(fast, ref):
         assert np.array_equal(a, b), '参照実装とのビット一致が壊れている'
+
+
+def test_sld_meridional_has_spherical_geometry_terms(setup_dynamic):
+    """子午面速度の人工拡散に球座標の幾何項が入っていること。
+
+    球座標の基底ベクトルは θ に依存する (∂ê_r/∂θ = ê_θ,
+    ∂ê_θ/∂θ = -ê_r) ので、v_r と v_θ をスカラーとして独立に拡散させると
+    間違いになる。θ 方向の掃引では
+
+        ∂_θ(F_r ê_r + F_θ ê_θ) = (∂_θF_r - F_θ)ê_r + (∂_θF_θ + F_r)ê_θ
+
+    となり、成分が混ざる項が要る。R2D2 の artdif_spherical.F90 の
+    ``j1 == 1`` ブロックに対応する。
+
+    ここでは、幾何項が「θ 面フラックス配列のセル中心平均」に一致すること
+    を直接確認する。抜けていると気付きにくい (計算は安定なまま、
+    子午面循環だけが少しずつ間違う) ので、構造として固定しておく。
+    """
+    cfg, grid, strat, setup = setup_dynamic
+    m = grid.margin
+    shape = (grid.ixg, grid.jxg)
+    csp = np.full(shape, 1.0e5)
+    jac_r = np.zeros(shape)
+    jac_r[1:] = 0.5*(strat.JV[1:] + strat.JV[:-1])
+    jac_th = np.zeros(shape)
+    jac_th[:, 1:] = 0.5*(strat.JVY[:, 1:] + strat.JVY[:, :-1])
+
+    rng = np.random.default_rng(11)
+    vrr = np.ascontiguousarray(1e3*rng.standard_normal(shape))
+    vth = np.ascontiguousarray(1e3*rng.standard_normal(shape))
+
+    ff = [np.zeros(shape) for _ in range(4)]
+    dmr = np.zeros(shape)
+    dmt = np.zeros(shape)
+    artdif.sld_diffuse_meridional(dmr, dmt, vrr, vth, jac_r, jac_th, csp, csp,
+                                  2.0, 2.0, grid.drr, grid.dth, m, *ff)
+
+    # 幾何項なしの参照 (各成分を独立にスカラー拡散)
+    r_mr = np.zeros(shape)
+    r_mt = np.zeros(shape)
+    g1 = [np.zeros(shape) for _ in range(2)]
+    g2 = [np.zeros(shape) for _ in range(2)]
+    artdif.sld_diffuse(r_mr, vrr, jac_r, jac_th, csp, csp, 2.0, 2.0,
+                       grid.drr, grid.dth, m, *g1)
+    artdif.sld_diffuse(r_mt, vth, jac_r, jac_th, csp, csp, 2.0, 2.0,
+                       grid.drr, grid.dth, m, *g2)
+
+    sl = (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
+    # 差が θ 面フラックスのセル中心平均に一致すること
+    ffth_vr, ffth_vth = ff[1], ff[3]
+    exp_r = 0.5*(ffth_vth[:, :-1] + ffth_vth[:, 1:])[sl[0], slice(m, grid.jxg - m)]
+    exp_t = -0.5*(ffth_vr[:, :-1] + ffth_vr[:, 1:])[sl[0], slice(m, grid.jxg - m)]
+    # dmr - r_mr は桁落ちを伴う差なので、絶対許容差は dmr の大きさで測る
+    tol_r = 1e-10*np.abs(dmr[sl]).max()
+    tol_t = 1e-10*np.abs(dmt[sl]).max()
+    assert np.allclose(dmr[sl] - r_mr[sl], exp_r, rtol=1e-8, atol=tol_r)
+    assert np.allclose(dmt[sl] - r_mt[sl], exp_t, rtol=1e-8, atol=tol_t)
+    # 幾何項が無視できない大きさであること (テストが自明でないこと)
+    assert np.abs(exp_r).max() > 0.01*np.abs(r_mr[sl]).max()

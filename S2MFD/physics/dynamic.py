@@ -181,6 +181,10 @@ class DynamicSolver:
         # 「保存する」代わりに「収支が厳密に合う」ことを検証するために使う。
         self.boundary_angmom_flux = 0.0
         self._bflux = np.zeros(grid.jxg)
+        # 人工拡散による角運動量の散逸率 [erg/s]。Rempel のエネルギー収支
+        # (式 20) には現れない項だが、本実装では無視できない大きさになりうる
+        # ので、収支が閉じるかどうかを見るために別途記録する。
+        self.artificial_dissipation = 0.0
 
     # -- 初期化 ----------------------------------------------------------
     def _build_artdif_coefficients(self):
@@ -300,6 +304,7 @@ class DynamicSolver:
         # --- 人工拡散 (これも散逸項) -------------------------------------
         if self.use_artdif:
             self._update_characteristic_speed()
+            heat_before = heat.copy()
             artdif.sld_diffuse_work(ds_om, heat, self.om1,
                                     self.jacL_r, self.jacL_th,
                                     self.csp_r, self.csp_th, self.sld_coef,
@@ -320,6 +325,15 @@ class DynamicSolver:
                                       self.sld_coef, self.sld_floor,
                                       grid.drr, grid.dth, m,
                                       self.izeta2, w.ffr, w.ffth)
+
+            # 人工拡散が角運動量から抜いたエネルギーを記録する (診断用)。
+            # heat は -F.grad(Omega1) なので、その体積積分が散逸率になる。
+            # heat は -F.grad(Omega1) = 流れから抜けたエネルギー (加熱側が正)。
+            # その体積積分がそのまま散逸率。q_L はヤコビアンを吸収済みなので
+            # sum * drr * dth に方位角の 2pi を掛ければ体積積分になる。
+            self.artificial_dissipation = 2.0*np.pi*float(
+                (heat - heat_before)[m:grid.ixg - m,
+                                     m:grid.jxg - m].sum())*grid.drr*grid.dth
 
             # エントロピーにも掛ける。ここを忘れると s1 の格子ノイズが
             # 減衰せず、p1 = p0(gamma*rho1/rho0 + s1) を通して rho0 の小さい

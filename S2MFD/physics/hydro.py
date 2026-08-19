@@ -332,6 +332,250 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
 
 
 # ---------------------------------------------------------------------------
+# 子午面の運動量 (r, theta 成分)
+# ---------------------------------------------------------------------------
+@njit(fastmath=False)
+def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
+                 JV, JVY, JM, RSIN, RR, sinTH, cosTH, ro0, gr,
+                 om0, drr, dth, margin, magnetic, ffr, ffth, cen):
+    """動径・子午面運動量の右辺を加算する.
+
+    .. math::
+       \\frac{\\partial}{\\partial t}\\left(r^2\\sin\\theta\\,\\rho_0 v_r\\right)
+       &= -\\partial_r\\!\\left(r^2\\sin\\theta\\,\\rho_0 v_r v_r\\right)
+          -\\partial_\\theta\\!\\left(r\\sin\\theta\\,\\rho_0 v_r v_\\theta\\right)\\\\
+       &\\quad + r\\sin\\theta\\,\\rho_0\\!\\left[v_\\theta^2
+              + r^2\\sin^2\\theta\\,(2\\Omega_0\\Omega_1+\\Omega_1^2)\\right]
+          - r^2\\sin\\theta\\left(\\rho_1 g + \\partial_r p_1\\right)
+          + r^2\\sin\\theta\\,F_{L,r}
+
+    .. math::
+       \\frac{\\partial}{\\partial t}\\left(r^2\\sin\\theta\\,\\rho_0 v_\\theta\\right)
+       &= -\\partial_r\\!\\left(r^2\\sin\\theta\\,\\rho_0 v_\\theta v_r\\right)
+          -\\partial_\\theta\\!\\left(r\\sin\\theta\\,\\rho_0 v_\\theta v_\\theta\\right)\\\\
+       &\\quad - r\\sin\\theta\\,\\rho_0 v_r v_\\theta
+          + r^3\\sin^2\\theta\\cos\\theta\\,\\rho_0(2\\Omega_0\\Omega_1+\\Omega_1^2)
+          - r\\sin\\theta\\,\\partial_\\theta p_1
+          + r^2\\sin\\theta\\,F_{L,\\theta}
+
+    **子午面の運動量は保存量ではない.** 球座標では曲率と遠心力に由来する
+    幾何学的な源項が必ず現れるためで, これは離散化の不備ではなく物理である
+    (軸対称系で厳密に保存するのは回転軸まわりの角運動量だけ).
+    したがってここでは源項を持つ形をそのまま使う.
+
+    遠心力の摂動形
+    --------------
+    遠心力は :math:`(\\Omega_0+\\Omega_1)^2` に比例するが, ここでは
+    :math:`2\\Omega_0\\Omega_1+\\Omega_1^2` すなわち
+    :math:`(\\Omega_0+\\Omega_1)^2-\\Omega_0^2` を使う. 剛体回転部分
+    :math:`\\Omega_0^2` の遠心力は背景の釣り合いに含まれているためで,
+    角運動量の保存量から :math:`\\Omega_0` を外すのと同じ「摂動だけを持つ」
+    方針である. これにより :math:`\\Omega_1\\ll\\Omega_0` のときの桁落ちを
+    避けられる.
+
+    圧力勾配は面平均した :math:`p_1` の差分で評価する (齋藤 2024 と同じ).
+    背景の静水圧平衡は解析的に差し引かれているので, ここに現れるのは
+    摂動だけである (well-balanced).
+    """
+    ixg, jxg = dq_mr.shape
+    idrr = 1.0/drr
+    idth = 1.0/dth
+
+    # =====================================================================
+    # 移流: r 方向運動量
+    # =====================================================================
+    for i in range(ixg):
+        for j in range(jxg):
+            cen[i, j] = JV[i, j]*vrr[i, j]*vrr[i, j]
+    face_average_r(cen, margin, ffr)
+    zero_boundary_faces_r(ffr, margin)
+    for i in range(ixg):
+        for j in range(jxg):
+            cen[i, j] = JVY[i, j]*vrr[i, j]*vth[i, j]
+    face_average_th(cen, margin, ffth)
+    zero_boundary_faces_th(ffth, margin)
+    add_flux_divergence(dq_mr, ffr, ffth, drr, dth, margin)
+
+    # =====================================================================
+    # 移流: theta 方向運動量
+    # =====================================================================
+    for i in range(ixg):
+        for j in range(jxg):
+            cen[i, j] = JV[i, j]*vth[i, j]*vrr[i, j]
+    face_average_r(cen, margin, ffr)
+    zero_boundary_faces_r(ffr, margin)
+    for i in range(ixg):
+        for j in range(jxg):
+            cen[i, j] = JVY[i, j]*vth[i, j]*vth[i, j]
+    face_average_th(cen, margin, ffth)
+    zero_boundary_faces_th(ffth, margin)
+    add_flux_divergence(dq_mt, ffr, ffth, drr, dth, margin)
+
+    # =====================================================================
+    # 幾何学的源項 + 圧力勾配 + 浮力
+    # =====================================================================
+    for i in range(margin, ixg - margin):
+        for j in range(margin, jxg - margin):
+            o1 = om1[i, j]
+            cent = 2.0*om0*o1 + o1*o1          # (Om0+Om1)^2 - Om0^2
+            rs = RSIN[i, j]
+            r = RR[i, j]
+            vt = vth[i, j]
+
+            # 圧力勾配 (面平均した p1 の差分 = 2 セル幅の中心差分)
+            dprr = 0.5*(pr1[i + 1, j] - pr1[i - 1, j])*idrr
+            dprt = 0.5*(pr1[i, j + 1] - pr1[i, j - 1])*idth
+
+            dq_mr[i, j] += (JVY[i, j]*(vt*vt + rs*rs*cent)
+                            - JM[i, j]*(ro1[i, j]*gr[i] + dprr))
+            dq_mt[i, j] += (-JVY[i, j]*vrr[i, j]*vt
+                            + JVY[i, j]*r*r*sinTH[i, j]*cosTH[i, j]*cent
+                            - rs*dprt)
+
+    # =====================================================================
+    # ローレンツ力 (子午面成分)
+    # =====================================================================
+    if magnetic:
+        for i in range(margin, ixg - margin):
+            for j in range(margin, jxg - margin):
+                r = RR[i, j]
+                s = sinTH[i, j]
+                # J = rot(B)
+                jr = (s*0.0 + (sinTH[i, j + 1]*bph[i, j + 1]
+                               - sinTH[i, j - 1]*bph[i, j - 1])
+                      * 0.5*idth)/(r*s)
+                jt = -(RR[i + 1, j]*bph[i + 1, j]
+                       - RR[i - 1, j]*bph[i - 1, j])*0.5*idrr/r
+                jp = ((RR[i + 1, j]*bth[i + 1, j]
+                       - RR[i - 1, j]*bth[i - 1, j])*0.5*idrr
+                      - (brr[i, j + 1] - brr[i, j - 1])*0.5*idth)/r
+                fl_r = (jt*bph[i, j] - jp*bth[i, j])/FOUR_PI
+                fl_t = (jp*brr[i, j] - jr*bph[i, j])/FOUR_PI
+                dq_mr[i, j] += JM[i, j]*fl_r
+                dq_mt[i, j] += JM[i, j]*fl_t
+
+
+# ---------------------------------------------------------------------------
+# 子午面の粘性応力
+# ---------------------------------------------------------------------------
+@njit(fastmath=False)
+def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
+                           nu, drr, dth, margin, ffr, ffth):
+    """子午面運動量に働く粘性力を加算する.
+
+    圧縮性の粘性応力テンソル
+
+    .. math::
+       \\tau_{ij} = \\rho_0\\nu\\left(
+         \\partial_i v_j + \\partial_j v_i
+         - \\tfrac{2}{3}\\delta_{ij}\\nabla\\cdot\\boldsymbol{v}\\right)
+
+    の :math:`r`, :math:`\\theta` 成分を球座標で展開したもの. 齋藤 (2024)
+    ``calculation.f90`` の ``reyno`` を移植した.
+
+    発散として書ける部分は面フラックス配列 (``ffr``, ``ffth``) に置き,
+    幾何因子から生じる残りをセル中心の源項として加える. 面フラックスは
+    境界でリテラル 0.0 に落とすので, 粘性を通じて境界から運動量が
+    出入りすることはない.
+
+    子午面運動量は保存量ではないので厳密な telescoping は要求されないが,
+    フラックスを 1 回だけ計算して 2 セルで共有する規律は角運動量と揃えて
+    おく (人工粘性を足したときに同じ枠組みで扱えるようにするため).
+    """
+    ixg, jxg = dq_mr.shape
+    idrr = 1.0/drr
+    idth = 1.0/dth
+    c43 = 4.0/3.0
+    c23 = 2.0/3.0
+
+    # =====================================================================
+    # r 方向運動量
+    # =====================================================================
+    # --- r 面フラックス ---------------------------------------------------
+    for i in range(margin, ixg - margin + 1):
+        rop3 = 0.5*(ro0[i]*rr[i]**3 + ro0[i - 1]*rr[i - 1]**3)
+        rop1a = ro0[i]*rr[i]
+        rop1b = ro0[i - 1]*rr[i - 1]
+        for j in range(margin, jxg - margin):
+            dvr = (vrr[i, j]/rr[i] - vrr[i - 1, j]/rr[i - 1])*idrr
+            div_a = (sinTH[i, j + 1]*vth[i, j + 1]
+                     - sinTH[i, j - 1]*vth[i, j - 1])*0.5*idth
+            div_b = (sinTH[i - 1, j + 1]*vth[i - 1, j + 1]
+                     - sinTH[i - 1, j - 1]*vth[i - 1, j - 1])*0.5*idth
+            ffr[i, j] = -nu*(c43*rop3*sinTH[i, j]*dvr
+                             - c23*0.5*(rop1a*div_a + rop1b*div_b))
+    zero_boundary_faces_r(ffr, margin)
+
+    # --- theta 面フラックス ----------------------------------------------
+    for i in range(margin, ixg - margin):
+        r2 = rr[i]*rr[i]
+        for j in range(margin, jxg - margin + 1):
+            sh_a = sinTH[i, j]*(vth[i + 1, j]/rr[i + 1]
+                                - vth[i - 1, j]/rr[i - 1])*0.5*idrr
+            sh_b = sinTH[i, j - 1]*(vth[i + 1, j - 1]/rr[i + 1]
+                                    - vth[i - 1, j - 1]/rr[i - 1])*0.5*idrr
+            ffth[i, j] = -nu*ro0[i]*(
+                r2*0.5*(sh_a + sh_b)
+                + 0.5*(sinTH[i, j] + sinTH[i, j - 1])*(vrr[i, j] - vrr[i, j - 1])*idth)
+    zero_boundary_faces_th(ffth, margin)
+
+    add_flux_divergence(dq_mr, ffr, ffth, drr, dth, margin)
+
+    # --- 幾何因子による源項 ----------------------------------------------
+    for i in range(margin, ixg - margin):
+        r2 = rr[i]*rr[i]
+        for j in range(margin, jxg - margin):
+            dvr = (vrr[i + 1, j]/rr[i + 1] - vrr[i - 1, j]/rr[i - 1])*0.5*idrr
+            dsv = (sinTH[i, j + 1]*vth[i, j + 1]
+                   - sinTH[i, j - 1]*vth[i, j - 1])*0.5*idth
+            dq_mr[i, j] += -nu*ro0[i]*(-c43*r2*sinTH[i, j]*dvr + c23*dsv)
+
+    # =====================================================================
+    # theta 方向運動量
+    # =====================================================================
+    for i in range(margin, ixg - margin + 1):
+        rop3 = 0.5*(ro0[i]*rr[i]**3 + ro0[i - 1]*rr[i - 1]**3)
+        rop1a = ro0[i]*rr[i]
+        rop1b = ro0[i - 1]*rr[i - 1]
+        for j in range(margin, jxg - margin):
+            dvt = (vth[i, j]/rr[i] - vth[i - 1, j]/rr[i - 1])*idrr
+            dva = (vrr[i, j + 1] - vrr[i, j - 1])*0.5*idth
+            dvb = (vrr[i - 1, j + 1] - vrr[i - 1, j - 1])*0.5*idth
+            ffr[i, j] = -nu*sinTH[i, j]*(rop3*dvt
+                                         + 0.5*(rop1a*dva + rop1b*dvb))
+    zero_boundary_faces_r(ffr, margin)
+
+    for i in range(margin, ixg - margin):
+        r2 = rr[i]*rr[i]
+        for j in range(margin, jxg - margin + 1):
+            sh_a = sinTH[i, j]*(vrr[i + 1, j]/rr[i + 1]
+                                - vrr[i - 1, j]/rr[i - 1])*0.5*idrr
+            sh_b = sinTH[i, j - 1]*(vrr[i + 1, j - 1]/rr[i + 1]
+                                    - vrr[i - 1, j - 1]/rr[i - 1])*0.5*idrr
+            ffth[i, j] = -nu*ro0[i]*(
+                -c23*r2*0.5*(sh_a + sh_b)
+                + c43*0.5*(sinTH[i, j] + sinTH[i, j - 1])*(vth[i, j] - vth[i, j - 1])*idth
+                - c23*0.5*(cosTH[i, j]*vth[i, j] + cosTH[i, j - 1]*vth[i, j - 1]))
+    zero_boundary_faces_th(ffth, margin)
+
+    add_flux_divergence(dq_mt, ffr, ffth, drr, dth, margin)
+
+    for i in range(margin, ixg - margin):
+        r2 = rr[i]*rr[i]
+        for j in range(margin, jxg - margin):
+            s = sinTH[i, j]
+            c = cosTH[i, j]
+            dvt_r = (vth[i + 1, j]/rr[i + 1] - vth[i - 1, j]/rr[i - 1])*0.5*idrr
+            dvr_r = (vrr[i + 1, j]/rr[i + 1] - vrr[i - 1, j]/rr[i - 1])*0.5*idrr
+            dvr_t = (vrr[i, j + 1] - vrr[i, j - 1])*0.5*idth
+            dvt_t = (vth[i, j + 1] - vth[i, j - 1])*0.5*idth
+            dq_mt[i, j] += nu*ro0[i]*(
+                r2*s*dvt_r + s*dvr_t
+                + c23*r2*c*dvr_r + c23*c*dvt_t
+                - c43*c*c/s*vth[i, j])
+
+
+# ---------------------------------------------------------------------------
 # 保存量 <-> プリミティブ変数
 # ---------------------------------------------------------------------------
 @njit(fastmath=False)

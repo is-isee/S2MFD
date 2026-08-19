@@ -315,6 +315,156 @@ def test_perturbation_form_beats_total_form(setup_dynamic):
 
 
 # ---------------------------------------------------------------------------
+# 子午面の運動量と粘性
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize('seed', range(5))
+def test_viscosity_always_dissipates_kinetic_energy(setup_dynamic, seed):
+    """粘性が運動エネルギーを必ず減らすこと (散逸の正値性)。
+
+    粘性応力テンソルを球座標で展開する際は項が多く、符号や幾何因子を
+    1 つ間違えても場のパターンによっては見た目が変わらないことがある。
+    「任意の速度場に対して :math:`\\int\\rho_0\\boldsymbol{v}\\cdot
+    \\boldsymbol{F}_\\nu\\,dV < 0`」はテンソル全体の整合性を一度に縛るので、
+    転記ミスの検出力が高い。
+
+    保存量 :math:`q_m = r^2\\sin\\theta\\rho_0 v` に対する時間微分を使うと、
+    運動エネルギーの変化率はそのまま
+    :math:`\\int(v_r\\,\\dot q_{m,r} + v_\\theta\\,\\dot q_{m,\\theta})
+    \\,dr\\,d\\theta` になる。
+    """
+    cfg, grid, strat, _ = setup_dynamic
+    m = grid.margin
+    rng = np.random.default_rng(seed)
+    work_arr = hydro.HydroWork(grid)
+    sl = (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
+
+    prof = np.sin(np.pi*(grid.RR - grid.rrmin)/(grid.rrmax - grid.rrmin))
+    kr, kt = rng.integers(1, 4), rng.integers(1, 4)
+    # v_r は極で sinθ 倍して滑らかに、v_θ は極で消えるように取る
+    vrr = np.ascontiguousarray(1e3*prof*np.cos(kr*grid.TH)*grid.sinTH)
+    vth = np.ascontiguousarray(1e3*prof*np.sin(kt*grid.TH))
+
+    dmr = np.zeros((grid.ixg, grid.jxg))
+    dmt = np.zeros((grid.ixg, grid.jxg))
+    hydro.viscous_meridional_rhs(dmr, dmt, vrr, vth, grid.rr, grid.sinTH,
+                                 grid.cosTH, strat.ro0, cfg.nu_turb,
+                                 grid.drr, grid.dth, m, work_arr.ffr, work_arr.ffth)
+
+    dkedt = (vrr[sl]*dmr[sl] + vth[sl]*dmt[sl]).sum()*grid.drr*grid.dth
+    ke = 0.5*(strat.JV[sl]*(vrr[sl]**2 + vth[sl]**2)).sum()*grid.drr*grid.dth
+    assert dkedt < 0.0, f'粘性が運動エネルギーを増やしている: {dkedt:.3e}'
+    # 桁が合っていることも見る (減衰時定数が拡散時間スケール程度)
+    tau = ke/abs(dkedt)
+    assert 1e5 < tau < 1e10, f'減衰時定数が非現実的: {tau:.3e} s'
+
+
+def test_lorentz_force_matches_magnetic_pressure_scale(setup_dynamic):
+    """ローレンツ力の大きさが :math:`B^2/8\\pi L` と同じ桁になること。
+
+    符号や :math:`4\\pi` の入れ忘れ、回転の幾何因子の取り違えを検出する
+    ための粗い次元チェック。
+    """
+    cfg, grid, strat, _ = setup_dynamic
+    m = grid.margin
+    work_arr = hydro.HydroWork(grid)
+    z = np.zeros((grid.ixg, grid.jxg))
+    sl = (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
+
+    width = 0.05*cfg.RSUN
+    prof = np.exp(-((grid.RR - 0.72*cfg.RSUN)/width)**2)
+    brr = np.ascontiguousarray(3e2*prof*grid.cosTH)
+    bth = np.ascontiguousarray(3e2*prof*grid.sinTH)
+    bph = np.ascontiguousarray(1.28e4*prof*np.sin(2*grid.TH))
+
+    dmr = np.zeros((grid.ixg, grid.jxg))
+    dmt = np.zeros((grid.ixg, grid.jxg))
+    hydro.momentum_rhs(dmr, dmt, z, z, z, z, z, brr, bth, bph,
+                       strat.JV, strat.JVY, strat.JM, strat.RSIN, grid.RR,
+                       grid.sinTH, grid.cosTH, strat.ro0, strat.gr,
+                       cfg.om0, grid.drr, grid.dth, m, True,
+                       work_arr.ffr, work_arr.ffth, work_arr.cen)
+
+    force = np.abs(dmr[sl]/strat.JM[sl]).max()
+    scale = (bph[sl]**2/(8*np.pi*width)).max()
+    assert 0.1 < force/scale < 10.0, f'ローレンツ力の桁が合わない: {force/scale:.3f}'
+
+
+def test_momentum_rhs_is_finite(setup_dynamic):
+    """非自明な状態で運動量の右辺が有限であること (極の 1/sinθ を含む)。"""
+    cfg, grid, strat, _ = setup_dynamic
+    m = grid.margin
+    work_arr = hydro.HydroWork(grid)
+
+    prof = np.sin(np.pi*(grid.RR - grid.rrmin)/(grid.rrmax - grid.rrmin))
+    vrr = np.ascontiguousarray(2e3*prof*(3*grid.cosTH**2 - 1))
+    vth = np.ascontiguousarray(2e3*prof*np.sin(2*grid.TH))
+    om1 = np.ascontiguousarray(-0.05*cfg.om0*grid.cosTH**2)
+    ro1 = np.ascontiguousarray(1e-4*strat.ro0[:, None]*np.sin(3*grid.TH))
+    se1 = np.zeros_like(ro1)
+    pr1 = np.ascontiguousarray(strat.pressure_perturbation(ro1, se1))
+    z = np.zeros((grid.ixg, grid.jxg))
+
+    dmr = np.zeros((grid.ixg, grid.jxg))
+    dmt = np.zeros((grid.ixg, grid.jxg))
+    hydro.momentum_rhs(dmr, dmt, vrr, vth, om1, ro1, pr1, z, z, z,
+                       strat.JV, strat.JVY, strat.JM, strat.RSIN, grid.RR,
+                       grid.sinTH, grid.cosTH, strat.ro0, strat.gr,
+                       cfg.om0, grid.drr, grid.dth, m, False,
+                       work_arr.ffr, work_arr.ffth, work_arr.cen)
+    hydro.viscous_meridional_rhs(dmr, dmt, vrr, vth, grid.rr, grid.sinTH,
+                                 grid.cosTH, strat.ro0, cfg.nu_turb,
+                                 grid.drr, grid.dth, m, work_arr.ffr, work_arr.ffth)
+    assert np.all(np.isfinite(dmr)) and np.all(np.isfinite(dmt))
+
+
+# ---------------------------------------------------------------------------
+# CFL
+# ---------------------------------------------------------------------------
+def test_cfl_includes_alfven_speed(setup_dynamic):
+    """CFL が音速・アルヴェン速度・流れの 3 つで決まること。
+
+    音速抑制法 (RSST) が遅くするのは音波だけで、アルヴェン速度は変わらない。
+    したがって強磁場を入れれば dt は必ず小さくなる。これを見落とすと
+    ζ を上げるほど速くなるという誤った見積もりになる。
+    """
+    cfg, grid, strat, _ = setup_dynamic
+    m = grid.margin
+    z = np.zeros((grid.ixg, grid.jxg))
+    ro1 = np.zeros_like(z)
+    vrr = np.ascontiguousarray(2e3*np.ones_like(z))
+    vth = np.zeros_like(z)
+
+    # 上部対流層 (rho0 が小さい) に強磁場を置く
+    prof = np.exp(-((grid.RR - 0.94*cfg.RSUN)/(0.02*cfg.RSUN))**2)
+    bph = np.ascontiguousarray(2e4*prof*grid.sinTH)
+
+    def dt_pair(zeta):
+        c = make_cfg('parameters/rempel06.py', ix=48, jx=48, rsst_zeta=zeta)
+        s = Stratification(c, grid)
+        args = (s.ro0, ro1, s.cs_eff, grid.rr, grid.drr, grid.dth,
+                cfg.nu_turb, m, cfg.cfl_safety)
+        return (hydro.cfl_dt(vrr, vth, z, z, z, *args, False),
+                hydro.cfl_dt(vrr, vth, z, z, bph, *args, True))
+
+    # ζ=100 (齋藤/Rempel の値) では音速がまだ支配的で、Rempel 級の磁場を
+    # 上部対流層に置いてもアルヴェン速度は CFL を変えない。
+    hyd100, mag100 = dt_pair(100.0)
+    assert mag100 == hyd100, (
+        'ζ=100 で既にアルヴェン律速になっている。この設定では音速が'
+        f'支配的なはず: {mag100:.1f} vs {hyd100:.1f}')
+
+    # ζ を大きくして音波を強く抑えると、アルヴェン速度が下限を作る。
+    # ここが「ζ を上げれば上げるだけ速くなる」わけではない理由。
+    hyd_big, mag_big = dt_pair(1.0e4)
+    assert mag_big < 0.5*hyd_big, (
+        'ζ を上げてもアルヴェン律速に切り替わっていない: '
+        f'{mag_big:.1f} vs {hyd_big:.1f}')
+    # 頭打ちの水準: ζ を 100 倍しても dt は 100 倍にならない
+    assert mag_big < 30*mag100, (
+        f'アルヴェン速度による頭打ちが効いていない: {mag_big/mag100:.1f} 倍')
+
+
+# ---------------------------------------------------------------------------
 # 境界フラックスのゼロ化
 # ---------------------------------------------------------------------------
 def test_boundary_fluxes_are_literal_zero():

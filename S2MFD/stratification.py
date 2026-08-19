@@ -149,6 +149,7 @@ class Stratification(NpzIO):
         self.JL = grid.RR**4*sin3*RO0             # 角運動量 (r フラックスも同じ)
         self.JLY = grid.RR**3*sin3*RO0            # 角運動量の theta フラックス
         self.RSIN = grid.RR*sin1                  # r sin(theta) (円筒半径)
+        self.W2 = self.RSIN**2                    # varpi^2 (比角運動量の係数)
 
         # 保存量からプリミティブ変数へ戻すための逆数.
         # 極のゴーストセルでは sin(theta) < 0 になりうるので, 物理セルの外は

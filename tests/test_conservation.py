@@ -165,7 +165,7 @@ def test_mass_conserved_to_machine_precision(setup_dynamic):
 # 角運動量保存
 # ---------------------------------------------------------------------------
 def _angmom_step(q_om, om1, vrr, vth, bb, grid, strat, setup, cfg, dt, work,
-                 magnetic):
+                 magnetic, consistent=False):
     m = grid.margin
 
     def rhs(q):
@@ -173,18 +173,21 @@ def _angmom_step(q_om, om1, vrr, vth, bb, grid, strat, setup, cfg, dt, work,
         dq = np.zeros_like(q)
         hydro.angular_momentum_rhs(
             dq, om1, vrr, vth, bb[0], bb[1], bb[2],
-            strat.JL, strat.JLY, grid.RR, grid.RRm, grid.sinTH, grid.sinTHm,
+            strat.JL, strat.JLY, strat.JV, strat.JVY, strat.W2,
+            grid.RR, grid.RRm, grid.sinTH, grid.sinTHm,
             strat.ro0, strat.ro0m, setup.lam_rp, setup.lam_tp,
             cfg.om0, cfg.nu_turb, grid.drr, grid.dth, m, magnetic,
-            work.ffr, work.ffth, work.cen)
+            consistent, work.ffr, work.ffth, work.cen)
         return dq
 
     q1 = q_om + dt*rhs(q_om)
     return 0.5*(q_om + q1 + dt*rhs(q1))
 
 
-@pytest.mark.parametrize('magnetic', [False, True])
-def test_angular_momentum_conserved_to_machine_precision(setup_dynamic, magnetic):
+@pytest.mark.parametrize('magnetic,consistent',
+                         [(False, False), (True, False), (True, True)])
+def test_angular_momentum_conserved_to_machine_precision(setup_dynamic, magnetic,
+                                                         consistent):
     """∫ρ0 r²sin²θ Ω1 dV が machine precision で保存すること。
 
     移流・粘性・Λ効果・Maxwell 応力のすべてを含めて検証する。Λ効果は
@@ -218,7 +221,7 @@ def test_angular_momentum_conserved_to_machine_precision(setup_dynamic, magnetic
     dt = 50.0
     for _ in range(2000):
         q_om = _angmom_step(q_om, om1, vrr, vth, bb, grid, strat, setup, cfg,
-                            dt, work, magnetic)
+                            dt, work, magnetic, consistent)
 
     assert np.all(np.isfinite(q_om))
     drift = abs(cons.cell_integral(q_om, grid.drr, grid.dth, m) - total0)/scale
@@ -289,11 +292,12 @@ def test_perturbation_form_beats_total_form(setup_dynamic):
             dq = np.zeros((grid.ixg, grid.jxg))
             hydro.angular_momentum_rhs(
                 dq, np.ascontiguousarray(o), vrr, vth, z, z, z,
-                strat.JL, strat.JLY, grid.RR, grid.RRm, grid.sinTH,
+                strat.JL, strat.JLY, strat.JV, strat.JVY, strat.W2,
+                grid.RR, grid.RRm, grid.sinTH,
                 grid.sinTHm, strat.ro0, strat.ro0m,
                 setup.lam_rp, setup.lam_tp,
                 cfg.om0, cfg.nu_turb, grid.drr, grid.dth, m, False,
-                work.ffr, work.ffth, work.cen)
+                False, work.ffr, work.ffth, work.cen)
             return dq
 
         for _ in range(1500):

@@ -215,9 +215,9 @@ def mass_rhs(dq_ro, vrr, vth, JV, JVY, izeta2, drr, dth, margin, ffr, ffth, cen)
 # ---------------------------------------------------------------------------
 @njit(fastmath=False)
 def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
-                         JL, JLY, RR, RRm, sinTH, sinTHm, ro0, ro0m,
-                         lam_rp, lam_tp, om0, nu, drr, dth, margin,
-                         magnetic, ffr, ffth, cen):
+                         JL, JLY, JV, JVY, W2, RR, RRm, sinTH, sinTHm,
+                         ro0, ro0m, lam_rp, lam_tp, om0, nu, drr, dth, margin,
+                         magnetic, consistent_advection, ffr, ffth, cen):
     """角運動量方程式の右辺を ``dq_om`` に加算する.
 
     すべての項を発散形
@@ -249,20 +249,60 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
     ----------
     magnetic : bool
         Maxwell 応力を含めるかどうか. ``dynamics == 'hydro'`` では False.
+    consistent_advection : bool
+        移流フラックスの作り方を選ぶ.
+
+        False (既定, 齋藤 2024 と同じ)
+            積 :math:`q_L(\\Omega_0+\\Omega_1)v` をセル中心で作ってから
+            面へ算術平均する.
+        True
+            連続の式で使うのと**同一の質量流束の面値**に, 比角運動量
+            :math:`\\varpi^2(\\Omega_0+\\Omega_1)` の面値を掛ける.
+
+        どちらも面値を 2 セルで共有するので保存は厳密に成り立つ. 違うのは
+        精度で, True のほうが「質量方程式との整合性」が良い.
+
+        なぜ気にするか: 保存形は移流形 :math:`\\rho_0 D(\\varpi^2\\Omega)/Dt`
+        に対して :math:`-\\Omega_0\\varpi^2\\nabla\\cdot(\\rho_0\\boldsymbol v)`
+        だけ余分な項を持つ. 質量流束が離散的に非発散なら消えるが, 音速抑制法
+        では :math:`\\nabla\\cdot(\\rho_0\\boldsymbol v)=-\\xi_s^2
+        \\partial\\rho_1/\\partial t` なので厳密にはゼロにならず, しかも係数
+        :math:`\\Omega_0` で増幅される. True にすると角運動量フラックスが
+        質量流束そのものに比例するので, :math:`\\Omega` が一様なときに
+        角運動量方程式が質量方程式に帰着する (free-stream preservation).
     ro0m : numpy.ndarray
         :math:`\\rho_0` の r 面上の値 (``ixg``,). 面 ``i`` はセル
         ``i-1`` と ``i`` の境界.
+    W2 : numpy.ndarray
+        :math:`\\varpi^2 = r^2\\sin^2\\theta` (``Stratification.W2``).
     """
     ixg, jxg = dq_om.shape
 
     # =====================================================================
     # r 方向フラックス
     # =====================================================================
-    # --- 移流: 積を中心で作ってから面平均 --------------------------------
-    for i in range(ixg):
-        for j in range(jxg):
-            cen[i, j] = JL[i, j]*(om0 + om1[i, j])*vrr[i, j]
-    face_average_r(cen, margin, ffr)
+    # --- 移流 -------------------------------------------------------------
+    if consistent_advection:
+        # 質量流束と同一の面値を使い、それに比角運動量の面値を掛ける。
+        # F^r = M^r_face * (varpi^2 (Om0+Om1))_face
+        # 連続の式で使う M^r と同じ配列なので、Omega が一様なら角運動量
+        # 方程式は質量方程式にそのまま帰着する (free-stream preservation)。
+        for i in range(ixg):
+            for j in range(jxg):
+                cen[i, j] = JV[i, j]*vrr[i, j]
+        face_average_r(cen, margin, ffr)
+        for i in range(ixg):
+            for j in range(jxg):
+                cen[i, j] = W2[i, j]*(om0 + om1[i, j])
+        for i in range(margin, ixg - margin + 1):
+            for j in range(jxg):
+                ffr[i, j] *= 0.5*(cen[i, j] + cen[i - 1, j])
+    else:
+        # 齋藤 (2024) と同じ: 積をセル中心で作ってから面平均する
+        for i in range(ixg):
+            for j in range(jxg):
+                cen[i, j] = JL[i, j]*(om0 + om1[i, j])*vrr[i, j]
+        face_average_r(cen, margin, ffr)
 
     # --- 粘性 + Lambda 効果 + Maxwell 応力を同じ面配列に足し込む ---------
     idrr = 1.0/drr
@@ -295,10 +335,22 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
     # =====================================================================
     # theta 方向フラックス
     # =====================================================================
-    for i in range(ixg):
-        for j in range(jxg):
-            cen[i, j] = JLY[i, j]*(om0 + om1[i, j])*vth[i, j]
-    face_average_th(cen, margin, ffth)
+    if consistent_advection:
+        for i in range(ixg):
+            for j in range(jxg):
+                cen[i, j] = JVY[i, j]*vth[i, j]
+        face_average_th(cen, margin, ffth)
+        for i in range(ixg):
+            for j in range(jxg):
+                cen[i, j] = W2[i, j]*(om0 + om1[i, j])
+        for i in range(ixg):
+            for j in range(margin, jxg - margin + 1):
+                ffth[i, j] *= 0.5*(cen[i, j] + cen[i, j - 1])
+    else:
+        for i in range(ixg):
+            for j in range(jxg):
+                cen[i, j] = JLY[i, j]*(om0 + om1[i, j])*vth[i, j]
+        face_average_th(cen, margin, ffth)
 
     idth = 1.0/dth
     for i in range(ixg):

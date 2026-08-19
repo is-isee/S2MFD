@@ -193,7 +193,11 @@ def alpha_effect(Bph, Aph, rr, ibase, so, alpha_type):
       raise ValueError(f"unknown alpha_type: {alpha_type!r}")
 
    return Aph_sour
-ALPHA_CODE = {'BL': 0, 'H10': 0, 'normal': 1}
+# alpha 効果の種別 -> カーネルの分岐コード
+#   0 : 非局所 (Babcock-Leighton 型)。ソースは so(r,theta) * alpha_fac(theta) で、
+#       alpha_fac はカーネルの外で作って渡す
+#   1 : 局所。ソースは so(r,theta) * Bph/(1+Bph^2) でセルごとに評価する
+ALPHA_CODE = {'BL': 0, 'H10': 0, 'normal': 1, 'R06': 0}
 
 
 def _make_time_marching_kernel(fast, nonlocal_alpha, separable=False):
@@ -626,18 +630,28 @@ def time_marching(Bph, Aph, dt, cfg, grid, setup):
 
    rr, sth, rrm, sthm, inv_rr, inv_rr2, inv_sth, inv_sth2 = _grid_1d(grid)
 
-   # 非局所 alpha 効果の係数 b/(1+b^2) は j のみに依存するので事前計算する
+   # 非局所 alpha 効果の係数は j のみに依存するので事前計算する
    if alpha_code == 0:
-      b_src = Bph[setup.ibase, :]
+      if cfg.alpha_type == 'R06':
+         # Rempel (2006) 式 (19): 0.71-0.76 RSUN の放物線カーネルで
+         # B_phi を動径平均する (BL のように 1 点を取るのではない)。
+         # クエンチングは B_eq = 1 T = 1e4 G (CGS)。
+         b_src = (setup.alpha_kernel[:, None]*Bph).sum(axis=0)*grid.drr
+         beq = getattr(cfg, 'alpha_b_eq', 1.0e4)
+         alpha_fac = b_src/(1 + (b_src/beq)**2)
+      else:
+         b_src = Bph[setup.ibase, :]
+         alpha_fac = b_src/(1 + b_src**2)
    else:
-      b_src = np.zeros(Bph.shape[1])
-   alpha_fac = b_src/(1 + b_src**2)
+      alpha_fac = np.zeros(Bph.shape[1])
 
    fast = not getattr(cfg, 'exact_arithmetic', False)
    # exact_arithmetic では参照実装とのビット一致を保つため、
    # 背景場は 2D 配列のまま使う (rank-1 再構成は丸めが変わる)
    sep, factors = separable_profiles(setup)
-   sep = sep and fast
+   # 力学モードでは背景場が毎ステップ変わるので rank-1 分解は使わない
+   # (毎回作り直すことになり、かつ 2 次元場は一般に rank-1 でない)
+   sep = sep and fast and getattr(cfg, 'dynamics', 'kinematic') == 'kinematic'
    kernel = get_time_marching_kernel(fast, alpha_code == 0, sep)
    return kernel(Bph, Aph, dt, rr, sth, rrm, sthm, grid.drr, grid.dth,
                  setup.urr, setup.uth, setup.et, setup.etrr,

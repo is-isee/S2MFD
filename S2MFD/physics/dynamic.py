@@ -369,6 +369,39 @@ class DynamicSolver:
         # 面フラックスは「流出」向きが正なので、流入分は符号を反転して積算
         self.boundary_angmom_flux += dt*0.5*(f1 + f2)
 
+    # -- 磁場との結合 -----------------------------------------------------
+    def sync_to_induction(self):
+        """流体の解を誘導方程式カーネルが読む ``setup`` の配列に反映する.
+
+        既存の運動学的ダイナモのカーネル (:func:`S2MFD.physics.time_marching`)
+        は流れ場を ``setup.urr``, ``setup.uth``, ``setup.omrr``,
+        ``setup.omth`` から読む. 力学モードではこれらが毎ステップ変わるので,
+        ソルバの解で上書きする.
+
+        こうすることで**誘導方程式そのものは運動学的ダイナモと同一の
+        コードを使う**. Rempel 2006 式 (6)(7) と S2MFD の誘導方程式は
+        既に項ごとに一致していることを確認済みなので, 書き直す必要はない
+        (``doc/dev_records/2026-08-19_rempel2006_feasibility.md`` §1).
+
+        Ω効果に入るのは :math:`\\partial\\Omega_1/\\partial r` と
+        :math:`\\partial\\Omega_1/\\partial\\theta` だが, :math:`\\Omega_0` は
+        定数なので :math:`\\Omega=\\Omega_0+\\Omega_1` の微分と同じである.
+        """
+        from S2MFD.tools import drr2, dth2
+        st, grid = self.setup, self.grid
+        st.urr = self.vrr
+        st.uth = self.vth
+        om = self.cfg.om0 + self.om1
+        st.om = om
+        st.omrr = drr2(om, grid.drr)
+        st.omth = dth2(om, grid.dth)/grid.RR
+
+    def set_magnetic_field(self, brr, bth, bph):
+        """ローレンツ力に使う磁場を外から与える."""
+        self.brr[:] = brr
+        self.bth[:] = bth
+        self.bph[:] = bph
+
     def cfl_dt(self):
         """CFL 条件から許容タイムステップを返す."""
         cfg, s, st = self.cfg, self.strat, self.setup

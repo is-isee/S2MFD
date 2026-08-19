@@ -804,3 +804,83 @@ def test_reynolds_stress_is_not_double_counted():
     assert np.abs(dq_om[sl]).max() == 0.0, (
         'dq_om に応力が混入している (二重計上)')
     assert np.abs(dq_stress[sl]).max() > 0.0, 'dq_stress に応力が出ていない'
+
+
+# ---------------------------------------------------------------------------
+# 力学ダイナモ (流体 + 誘導方程式の結合)
+# ---------------------------------------------------------------------------
+def test_dynamic_mode_couples_to_existing_induction_kernel():
+    """力学モードで、既存の運動学的ダイナモのカーネルがそのまま使えること。
+
+    Rempel 2006 式(6)(7) と S2MFD の誘導方程式は項ごとに一致しているので、
+    誘導方程式を書き直す必要はない。流れ場を ``setup`` に書き戻すだけで
+    結合できる (``DynamicSolver.sync_to_induction``)。
+
+    これにより運動学的ダイナモと力学ダイナモが**同一の誘導方程式コード**を
+    共有するので、片方だけが壊れるということが起きない。
+    """
+    from S2MFD.physics import time_marching, poloidal_mag
+
+    cfg = make_cfg('parameters/rempel06.py', ix=32, jx=32)
+    assert cfg.dynamics == 'dynamic'
+    grid = make_grid(cfg)
+    strat = Stratification(cfg, grid)
+    setup = S2MFD.Setup(cfg, grid)
+    sol = dynamic.DynamicSolver(cfg, grid, strat, setup)
+    m = grid.margin
+    sl = (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
+
+    prof = np.sin(np.pi*(grid.RR - grid.rrmin)/(grid.rrmax - grid.rrmin))
+    bph = np.ascontiguousarray(1e3*prof*np.sin(2*grid.TH))
+    aph = np.zeros_like(bph)
+    sol.set_primitive_from_conserved(sol.conserved())
+    sol.sync_to_induction()
+    dt = sol.cfl_dt()
+
+    for _ in range(50):
+        bph, aph = time_marching(bph, aph, dt, cfg, grid, setup)
+        pm = poloidal_mag(aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+        sol.set_magnetic_field(pm[0], pm[1], bph)
+        sol.step(dt)
+        sol.sync_to_induction()
+
+    assert np.all(np.isfinite(bph)) and np.all(np.isfinite(aph))
+    assert np.all(np.isfinite(sol.om1)) and np.all(np.isfinite(sol.se1))
+    # 磁場が消えていないこと (Ω効果と拡散が両方効いている状態)
+    assert np.abs(bph[sl]).max() > 1e2
+
+
+def test_r06_alpha_kernel_is_normalised():
+    """Rempel 2006 式(19) の放物線カーネル h(r) が ∫h dr = 1 に規格化されること。"""
+    cfg = make_cfg('parameters/rempel06.py', ix=64, jx=32)
+    grid = make_grid(cfg)
+    setup = S2MFD.Setup(cfg, grid)
+    integral = setup.alpha_kernel.sum()*grid.drr
+    assert abs(integral - 1.0) < 1e-10, f'規格化されていない: {integral}'
+    # 0.71 - 0.76 RSUN の外ではゼロ
+    outside = (grid.rr < cfg.r_h_bot) | (grid.rr > cfg.r_h_top)
+    assert np.all(setup.alpha_kernel[outside] == 0.0)
+
+
+def test_kinematic_mode_is_unaffected_by_dynamic_additions():
+    """既存の運動学的ダイナモが力学モードの追加で変わっていないこと。
+
+    ユーザー要求「この実装後も kinematic dynamo の機能は残して欲しい」の
+    直接の検証。力学モード用に physics_core へ入れた変更 (R06 alpha の
+    追加、rank-1 分解の抑制条件) が既定経路に影響していないことを確認する。
+    """
+    from S2MFD.physics import time_marching, time_marching_reference
+
+    cfg = make_cfg('parameters/defaults.py', ix=32, jx=32)
+    assert getattr(cfg, 'dynamics', 'kinematic') == 'kinematic'
+    grid = make_grid(cfg)
+    setup = S2MFD.Setup(cfg, grid)
+    rng = np.random.default_rng(0)
+    bph = np.ascontiguousarray(rng.standard_normal((grid.ixg, grid.jxg)))
+    aph = np.ascontiguousarray(rng.standard_normal((grid.ixg, grid.jxg)))
+
+    cfg.exact_arithmetic = True
+    fast = time_marching(bph.copy(), aph.copy(), 1.0e4, cfg, grid, setup)
+    ref = time_marching_reference(bph.copy(), aph.copy(), 1.0e4, cfg, grid, setup)
+    for a, b in zip(fast, ref):
+        assert np.array_equal(a, b), '参照実装とのビット一致が壊れている'

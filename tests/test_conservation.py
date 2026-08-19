@@ -179,7 +179,7 @@ def _angmom_step(q_om, om1, vrr, vth, bb, grid, strat, setup, cfg, dt, work,
             strat.ro0, strat.ro0m, setup.lam_rp, setup.lam_tp, cfg.om0,
             setup.nu_dif, setup.nu_dif_m, setup.nu_lam, setup.nu_lam_m,
             grid.drr, grid.dth, m, magnetic,
-            consistent, work.ffr, work.ffth, work.cen)
+            consistent, np.zeros_like(q), work.ffr, work.ffth, work.cen)
         return dq
 
     q1 = q_om + dt*rhs(q_om)
@@ -300,7 +300,8 @@ def test_perturbation_form_beats_total_form(setup_dynamic):
                 setup.lam_rp, setup.lam_tp, cfg.om0,
                 setup.nu_dif, setup.nu_dif_m, setup.nu_lam, setup.nu_lam_m,
                 grid.drr, grid.dth, m, False,
-                False, work.ffr, work.ffth, work.cen)
+                False, np.zeros((grid.ixg, grid.jxg)),
+                work.ffr, work.ffth, work.cen)
             return dq
 
         for _ in range(1500):
@@ -460,7 +461,7 @@ def test_sld_conserves_exactly(setup_dynamic):
     ffr = np.zeros_like(om1)
     ffth = np.zeros_like(om1)
     dq = np.zeros_like(om1)
-    artdif.sld_diffuse(dq, om1, jac_r, jac_th, csp, csp, 1.0,
+    artdif.sld_diffuse(dq, om1, jac_r, jac_th, csp, csp, 1.0, 0.0,
                        grid.drr, grid.dth, m, ffr, ffth)
 
     total = cons.cell_integral(dq, grid.drr, grid.dth, m)
@@ -485,7 +486,7 @@ def test_sld_always_dissipates(setup_dynamic, seed):
     ffr = np.zeros_like(om1)
     ffth = np.zeros_like(om1)
     dq = np.zeros_like(om1)
-    artdif.sld_diffuse(dq, om1, jac_r, jac_th, csp, csp, 1.0,
+    artdif.sld_diffuse(dq, om1, jac_r, jac_th, csp, csp, 1.0, 0.0,
                        grid.drr, grid.dth, m, ffr, ffth)
 
     sl = (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
@@ -506,7 +507,7 @@ def test_sld_is_negligible_for_resolved_fields(setup_dynamic):
     def response(field):
         dq = np.zeros((grid.ixg, grid.jxg))
         artdif.sld_diffuse(dq, np.ascontiguousarray(field), jac_r, jac_th,
-                           csp, csp, 1.0, grid.drr, grid.dth, m, ffr, ffth)
+                           csp, csp, 1.0, 0.0, grid.drr, grid.dth, m, ffr, ffth)
         return cons.cell_integral(np.abs(dq), grid.drr, grid.dth, m)
 
     smooth = -0.05*cfg.om0*grid.cosTH**2*np.sin(

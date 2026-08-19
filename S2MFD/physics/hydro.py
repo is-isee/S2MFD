@@ -148,7 +148,9 @@ def cfl_dt(vrr, vth, brr, bth, bph, ro0, ro1, cs_eff, rr, drr, dth,
             dl = drr if drr < rr[i]*dth else rr[i]*dth
             if dl < dl_min:
                 dl_min = dl
-        dt_diff = 0.5*dl_min*dl_min/diffusivity
+        # 安全率は移流側と同じものを掛ける。ここを忘れると拡散が
+        # ぎりぎり安定な設定で静かに壊れる
+        dt_diff = safety*0.5*dl_min*dl_min/diffusivity
         if dt_diff < dt:
             dt = dt_diff
     return dt
@@ -220,7 +222,8 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
                          JL, JLY, JV, JVY, W2, RR, RRm, sinTH, sinTHm,
                          ro0, ro0m, lam_rp, lam_tp, om0,
                          nu_dif, nu_dif_m, nu_lam, nu_lam_m, drr, dth, margin,
-                         magnetic, consistent_advection, ffr, ffth, cen):
+                         magnetic, consistent_advection, dq_stress,
+                         ffr, ffth, cen):
     """角運動量方程式の右辺を ``dq_om`` に加算する.
 
     すべての項を発散形
@@ -309,20 +312,6 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
 
     # --- 粘性 + Lambda 効果 + Maxwell 応力を同じ面配列に足し込む ---------
     idrr = 1.0/drr
-    for i in range(margin, ixg - margin + 1):
-        rm = RRm[i, 0]
-        rm3 = rm*rm*rm
-        rm4 = rm3*rm
-        cvis = -nu_dif_m[i]*ro0m[i]*rm4
-        clam = -nu_lam_m[i]*ro0m[i]*rm3
-        for j in range(jxg):
-            s = sinTH[i, j]
-            s2 = s*s
-            s3 = s2*s
-            # 粘性: 面上の勾配をそのまま使う (2 セルで共有される)
-            ffr[i, j] += cvis*s3*(om1[i, j] - om1[i - 1, j])*idrr
-            # Lambda 効果: セル中心の値を面へ平均
-            ffr[i, j] += clam*s2*0.5*(lam_rp[i, j] + lam_rp[i - 1, j])
     if magnetic:
         for i in range(ixg):
             for j in range(jxg):
@@ -336,7 +325,7 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
     zero_boundary_faces_r(ffr, margin)
 
     # =====================================================================
-    # theta 方向フラックス
+    # theta 方向フラックス (移流 + Maxwell)
     # =====================================================================
     if consistent_advection:
         for i in range(ixg):
@@ -356,18 +345,6 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
         face_average_th(cen, margin, ffth)
 
     idth = 1.0/dth
-    for i in range(ixg):
-        r = RR[i, 0]
-        r2 = r*r
-        cvis = -nu_dif[i]*ro0[i]*r2
-        clam = -nu_lam[i]*ro0[i]*r2
-        for j in range(margin, jxg - margin + 1):
-            sm = sinTHm[i, j]
-            sm2 = sm*sm
-            sm3 = sm2*sm
-            ffth[i, j] += cvis*sm3*(om1[i, j] - om1[i, j - 1])*idth
-            ffth[i, j] += clam*0.5*(sinTH[i, j]*sinTH[i, j]*lam_tp[i, j]
-                                    + sinTH[i, j - 1]*sinTH[i, j - 1]*lam_tp[i, j - 1])
     if magnetic:
         for i in range(ixg):
             for j in range(jxg):
@@ -380,10 +357,51 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
 
     zero_boundary_faces_th(ffth, margin)
 
-    # =====================================================================
     # 発散 (セル体積で割らない — ヤコビアンは保存量に吸収済み)
-    # =====================================================================
     add_flux_divergence(dq_om, ffr, ffth, drr, dth, margin)
+
+    # =====================================================================
+    # レイノルズ応力 (粘性 + Lambda 効果)
+    # ---------------------------------------------------------------------
+    # 移流や Maxwell 応力とは別の配列にも発散を書き出す. エントロピー方程式の
+    # 加熱項 Q = sum (1/2) E_ik R_ik は「レイノルズ応力が流れにした仕事の
+    # 符号反転」に等しい (境界フラックスがゼロなので部分積分の表面項が消える)
+    # ので, ここで分離しておけば add_dissipative_heating に渡すだけでよい.
+    # 粘性項は正の加熱, Lambda 効果は負の加熱 (差動回転にエネルギーを渡す側)
+    # になり, Rempel 2005 の記述「Q は粘性散逸による加熱項と Lambda 効果に
+    # よる冷却項を含み, 後者が一般に支配的」がそのまま再現される.
+    # =====================================================================
+    for i in range(margin, ixg - margin + 1):
+        rm = RRm[i, 0]
+        rm3 = rm*rm*rm
+        rm4 = rm3*rm
+        cvis = -nu_dif_m[i]*ro0m[i]*rm4
+        clam = -nu_lam_m[i]*ro0m[i]*rm3
+        for j in range(jxg):
+            sn = sinTH[i, j]
+            sn2 = sn*sn
+            sn3 = sn2*sn
+            # 粘性: 面上の勾配をそのまま使う (2 セルで共有される)
+            # Lambda 効果: セル中心の値を面へ平均
+            ffr[i, j] = (cvis*sn3*(om1[i, j] - om1[i - 1, j])*idrr
+                         + clam*sn2*0.5*(lam_rp[i, j] + lam_rp[i - 1, j]))
+    zero_boundary_faces_r(ffr, margin)
+
+    for i in range(ixg):
+        r = RR[i, 0]
+        r2 = r*r
+        cvis = -nu_dif[i]*ro0[i]*r2
+        clam = -nu_lam[i]*ro0[i]*r2
+        for j in range(margin, jxg - margin + 1):
+            sm = sinTHm[i, j]
+            sm3 = sm*sm*sm
+            ffth[i, j] = (cvis*sm3*(om1[i, j] - om1[i, j - 1])*idth
+                          + clam*0.5*(sinTH[i, j]*sinTH[i, j]*lam_tp[i, j]
+                                      + sinTH[i, j - 1]*sinTH[i, j - 1]*lam_tp[i, j - 1]))
+    zero_boundary_faces_th(ffth, margin)
+
+    add_flux_divergence(dq_om, ffr, ffth, drr, dth, margin)
+    add_flux_divergence(dq_stress, ffr, ffth, drr, dth, margin)
 
 
 # ---------------------------------------------------------------------------

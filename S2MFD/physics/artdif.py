@@ -12,6 +12,24 @@ S2MFD は SSP-RK2 + 中心差分で**数値散逸をまったく持たない**�
 勾配が格子で解像されている領域では実質ゼロになり, 格子スケールの
 振動だけを選択的に潰す.
 
+なぜ SLD だけでは足りないか (部分的な風上化の下限)
+--------------------------------------------------
+SLD は「解像された場には効かない」ことが利点だが, 本モデルではそれが
+足りない. Rempel の MacCormack (交互風上/風下差分) は音波に対して
+:math:`\\tfrac12 c_{s,\\rm eff}\\Delta x \\simeq 5\\times10^{13}\\,
+{\\rm cm^2/s}` 相当の数値散逸を持っており, これは物理的な乱流粘性
+:math:`\\nu_t=3\\times10^{12}` の 15 倍にもなる. 対流層が中立成層
+(:math:`\\delta=0`) の場合, 復元力がないため 6-8 セル程度の**解像された**
+モードが準中立になり, SLD ではこれを抑えられずに成長する
+(実際に :math:`\\kappa_t` または :math:`\\nu_t` を 10 倍にすると安定化する
+ことを確認した).
+
+そこで ``floor`` を導入し, リミタが「解像されている」と判断した場合でも
+その割合だけは Rusanov 型の散逸を残す. ``floor=0`` なら純粋な SLD,
+``floor=1`` なら完全な Rusanov (1 次風上) になる. Rempel のスキームが
+持つ暗黙の散逸に相当する量を明示的に入れるための係数であり,
+論文からの逸脱ではなく**異なる時間積分法を使うことの必然的な代償**である.
+
 齋藤 (2024) コードの ``artdif.f90`` が無効化されている理由
 -----------------------------------------------------------
 齋藤コードにも人工粘性の実装はあるが, ``mhd.f90`` で呼び出しが
@@ -59,10 +77,12 @@ import numpy as np
 from numba import njit
 
 from S2MFD.physics.conservative import (
-    zero_boundary_faces_r, zero_boundary_faces_th, add_flux_divergence,
+    zero_boundary_faces_r, zero_boundary_faces_th,
+    add_flux_divergence, add_flux_divergence_scaled,
 )
 
-__all__ = ['sld_flux_r', 'sld_flux_th', 'sld_diffuse']
+__all__ = ['sld_flux_r', 'sld_flux_th', 'sld_diffuse', 'sld_diffuse_scaled',
+           'sld_diffuse_primitive', 'sld_diffusivity_max']
 
 
 @njit(inline='always')
@@ -75,7 +95,7 @@ def _minmod(a, b):
 
 
 @njit(fastmath=False)
-def sld_flux_r(uu, jac_face, cspeed, coefficient, margin, out):
+def sld_flux_r(uu, jac_face, cspeed, coefficient, floor, margin, out):
     """r 方向の slope-limited diffusion フラックスを作る.
 
     セル境界での「解像されていない跳び」を
@@ -130,11 +150,15 @@ def sld_flux_r(uu, jac_face, cspeed, coefficient, margin, out):
                 jump = 0.0
             elif abs(jump) > abs(d0):
                 jump = d0
+            # 部分的な風上化 (下限). リミタが「解像されている」と判断した
+            # 場合でも floor の割合だけは Rusanov 型の散逸を残す
+            if abs(jump) < floor*abs(d0):
+                jump = floor*d0
             out[i, j] = -0.5*coefficient*cspeed[i, j]*jac_face[i, j]*jump
 
 
 @njit(fastmath=False)
-def sld_flux_th(uu, jac_face, cspeed, coefficient, margin, out):
+def sld_flux_th(uu, jac_face, cspeed, coefficient, floor, margin, out):
     """theta 方向の slope-limited diffusion フラックス.
 
     :func:`sld_flux_r` の theta 版. 面 ``j`` はセル ``j-1`` と ``j`` の境界.
@@ -152,11 +176,15 @@ def sld_flux_th(uu, jac_face, cspeed, coefficient, margin, out):
                 jump = 0.0
             elif abs(jump) > abs(d0):
                 jump = d0
+            # 部分的な風上化 (下限). リミタが「解像されている」と判断した
+            # 場合でも floor の割合だけは Rusanov 型の散逸を残す
+            if abs(jump) < floor*abs(d0):
+                jump = floor*d0
             out[i, j] = -0.5*coefficient*cspeed[i, j]*jac_face[i, j]*jump
 
 
 @njit(fastmath=False)
-def sld_diffuse(dqq, uu, jac_r, jac_th, csp_r, csp_th, coefficient,
+def sld_diffuse(dqq, uu, jac_r, jac_th, csp_r, csp_th, coefficient, floor,
                 drr, dth, margin, ffr, ffth):
     """プリミティブ変数 ``uu`` に人工拡散を掛け, 保存量の時間微分に加算する.
 
@@ -164,8 +192,79 @@ def sld_diffuse(dqq, uu, jac_r, jac_th, csp_r, csp_th, coefficient,
     保存量が境界から出入りすることはない (ユーザー要求
     「境界から保存量が出ていかないように。人工粘性も物理も」).
     """
-    sld_flux_r(uu, jac_r, csp_r, coefficient, margin, ffr)
+    sld_flux_r(uu, jac_r, csp_r, coefficient, floor, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
-    sld_flux_th(uu, jac_th, csp_th, coefficient, margin, ffth)
+    sld_flux_th(uu, jac_th, csp_th, coefficient, floor, margin, ffth)
     zero_boundary_faces_th(ffth, margin)
     add_flux_divergence(dqq, ffr, ffth, drr, dth, margin)
+
+
+@njit(fastmath=False)
+def sld_diffuse_scaled(dqq, uu, jac_r, jac_th, csp_r, csp_th, coefficient,
+                       floor, drr, dth, margin, scale, ffr, ffth):
+    """:func:`sld_diffuse` の, 発散に動径依存の係数が掛かる版.
+
+    密度に人工拡散を掛けるときに使う. 音速抑制法では保存量が
+    :math:`\\int\\xi_s^2\\rho_1\\,dV` なので, 連続の式と同じく
+    :math:`\\xi_s^{-2}` を発散全体に掛けないと質量保存が壊れる
+    (:math:`\\xi_s` が動径に依存する場合).
+    """
+    sld_flux_r(uu, jac_r, csp_r, coefficient, floor, margin, ffr)
+    zero_boundary_faces_r(ffr, margin)
+    sld_flux_th(uu, jac_th, csp_th, coefficient, floor, margin, ffth)
+    zero_boundary_faces_th(ffth, margin)
+    add_flux_divergence_scaled(dqq, ffr, ffth, drr, dth, margin, scale)
+
+
+@njit(fastmath=False)
+def sld_diffuse_primitive(duu, uu, jac_r, jac_th, ijac, csp_r, csp_th,
+                          coefficient, floor, drr, dth, margin, ffr, ffth):
+    """保存形ではなく直接解いているプリミティブ変数に人工拡散を掛ける.
+
+    エントロピーのように保存量として持っていない変数に使う.
+    フラックスは保存形と同じヤコビアン付きで作り, 最後にセル中心の
+    ヤコビアンで割って :math:`\\partial u/\\partial t` に変換する.
+
+    エントロピーへの人工拡散を忘れると何が起きるか
+    ----------------------------------------------
+    :math:`s_1` は中心差分で移流されるだけで散逸を持たないため, 格子スケールの
+    ノイズが減衰しない. そのノイズは状態方程式
+    :math:`p_1=p_0(\\gamma\\rho_1/\\rho_0+s_1)` を通して圧力に乗り,
+    :math:`\\rho_0` が小さい対流層上部で
+    :math:`\\rho_0^{-1}\\partial_r p_1` として巨大な加速に化ける. その速度が
+    さらに :math:`s_1` をかき混ぜるので正のフィードバックになり,
+    計算が発散する. 実際に赤道近傍・上部対流層から壊れることを確認した
+    (``doc/dev_records`` の作業記録を参照).
+    """
+    sld_flux_r(uu, jac_r, csp_r, coefficient, floor, margin, ffr)
+    zero_boundary_faces_r(ffr, margin)
+    sld_flux_th(uu, jac_th, csp_th, coefficient, floor, margin, ffth)
+    zero_boundary_faces_th(ffth, margin)
+    ixg, jxg = duu.shape
+    idrr = 1.0/drr
+    idth = 1.0/dth
+    for i in range(margin, ixg - margin):
+        for j in range(margin, jxg - margin):
+            duu[i, j] -= ((ffr[i + 1, j] - ffr[i, j])*idrr
+                          + (ffth[i, j + 1] - ffth[i, j])*idth)*ijac[i, j]
+
+
+@njit(fastmath=False)
+def sld_diffusivity_max(csp_r, csp_th, coefficient, floor, drr, dth, rr, margin):
+    """人工拡散の実効拡散係数の最大値を返す (CFL 用).
+
+    SLD フラックスは :math:`-\\tfrac12 h c\\,\\Delta u` なので, 実効的な
+    拡散係数は :math:`\\tfrac12 h c\\,\\Delta x` に相当する. これを
+    陽解法の拡散安定条件に入れないと, ``sld_coefficient`` を大きくしたときに
+    静かに不安定化する (係数 4 で即座に発散することを確認済み).
+    """
+    ixg, jxg = csp_r.shape
+    kmax = 0.0
+    for i in range(margin, ixg - margin):
+        dl = drr if drr < rr[i]*dth else rr[i]*dth
+        for j in range(margin, jxg - margin):
+            c = csp_r[i, j] if csp_r[i, j] > csp_th[i, j] else csp_th[i, j]
+            k = 0.5*coefficient*c*dl
+            if k > kmax:
+                kmax = k
+    return kmax

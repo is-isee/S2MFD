@@ -66,7 +66,7 @@ from numba import njit
 __all__ = [
     'face_average_r', 'face_average_th',
     'zero_boundary_faces_r', 'zero_boundary_faces_th',
-    'flux_divergence', 'add_flux_divergence',
+    'flux_divergence', 'add_flux_divergence', 'add_flux_divergence_scaled',
     'cell_integral',
 ]
 
@@ -165,6 +165,30 @@ def add_flux_divergence(dqq, ffr, ffth, drr, dth, margin):
         for j in range(margin, jxg - margin):
             dqq[i, j] -= ((ffr[i + 1, j] - ffr[i, j]) * idrr
                           + (ffth[i, j + 1] - ffth[i, j]) * idth)
+
+
+@njit(fastmath=False)
+def add_flux_divergence_scaled(dqq, ffr, ffth, drr, dth, margin, scale):
+    """発散に動径依存の係数を掛けて差し引く (``dqq -= scale(r) * div F``).
+
+    音速抑制法の :math:`\\xi_s^{-2}` のように, 発散全体に動径方向の係数が
+    掛かる場合に使う. このとき保存するのは :math:`\\sum q` ではなく
+    :math:`\\sum q/{\\rm scale}` で, ``scale`` が定数でない場合でも
+    telescoping はその重み付き和について成り立つ.
+
+    Parameters
+    ----------
+    scale : numpy.ndarray
+        動径方向の係数 (``ixg``,).
+    """
+    ixg, jxg = dqq.shape
+    idrr = 1.0/drr
+    idth = 1.0/dth
+    for i in range(margin, ixg - margin):
+        sc = scale[i]
+        for j in range(margin, jxg - margin):
+            dqq[i, j] -= sc*((ffr[i + 1, j] - ffr[i, j])*idrr
+                             + (ffth[i, j + 1] - ffth[i, j])*idth)
 
 
 @njit(fastmath=False)

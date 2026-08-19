@@ -154,13 +154,9 @@ class DynamicSolver:
         self.use_artdif = getattr(cfg, 'artificial_diffusion', True)
         self.sld_coef = getattr(cfg, 'sld_coefficient', 1.0)
         self.sld_floor = getattr(cfg, 'sld_floor', 0.01)
-        # 'flow' : エントロピーの人工拡散に流速 |v| を使う (既定)
-        # 'fast' : 音速を使う (音響系と同じ。エントロピー摂動を潰すので非推奨)
-        self.entropy_sld_speed = getattr(cfg, 'entropy_sld_speed', 'flow')
-        # 角運動量も音波では運ばれないので、既定は流速ベース。
-        # 放射層では nu_dif が対流層値の 2% (6e10) まで落ちているので、
-        # 音速ベース (4.3e11) だとタコクラインのせん断層をぼかしてしまう。
-        self.angmom_sld_speed = getattr(cfg, 'angmom_sld_speed', 'flow')
+        # 特性速度 |v| + cs_factor*c_s,eff + v_A の、音速に掛ける係数。
+        # 0.1-0.3 程度が標準 (_update_characteristic_speed の説明を参照)。
+        self.cs_factor = getattr(cfg, 'sld_cs_factor', 0.2)
         self.consistent_advection = getattr(cfg, 'consistent_advection', False)
 
         # プリミティブ変数
@@ -216,67 +212,49 @@ class DynamicSolver:
         # 特性速度は毎ステップ更新する
         self.csp_r = np.zeros(self.shape)
         self.csp_th = np.zeros(self.shape)
-        # エントロピー用の特性速度は別に持つ (下記 _update_characteristic_speed 参照)
-        self.csp_s_r = np.zeros(self.shape)
-        self.csp_s_th = np.zeros(self.shape)
-        self.csp_o_r = np.zeros(self.shape)
-        self.csp_o_th = np.zeros(self.shape)
+
 
     def _update_characteristic_speed(self):
         """人工拡散に使う特性速度を面上で作る.
 
-        音響系 (:math:`\\rho_1, v_r, v_\\theta, \\Omega_1`) には
-        :math:`|v| + c_{s,\\rm eff}` (+ アルヴェン速度) を使う.
+        .. math::
+           c = |\\boldsymbol{v}| + h_{c_s}\\,c_{s,\\rm eff} + v_A
 
-        エントロピーだけは流速 :math:`|v|` を使う
-        ------------------------------------------
-        :math:`s_1` は音波では運ばれず流れに乗って移流されるだけなので,
-        特性速度は :math:`|v|` が適切である. 音速を使うと拡散係数が
-        :math:`\\tfrac12 h\\,{\\rm floor}\\,c_{s,\\rm eff}\\Delta x`
-        となり, 本設定では :math:`4.7\\times10^{11}` に達する.
+        **流れ・抑制した音速・アルヴェン速度の 3 つの和**を取り, 音速には
+        :math:`h_{c_s}=0.1\\sim0.3` 程度の係数を掛ける
+        (``cfg.sld_cs_factor``, 既定 0.2).
 
-        これは致命的で, オーバーシュート層では乱流熱伝導 :math:`\\kappa_t` を
-        意図的に対流層値の 0.2% (:math:`\\sim5\\times10^{10}`) まで落として
-        エントロピー摂動が溜まるようにしてあるのに, 人工拡散がその 10 倍の
-        強さで摂動を消してしまう. Rempel (2005) のモデルは
-        「亜断熱タコクラインで生じたエントロピー摂動が Taylor-Proudman 制約を
-        破る」ことが要なので, ここを潰すとモデルの本質が失われる.
+        音速に係数を掛ける理由
+        ----------------------
+        抑制後とはいえ音速は流れより 2 桁以上速い
+        (:math:`c_{s,\\rm eff}\\sim2.6\\times10^5` に対し
+        :math:`|v|\\sim10^3` cm/s). そのまま使うと人工拡散の実効拡散係数
 
-        実測: 定常状態でエントロピー方程式の収支を取ると, 背景勾配による
-        生成 :math:`5.9\\times10^{-14}` に対して物理的な移流と熱伝導は
-        その 1.6% しか打ち消しておらず, 残りを人工拡散が消していた
-        (``doc/dev_records/2026-08-20_rempel2006_worklog.md``).
+        .. math:: \\kappa_{\\rm SLD} \\sim \\tfrac12 h\\,c\\,\\Delta x
 
-        流速ベースにすると拡散係数は
-        :math:`\\tfrac12 h\\,{\\rm floor}\\,|v|\\Delta x \\sim
-        4\\times10^{9}` となり, オーバーシュート層の
-        :math:`\\kappa_t` より十分小さくなる.
+        が大きくなりすぎ, **モデルが依存している「拡散を意図的に小さくした
+        領域」を潰してしまう**:
+
+        * オーバーシュート層の乱流熱伝導 :math:`\\kappa_t` は対流層値の
+          0.2% (:math:`\\sim5\\times10^{10}`). ここにエントロピー摂動を
+          溜めて Taylor-Proudman 制約を破るのが Rempel (2005) の中心的な機構
+        * 放射層の粘性 :math:`\\nu_{\\rm dif}` は対流層値の 2%
+          (:math:`6\\times10^{10}`). 下部境界の :math:`\\Omega_1=0` との間に
+          タコクライン (粘性せん断層) を作るのが要
+
+        係数なしだと :math:`\\kappa_{\\rm SLD}\\sim4.7\\times10^{11}` で
+        どちらの 7-10 倍にもなり, 差動回転が論文の 1/10 に留まっていた
+        (``doc/dev_records/2026-08-20_rempel2006_worklog.md`` §5b).
         """
         s = self.strat
-        vv = np.sqrt(self.vrr**2 + self.vth**2)
-        cc = vv + s.cs_eff[:, None]
+        cc = (np.sqrt(self.vrr**2 + self.vth**2)
+              + self.cs_factor*s.cs_eff[:, None])
         if self.magnetic:
             rho = np.maximum(s.ro0[:, None] + self.ro1, 1e-30)
             cc = cc + np.sqrt((self.brr**2 + self.bth**2 + self.bph**2)
                               / (4.0*np.pi*rho))
         self.csp_r[1:] = 0.5*(cc[1:] + cc[:-1])
         self.csp_th[:, 1:] = 0.5*(cc[:, 1:] + cc[:, :-1])
-        vf_r = np.zeros(self.shape)
-        vf_th = np.zeros(self.shape)
-        vf_r[1:] = 0.5*(vv[1:] + vv[:-1])
-        vf_th[:, 1:] = 0.5*(vv[:, 1:] + vv[:, :-1])
-        if self.entropy_sld_speed == 'flow':
-            self.csp_s_r[:] = vf_r
-            self.csp_s_th[:] = vf_th
-        else:
-            self.csp_s_r[:] = self.csp_r
-            self.csp_s_th[:] = self.csp_th
-        if self.angmom_sld_speed == 'flow':
-            self.csp_o_r[:] = vf_r
-            self.csp_o_th[:] = vf_th
-        else:
-            self.csp_o_r[:] = self.csp_r
-            self.csp_o_th[:] = self.csp_th
 
     # -- 状態の変換 -------------------------------------------------------
     def conserved(self):
@@ -364,7 +342,7 @@ class DynamicSolver:
             heat_before = heat.copy()
             artdif.sld_diffuse_work(ds_om, heat, self.om1,
                                     self.jacL_r, self.jacL_th,
-                                    self.csp_o_r, self.csp_o_th, self.sld_coef,
+                                    self.csp_r, self.csp_th, self.sld_coef,
                                     self.sld_floor,
                                     grid.drr, grid.dth, m, w.ffr, w.ffth)
             artdif.sld_diffuse(ds_mr, self.vrr, self.jacV_r, self.jacV_th,
@@ -397,7 +375,7 @@ class DynamicSolver:
             # 対流層上部で巨大な加速を生み、計算が壊れる
             artdif.sld_diffuse_primitive(dse1, self.se1, self.jacM_r,
                                          self.jacM_th, self.iJM,
-                                         self.csp_s_r, self.csp_s_th,
+                                         self.csp_r, self.csp_th,
                                          self.sld_coef, self.sld_floor,
                                          grid.drr, grid.dth, m, w.ffr, w.ffth)
 

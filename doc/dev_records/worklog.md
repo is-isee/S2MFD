@@ -6,6 +6,27 @@
 
 ## 2026-08-19
 
+### Phase 5: 統合検証
+
+**パイプライン健全性(twin experiment の sanity check)**
+- 真値パラメタで生成した合成観測に対する真値パラメタの適応度 = **0.900000**(理論最大値: 相関1、NMSE 0)。Step1(u0)・Step2(s0)とも。シミュレーション → スピンアップ → 窓積分 → 黒点数プロキシ → 適応度の全経路が自己無撞着かつ決定論的であることを確認。
+
+**縮小版 twin experiment**(seed=42、スピンアップ10年+極小まで、窓 1944–1966 の22年 = 202点、個体数12×最大8世代 ≈ 論文の評価回数の約6%)
+- 真値: u0 = 線形(750→650) + sin(60, −40, 25)、s0 定数50(GT-1)/ s0 = 線形(55→45) + sin(6, −4, 3)(GT-2)
+- Step1: 適応度 0.8920(/0.9)、**u0(t) 時系列の絶対平均誤差(論文式4.1)= 13.5%**、a0_s 誤差 22.3%
+- Step2: 適応度 0.8953(/0.9)、**s0(t) 時系列誤差 = 14.1%**
+- 個々の sin 係数には縮退による大きな誤差が残る(適応度地形が浅い方向)が、時系列としては真値に収束していく傾向を確認。論文水準(u0誤差2.87%、r=0.995)の再現には論文設定(個体数30×50世代、80年スピンアップ、~50年窓; 8コアで数時間)が必要 → **残課題**として handover に記載。
+- 実行時間: 1世代(12個体並列/8コア)約26秒 @ 128×128、スピンアップ10年設定。ウォーム時 4.8 ms/ステップ。
+- スクリプト: セッションのスクラッチ(twin_experiment.py / twin_eval.py)。再現には同スクリプトを参照(seed 固定済み)。結果 JSON は twin_result.json。
+
+**エンドツーエンド CLI**: `python -m S2MFD.inference.cli --start-year 1944 --end-year 1954 --pop 6 --generations 2 --seed 1 --spinup-years 5` (最小設定のスモーク) で Stage1(fitness 0.618)→ stage_result.json 受け渡し → Stage2(fitness 0.786)→ 比較プロット4種・GA履歴2種・parameters.txt・numerical_result.txt・スナップショット一式が両ディレクトリに生成されることを確認。exit code 0。
+
+**検証の生データ**: `doc/dev_records/verification/` に twin_experiment.py / twin_eval.py / twin_result.json / 実行ログを保存(seed 固定済みで再現可能)。
+
+**Sphinx ドキュメント**: 警告・エラーゼロでビルド成功(sphinx 8系、automodapi)。
+
+**最終テスト**: 92 passed / slow 2 passed。
+
 ### Phase 4: `S2MFD/inference/` サブパッケージ新設(完了)
 
 IDPA の GA 層を新サブパッケージとして移植(92 passed):

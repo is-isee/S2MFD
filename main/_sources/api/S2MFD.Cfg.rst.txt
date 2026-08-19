@@ -12,10 +12,12 @@ Cfg
 
       ~Cfg.load
       ~Cfg.load_parameters
+      ~Cfg.resolve
       ~Cfg.save
 
    .. rubric:: Methods Documentation
 
    .. automethod:: load
    .. automethod:: load_parameters
+   .. automethod:: resolve
    .. automethod:: save

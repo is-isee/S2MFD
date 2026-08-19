@@ -5,17 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.data &mdash; S2MFD 0.1.dev111 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+  <title>S2MFD.data &mdash; S2MFD 0.2.1.dev91 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=1c57b938"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -44,6 +44,8 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api_reference.html">API reference</a></li>
 </ul>
 
@@ -72,13 +74,15 @@
            <div itemprop="articleBody">
              
   <h1>Source code for S2MFD.data</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">S2MFD</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">S2MFD</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <div class="viewcode-block" id="Data">
 <a class="viewcode-back" href="../../api/S2MFD.Data.html#S2MFD.Data">[docs]</a>
-<span class="k">class</span> <span class="nc">Data</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Data</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Class for managing the whole simulation data.</span>
 
 <span class="sd">    Attributes</span>
@@ -101,11 +105,11 @@
 <span class="sd">      Time step.</span>
 <span class="sd">    nd : int</span>
 <span class="sd">      Data output step.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 <div class="viewcode-block" id="Data.__init__">
 <a class="viewcode-back" href="../../api/S2MFD.Data.html#S2MFD.Data.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">setup</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">setup</span><span class="p">,</span> <span class="n">legendre</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initialize the S2MFD_data object.</span>
 <span class="sd">        </span>
 <span class="sd">        Parameters</span>
@@ -120,10 +124,11 @@
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        None     </span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span> <span class="o">=</span> <span class="n">cfg</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">grid</span> <span class="o">=</span> <span class="n">grid</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">setup</span> <span class="o">=</span> <span class="n">setup</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">legendre</span> <span class="o">=</span> <span class="n">legendre</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">Aph</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="kc">None</span>
@@ -135,8 +140,8 @@
 <div class="viewcode-block" id="Data.initial_load">
 <a class="viewcode-back" href="../../api/S2MFD.Data.html#S2MFD.Data.initial_load">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">initial_load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span><span class="n">datadir</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; </span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initial_load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span><span class="n">datadir</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">""" </span>
 <span class="sd">        Load initial configuration, grid, and setup from the specified directory.</span>
 
 <span class="sd">        Parameters</span>
@@ -148,19 +153,20 @@
 <span class="sd">        -------</span>
 <span class="sd">        S2MFD.S2MFD_data</span>
 <span class="sd">            An instance of the S2MFD_data class.</span>
-<span class="sd">        &quot;&quot;&quot;</span>        
-        <span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Cfg</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">datadir</span><span class="o">+</span><span class="s1">&#39;config.json&#39;</span><span class="p">)</span>
+<span class="sd">        """</span>        
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Cfg</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">datadir</span><span class="p">,</span> <span class="s1">'config.json'</span><span class="p">))</span>
         <span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span> <span class="o">=</span> <span class="n">datadir</span>
-        <span class="n">grid</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Grid</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">datadir</span><span class="o">+</span><span class="n">cfg</span><span class="o">.</span><span class="n">gridfile</span><span class="p">)</span>
-        <span class="n">setup</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Setup</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">datadir</span><span class="o">+</span><span class="n">cfg</span><span class="o">.</span><span class="n">setupfile</span><span class="p">)</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Grid</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">datadir</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">gridfile</span><span class="p">))</span>
+        <span class="n">setup</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Setup</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">datadir</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">setupfile</span><span class="p">))</span>
+        <span class="n">legendre</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Legendre</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">datadir</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">legendrefile</span><span class="p">))</span>
         
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span><span class="n">grid</span><span class="p">,</span><span class="n">setup</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span><span class="n">grid</span><span class="p">,</span><span class="n">setup</span><span class="p">,</span><span class="n">legendre</span><span class="p">)</span></div>
 
     
 <div class="viewcode-block" id="Data.get_data_file_path">
 <a class="viewcode-back" href="../../api/S2MFD.Data.html#S2MFD.Data.get_data_file_path">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_data_file_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nd</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_data_file_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nd</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Generate the file path for a specific step.</span>
 
 <span class="sd">        Parameters</span>
@@ -172,27 +178,29 @@
 <span class="sd">        -------</span>
 <span class="sd">        str</span>
 <span class="sd">            File path for the specified data step.</span>
-<span class="sd">        &quot;&quot;&quot;</span>        
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="o">+</span><span class="s1">&#39;data.&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">nd</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;.npz&#39;</span></div>
+<span class="sd">        """</span>        
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="p">,</span> <span class="s1">'data.'</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">nd</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span><span class="o">+</span><span class="s1">'.npz'</span><span class="p">)</span></div>
 
     
 <div class="viewcode-block" id="Data.data_load">
 <a class="viewcode-back" href="../../api/S2MFD.Data.html#S2MFD.Data.data_load">[docs]</a>
-    <span class="k">def</span> <span class="nf">data_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">nd</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Load data for `Bph`, `Aph`, `time`, `n` and `nd`, from a file for a specific step.</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">data_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">nd</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Load `Bph`, `Aph`, `time` and `n` from the file for step `nd`,</span>
+<span class="sd">        and set `self.nd = nd`.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        nd : int</span>
 <span class="sd">            Data output step </span>
-<span class="sd">        &quot;&quot;&quot;</span>        
+<span class="sd">        """</span>        
         <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data_file_path</span><span class="p">(</span><span class="n">nd</span><span class="p">)</span>
         <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">Bph</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Bph&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">Aph</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Aph&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;n&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Bph</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">'Bph'</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Aph</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">'Aph'</span><span class="p">]</span>
+        <span class="c1"># np.savez はスカラーを0次元配列にするため Python ネイティブ型へ戻す</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">'time'</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">'n'</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nd</span> <span class="o">=</span> <span class="n">nd</span></div>
 </div>
 
@@ -220,7 +228,7 @@
   </div>
   <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
-      Version: main
+      Version: 
       <span class="fa fa-caret-down"></span>
     </span>
     <div class="rst-other-versions">
@@ -229,11 +237,7 @@
       <dl>
         <dt>Versions</dt>
         
-          <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
-        
-          <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
-        
-          <dd><a href="data.html">main</a></dd>
+          <dd><a href=""></a></dd>
         
       </dl>
       

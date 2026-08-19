@@ -1,0 +1,326 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutorial: パラメタ推定を実際に回す &mdash; S2MFD 0.2.1.dev91 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=9a923341"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API reference" href="api_reference.html" />
+    <link rel="prev" title="Parameter Inference (GA)" href="inference.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            S2MFD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial: パラメタ推定を実際に回す</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">0. 準備</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">1. 推定窓を決める</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">2. フルスケール実行</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">3. ログの読み方</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">4. 中断と再開</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id6">5. 出力の読み方</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id7">6. 自前の観測データを使う</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#twin-experiment">7. 検証 (twin experiment) のやり方</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">8. トラブルシューティング</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">S2MFD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Tutorial: パラメタ推定を実際に回す</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/tutorial_inference.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="tutorial">
+<h1>Tutorial: パラメタ推定を実際に回す<a class="headerlink" href="#tutorial" title="Link to this heading"></a></h1>
+<p>このページは、GA パラメタ推定 (<a class="reference internal" href="inference.html"><span class="doc">Parameter Inference (GA)</span></a>) を**論文設定のフルスケールで
+実行する実務手順**をまとめたチュートリアルである。手法・API の説明は
+<a class="reference internal" href="inference.html"><span class="doc">Parameter Inference (GA)</span></a> を、手法の背景は Shimizu &amp; Hotta (2026) を参照。</p>
+<section id="id1">
+<h2>0. 準備<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>S2MFD
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span>
+pytest<span class="w"> </span>-q<span class="w">          </span><span class="c1"># まず全テストが通ることを確認 (~10秒)</span>
+</pre></div>
+</div>
+<p>計算資源の目安:</p>
+<ul class="simple">
+<li><p>1個体の評価は約3万ステップ (80年スピンアップ + 50年窓、128×128格子) で、
+<strong>1コアあたり2〜3分</strong> (ウォーム時 ~5 ms/ステップ)</p></li>
+<li><p>論文設定 (個体数30 × 最大50世代 = 最大1500評価) の所要時間は
+<strong>8コア並列で半日程度</strong>。世代数・窓を減らせば線形に短くなる。</p></li>
+<li><p>メモリは1ワーカーあたり数百MB程度。個体数 ≦ コア数が効率的
+(<code class="code docutils literal notranslate"><span class="pre">--workers</span></code> で明示可)。</p></li>
+</ul>
+</section>
+<section id="id2">
+<h2>1. 推定窓を決める<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>推定は黒点数の**極小年から極小年まで**の区間で行う (初期条件が極小期の状態
+で作られるため)。まず極小年の候補を確認する:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>S2MFD.inference.cli<span class="w"> </span>--list-minima
+検出された極小年:<span class="w"> </span><span class="o">[</span><span class="m">1711</span>.6<span class="w"> </span><span class="m">1723</span>.5<span class="w"> </span><span class="m">1733</span>.5<span class="w"> </span>...<span class="w"> </span><span class="m">1944</span>.4<span class="w"> </span><span class="m">1954</span>.4<span class="w"> </span><span class="m">1964</span>.5<span class="w"> </span><span class="m">1976</span>.4<span class="w"> </span><span class="m">1986</span>.4<span class="w"> </span><span class="m">1996</span>.5<span class="w"> </span>...<span class="o">]</span>
+</pre></div>
+</div>
+<p>論文では約5周期 (50〜60年) ごとに区間分割している (例: 1723–1775, 1775–1833,
+1833–1889, 1889–1944, 1944–1996, 1996–2024)。60年を超える指定はエラーになる。</p>
+</section>
+<section id="id3">
+<h2>2. フルスケール実行<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>長時間ジョブなので nohup や screen/tmux で流す:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nohup<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>S2MFD.inference.cli<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--start-year<span class="w"> </span><span class="m">1944</span><span class="w"> </span>--end-year<span class="w"> </span><span class="m">1996</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--pop<span class="w"> </span><span class="m">30</span><span class="w"> </span>--generations<span class="w"> </span><span class="m">50</span><span class="w"> </span>--target-fitness<span class="w"> </span><span class="m">0</span>.80<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--seed<span class="w"> </span><span class="m">42</span><span class="w"> </span>--output<span class="w"> </span>results<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>&gt;<span class="w"> </span>inference_1944_1996.log<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">&amp;</span>
+
+tail<span class="w"> </span>-f<span class="w"> </span>inference_1944_1996.log<span class="w">   </span><span class="c1"># 進捗を眺める</span>
+</pre></div>
+</div>
+<p>オプションの考え方:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">--seed</span></code> は**必ず指定する**(再現可能な実行のため。値は何でもよい)。</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">--target-fitness</span> <span class="pre">0.80</span></code> は論文の推奨値。到達したらその世代で打ち切り、
+到達しなければ <code class="code docutils literal notranslate"><span class="pre">--generations</span></code> まで回って最良個体を採用する。</p></li>
+<li><p>ダルトンミニマム (1798–1833 など急変区間) では
+<code class="code docutils literal notranslate"><span class="pre">--fitness</span> <span class="pre">period</span></code> を使う (論文 4.2 章と同じ切替)。</p></li>
+</ul>
+</section>
+<section id="id4">
+<h2>3. ログの読み方<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>... INFO: === Stage u0: GA開始 (個体数30, 最大50世代) ===
+... INFO: generation 12: best fitness=0.834502 diversity=0.1873
+... INFO: best params: {'as_u': 812.3, 'ae_u': 745.1, ...}
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">generation</span> <span class="pre">N:</span> <span class="pre">best</span> <span class="pre">fitness=...</span></code> — その世代までの歴代最良の適応度。
+<strong>エリート保存により単調非減少</strong>。しばらく上がらない世代が続くのは正常
+(ASP 選択が探索モードに切り替わっている)。</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">diversity</span></code> — 個体群の多様性 (0に近いほど収束)。
+適応度が停滞したまま diversity も小さいときは局所解の可能性がある
+→ seed を変えてもう1本流して比較するのが実務的。</p></li>
+<li><p>1世代あたりの所要時間は最初の世代で分かる (JITコンパイルの分だけ
+初世代は遅い)。全体時間 ≈ 世代時間 × 世代数で見積もれる。</p></li>
+</ul>
+</section>
+<section id="id5">
+<h2>4. 中断と再開<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Ctrl-C (中断)</strong>: その時点の最良個体で最終処理 (再シミュレーション・保存)
+まで行って終了する。<code class="code docutils literal notranslate"><span class="pre">stage_result.json</span></code> に
+<code class="code docutils literal notranslate"><span class="pre">&quot;interrupted&quot;:</span> <span class="pre">true</span></code> が記録される。</p></li>
+<li><p><strong>再実行</strong>: 同じ <code class="code docutils literal notranslate"><span class="pre">--output</span></code> で再度実行すると、
+<code class="code docutils literal notranslate"><span class="pre">stage_result.json</span></code> が存在する Stage はスキップされる。
+Stage 1 完了後に落ちた場合は、そのまま再実行すれば Stage 2 から続く。</p></li>
+<li><p><strong>Stage 1 をやり直したい</strong>: 該当ディレクトリ
+(<code class="code docutils literal notranslate"><span class="pre">results/datas_1944_1996/data_u0_1944_1996/</span></code>) を削除して再実行。</p></li>
+<li><p>Stage 2 だけ流す: <code class="code docutils literal notranslate"><span class="pre">--stage</span> <span class="pre">s0</span></code> (Stage 1 の
+<code class="code docutils literal notranslate"><span class="pre">stage_result.json</span></code> が必要)。</p></li>
+</ul>
+</section>
+<section id="id6">
+<h2>5. 出力の読み方<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<p><code class="code docutils literal notranslate"><span class="pre">results/datas_{開始}_{終了}/data_{u0,s0}_{開始}_{終了}/</span></code> に以下が出る:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>ファイル</p></th>
+<th class="head"><p>中身と見方</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">stage_result.json</span></code></p></td>
+<td><p><strong>結果の本体</strong>。推定パラメタ (params)、GA終了時の適応度 (fitness)、
+最終ランの再評価 (rerun_scores: cc=相関, nmse, eva)、世代ごとの
+適応度/多様性履歴、実行設定 (config: seed含む)。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">parameters.txt</span></code></p></td>
+<td><p>推定パラメタの1行テキスト (旧 IDPA 互換)。u0 は
+as_u, ae_u, a1_u, a2_u, a4_u, a0_s の順。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">P_sunspots_number_compare.png</span></code></p></td>
+<td><p>黒点数の観測 (赤) vs 推定 (青)。<strong>まず見るべき図</strong>。周期の位相が
+合っているか、振幅の大小関係が再現されているかを確認する。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">P_u0_compare.png</span></code> / <code class="code docutils literal notranslate"><span class="pre">P_s0_compare.png</span></code></p></td>
+<td><p>推定された u0(t), s0(t)。論文の物理的解釈では u0 は −51%〜+29%、
+s0 は −69%〜+83% 程度の変動幅だった。極端に範囲外なら疑う。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">split_functions_now.png</span></code></p></td>
+<td><p>推定関数の成分分解 (線形 + l=1,2,4 の sin)。どの成分が効いているか。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">fitness_time.png</span></code> / <code class="code docutils literal notranslate"><span class="pre">diversity_time.png</span></code></p></td>
+<td><p>GA の収束履歴。fitness が頭打ちになってから十分な世代が
+経っているか (=収束したか) の確認。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">data.NNNNNN.npz</span></code></p></td>
+<td><p>最良個体の再シミュレーションのスナップショット
+(番号は観測インデックス)。<code class="code docutils literal notranslate"><span class="pre">ana/</span></code> スクリプトで蝶形図等を描ける。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">numerical_result.txt</span></code></p></td>
+<td><p>cc / NMSE / EVA の追記ログ (実行日時つき)。</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>良し悪しの目安</strong> (論文の値):</p>
+<ul class="simple">
+<li><p>通常区間: 相関 cc ≈ 0.87〜0.97、NMSE ≈ 0.02〜0.10</p></li>
+<li><p>ダルトンミニマム区間は難しい (論文でも cc = 0.685)</p></li>
+<li><p>twin experiment (合成データ) なら理論最大 fitness = 0.9。
+0.89 台に届かない場合は世代数・個体数を増やす。</p></li>
+</ul>
+</section>
+<section id="id7">
+<h2>6. 自前の観測データを使う<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<p>1列目=年 (小数可)、2列目=黒点数、1行目ヘッダの CSV を用意する
+(40日間隔への内挿は自動):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>S2MFD.inference.cli<span class="w"> </span>--data<span class="w"> </span>my_ssn.csv<span class="w"> </span>--list-minima
+python<span class="w"> </span>-m<span class="w"> </span>S2MFD.inference.cli<span class="w"> </span>--data<span class="w"> </span>my_ssn.csv<span class="w"> </span>--start-year<span class="w"> </span>...<span class="w"> </span>--end-year<span class="w"> </span>...
+</pre></div>
+</div>
+<p>列が違う場合は Python API で <code class="code docutils literal notranslate"><span class="pre">load_observations(path,</span> <span class="pre">time_col=...,</span> <span class="pre">ssn_col=...)</span></code>
+を使う。</p>
+</section>
+<section id="twin-experiment">
+<h2>7. 検証 (twin experiment) のやり方<a class="headerlink" href="#twin-experiment" title="Link to this heading"></a></h2>
+<p>コード変更後の妥当性確認には、真値パラメタから合成した観測での回収試験を行う。
+実行例スクリプトが <code class="code docutils literal notranslate"><span class="pre">doc/dev_records/verification/twin_experiment.py</span></code>
+(縮小版、seed固定) にある:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>doc/dev_records/verification/twin_experiment.py<span class="w">   </span><span class="c1"># ~15分</span>
+python<span class="w"> </span>doc/dev_records/verification/twin_eval.py<span class="w">         </span><span class="c1"># 論文式4.1の時系列誤差を表示</span>
+</pre></div>
+</div>
+<p>チェックポイント:</p>
+<ol class="arabic simple">
+<li><p><strong>真値パラメタの適応度がちょうど 0.9</strong> になること (パイプラインの健全性)。
+ここがずれたらコードのどこかが壊れている。</p></li>
+<li><p>GA の適応度が世代とともに 0.9 に向かうこと。</p></li>
+<li><p>時系列誤差 (式4.1) が予算に応じて縮むこと (論文フル設定で u0 ≈ 3%)。</p></li>
+</ol>
+</section>
+<section id="id8">
+<h2>8. トラブルシューティング<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>ログに「individual failed … fitness = -inf」</strong>: その個体のパラメタで
+シミュレーションが数値的に破綻した (NaN 検知)。少数なら GA が自然に
+淘汰するので問題ない。頻発する場合は初期範囲・変異が極端な値を出して
+いないか確認 (<code class="code docutils literal notranslate"><span class="pre">--clip-mutation</span></code> で範囲内に制限できる)。</p></li>
+<li><p><strong>「spin_up: no sunspot-number minimum detected」</strong>: スピンアップ解が
+発振していない (ダイナモが減衰する等)。パラメタ範囲が臨界以下の設定に
+なっていないか確認。</p></li>
+<li><p><strong>1世代が想定より遅い</strong>: ワーカー数がコア数を超えていないか、
+他のジョブと競合していないか。<code class="code docutils literal notranslate"><span class="pre">--workers</span></code> で調整。</p></li>
+<li><p><strong>結果が毎回変わる</strong>: <code class="code docutils literal notranslate"><span class="pre">--seed</span></code> を指定していない。指定していれば
+ワーカー数によらず同一ゲノム列になる (評価は決定論的)。</p></li>
+<li><p><strong>旧 IDPA の結果と数値が完全一致しない</strong>: 乱数系列の変更(numpy Generator化)と
+出力タイミング修正のため、個々のランは一致しない。統計的な水準
+(適応度・誤差) で比較すること。詳細は
+<code class="code docutils literal notranslate"><span class="pre">doc/dev_records/handover.md</span></code> の「意図的に挙動を変えた点」。</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="inference.html" class="btn btn-neutral float-left" title="Parameter Inference (GA)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api_reference.html" class="btn btn-neutral float-right" title="API reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, S2MFD project.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      Version: 
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+      
+      
+      <dl>
+        <dt>Versions</dt>
+        
+          <dd><a href=""></a></dd>
+        
+      </dl>
+      
+      <br>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

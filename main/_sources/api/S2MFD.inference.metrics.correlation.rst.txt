@@ -1,0 +1,6 @@
+correlation
+===========
+
+.. currentmodule:: S2MFD.inference.metrics
+
+.. autofunction:: correlation

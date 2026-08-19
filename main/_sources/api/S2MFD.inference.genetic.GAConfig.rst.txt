@@ -1,0 +1,45 @@
+GAConfig
+========
+
+.. currentmodule:: S2MFD.inference.genetic
+
+.. autoclass:: GAConfig
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~GAConfig.clip_to_bounds
+      ~GAConfig.crossover_probability
+      ~GAConfig.epsi_div
+      ~GAConfig.epsi_fit
+      ~GAConfig.eta_sbx
+      ~GAConfig.max_generations
+      ~GAConfig.max_workers
+      ~GAConfig.mutation_probability
+      ~GAConfig.mutation_sigma_frac
+      ~GAConfig.mutation_sigma_min
+      ~GAConfig.seed
+      ~GAConfig.threshold
+      ~GAConfig.tournament_high
+      ~GAConfig.tournament_low
+      ~GAConfig.tournament_mid
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: clip_to_bounds
+   .. autoattribute:: crossover_probability
+   .. autoattribute:: epsi_div
+   .. autoattribute:: epsi_fit
+   .. autoattribute:: eta_sbx
+   .. autoattribute:: max_generations
+   .. autoattribute:: max_workers
+   .. autoattribute:: mutation_probability
+   .. autoattribute:: mutation_sigma_frac
+   .. autoattribute:: mutation_sigma_min
+   .. autoattribute:: seed
+   .. autoattribute:: threshold
+   .. autoattribute:: tournament_high
+   .. autoattribute:: tournament_low
+   .. autoattribute:: tournament_mid

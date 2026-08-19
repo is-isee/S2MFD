@@ -1,0 +1,19 @@
+Chromosome
+==========
+
+.. currentmodule:: S2MFD.inference.genetic
+
+.. autoclass:: Chromosome
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Chromosome.fitness
+      ~Chromosome.params
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: fitness
+   .. autoattribute:: params

@@ -6,17 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Simulation &mdash; S2MFD 0.1.dev111 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+  <title>Simulation &mdash; S2MFD 0.2.1.dev91 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=1c57b938"></script>
-      <script src="../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -47,12 +47,15 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api_reference.html">API reference</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api_reference.html#module-S2MFD">S2MFD Package</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="../api_reference.html#functions">Functions</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="../api_reference.html#classes">Classes</a><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.Cfg.html">Cfg</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.Grid.html">Grid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="S2MFD.Legendre.html">Legendre</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.Setup.html">Setup</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.Data.html">Data</a></li>
 <li class="toctree-l4 current"><a class="current reference internal" href="#">Simulation</a></li>
@@ -62,6 +65,11 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.physics">S2MFD.physics Package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.tools">S2MFD.tools Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.inference">S2MFD.inference Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.inference.metrics">S2MFD.inference.metrics Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.inference.genetic">S2MFD.inference.genetic Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.inference.problem">S2MFD.inference.problem Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.inference.observations">S2MFD.inference.observations Module</a></li>
 </ul>
 </li>
 </ul>
@@ -95,7 +103,7 @@
 <h1>Simulation<a class="headerlink" href="#simulation" title="Link to this heading"></a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="S2MFD.Simulation">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">Simulation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/simulation.html#Simulation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Simulation" title="Link to this definition"></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">Simulation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">legendre</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/simulation.html#Simulation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Simulation" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="S2MFD.Data.html#S2MFD.Data" title="S2MFD.data.Data"><code class="xref py py-class docutils literal notranslate"><span class="pre">Data</span></code></a></p>
 <p>Class for running the simulation inheriting from S2MFD.Data</p>
 <p class="rubric">Methods Summary</p>
@@ -104,20 +112,35 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Simulation.cfl_condition" title="S2MFD.Simulation.cfl_condition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cfl_condition</span></code></a>()</p></td>
 <td><p>Applies CFL condition</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Simulation.initial_condition" title="S2MFD.Simulation.initial_condition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_condition</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Simulation.check_finite" title="S2MFD.Simulation.check_finite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_finite</span></code></a>()</p></td>
+<td><p>Raises RuntimeError if the fields contain NaN/Inf.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Simulation.initial_condition" title="S2MFD.Simulation.initial_condition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initial_condition</span></code></a>()</p></td>
 <td><p>Applies initial condition</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Simulation.initialize_simulation" title="S2MFD.Simulation.initialize_simulation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initialize_simulation</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Simulation.initialize_simulation" title="S2MFD.Simulation.initialize_simulation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initialize_simulation</span></code></a>()</p></td>
 <td><p>Initialize the simulation by setting up the grid and setup objects.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Simulation.main_loop" title="S2MFD.Simulation.main_loop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">main_loop</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Simulation.main_loop" title="S2MFD.Simulation.main_loop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">main_loop</span></code></a>()</p></td>
 <td><p>Runs the main loop of the simulation</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Simulation.run_window" title="S2MFD.Simulation.run_window"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_window</span></code></a>(t_end[, on_output, save_output])</p></td>
+<td><p>指定時刻まで積分する (パラメタ推定用の観測窓ループ)。</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Simulation.save" title="S2MFD.Simulation.save"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code></a>()</p></td>
 <td><p>Saves data to file</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Simulation.set_field" title="S2MFD.Simulation.set_field"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_field</span></code></a>(Bph, Aph[, time, n, nd])</p></td>
+<td><p>磁場の状態を直接設定する (スピンアップ初期場の投入などに使う)。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Simulation.spin_up" title="S2MFD.Simulation.spin_up"><code class="xref py py-obj docutils literal notranslate"><span class="pre">spin_up</span></code></a>(duration[, until_minimum, proxy, ...])</p></td>
+<td><p>現在の状態から助走計算を行う (パラメタ推定の初期条件生成)。</p></td>
+</tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Simulation.tvd_runge_kutta" title="S2MFD.Simulation.tvd_runge_kutta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tvd_runge_kutta</span></code></a>()</p></td>
 <td><p>Applies TVD Runge-Kutta method</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Simulation.update_time_dependent_parameters" title="S2MFD.Simulation.update_time_dependent_parameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_time_dependent_parameters</span></code></a>()</p></td>
+<td><p>時間依存パラメタのフックを評価し、背景場を差分更新する。</p></td>
 </tr>
 </tbody>
 </table>
@@ -126,6 +149,13 @@
 <dt class="sig sig-object py" id="S2MFD.Simulation.cfl_condition">
 <span class="sig-name descname"><span class="pre">cfl_condition</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/simulation.html#Simulation.cfl_condition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Simulation.cfl_condition" title="Link to this definition"></a></dt>
 <dd><p>Applies CFL condition</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Simulation.check_finite">
+<span class="sig-name descname"><span class="pre">check_finite</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/simulation.html#Simulation.check_finite"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Simulation.check_finite" title="Link to this definition"></a></dt>
+<dd><p>Raises RuntimeError if the fields contain NaN/Inf.</p>
+<p>発散したランを tend まで走らせないための早期検知。</p>
 </dd></dl>
 
 <dl class="py method">
@@ -138,18 +168,93 @@
 <dt class="sig sig-object py" id="S2MFD.Simulation.initialize_simulation">
 <span class="sig-name descname"><span class="pre">initialize_simulation</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/simulation.html#Simulation.initialize_simulation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Simulation.initialize_simulation" title="Link to this definition"></a></dt>
 <dd><p>Initialize the simulation by setting up the grid and setup objects.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">cfg.cont_flag</span></code> is True and the data directory already exists,
+the run is resumed from the saved grid/setup files. In that case the
+current configuration must be consistent with the saved one
+(except for keys such as <code class="docutils literal notranslate"><span class="pre">tend</span></code>/<code class="docutils literal notranslate"><span class="pre">dtout</span></code>); otherwise a
+RuntimeError is raised.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="S2MFD.Simulation.main_loop">
 <span class="sig-name descname"><span class="pre">main_loop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/simulation.html#Simulation.main_loop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Simulation.main_loop" title="Link to this definition"></a></dt>
 <dd><p>Runs the main loop of the simulation</p>
+<p class="rubric">Notes</p>
+<p>スナップショットは「積分 → 時刻更新 → 出力」の順で書かれるため、
+保存される場は time ラベルと一致する (2026-08-19 修正。それ以前は
+1ステップ前の場が保存されていた)。</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Simulation.run_window">
+<span class="sig-name descname"><span class="pre">run_window</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/simulation.html#Simulation.run_window"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Simulation.run_window" title="Link to this definition"></a></dt>
+<dd><p>指定時刻まで積分する (パラメタ推定用の観測窓ループ)。</p>
+<p>main_loop と同じ構造だが、終了時刻を引数で受け、出力ステップ毎に
+コールバックを呼べる。時間依存パラメタのフック
+(cfg.uu0_of_time / cfg.so0_of_time) も出力ステップ毎に評価される。</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t_end</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – 終了時刻 [s]</p></li>
+<li><p><strong>on_output</strong> (<em>callable</em><em>, </em><em>optional</em>) – 出力ステップ毎に on_output(self) の形で呼ばれる。
+黒点数時系列の記録などに使う。</p></li>
+<li><p><strong>save_output</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – False にするとスナップショットを書かない (GA の個体評価など
+ディスク出力が不要な場合)。</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>self</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#S2MFD.Simulation" title="S2MFD.Simulation">S2MFD.Simulation</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="S2MFD.Simulation.save">
 <span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/simulation.html#Simulation.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Simulation.save" title="Link to this definition"></a></dt>
 <dd><p>Saves data to file</p>
+<p class="rubric">Notes</p>
+<p>nd, dt に加えて、その時点の uu0 (子午面流振幅), so0 (α効果振幅) も
+保存する。時間依存パラメタのランを事後解析で復元するため。</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Simulation.set_field">
+<span class="sig-name descname"><span class="pre">set_field</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Bph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Aph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/simulation.html#Simulation.set_field"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Simulation.set_field" title="Link to this definition"></a></dt>
+<dd><p>磁場の状態を直接設定する (スピンアップ初期場の投入などに使う)。</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Simulation.spin_up">
+<span class="sig-name descname"><span class="pre">spin_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">duration</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">until_minimum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proxy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_extra</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3153600000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/simulation.html#Simulation.spin_up"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Simulation.spin_up" title="Link to this definition"></a></dt>
+<dd><p>現在の状態から助走計算を行う (パラメタ推定の初期条件生成)。</p>
+<p>Shimizu &amp; Hotta (2026) の手順:</p>
+<ol class="arabic simple">
+<li><p>duration (既定は呼び出し側で 80 年を指定) だけ積分する</p></li>
+<li><p>until_minimum=True なら、黒点数プロキシが極小 (連続3点の中央が
+最小) になるまで積分を続ける</p></li>
+</ol>
+<p>スナップショットは出力しない。終了時の self.Bph/Aph が推定の
+初期状態になる。時刻・ステップ数のラベル合わせは呼び出し側で行う
+(set_field や time/nd への代入)。</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>duration</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – 最低限積分する時間 [s]</p></li>
+<li><p><strong>until_minimum</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – True なら黒点数プロキシの極小まで継続する</p></li>
+<li><p><strong>proxy</strong> (<em>callable</em><em>, </em><em>optional</em>) – proxy(sim) -&gt; float。既定は tools.sunspot_proxy。</p></li>
+<li><p><strong>max_extra</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – 極小検出の打ち切り時間 [s] (発振しない解での無限ループ防止)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>self</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#S2MFD.Simulation" title="S2MFD.Simulation">S2MFD.Simulation</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -159,14 +264,25 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Simulation.update_time_dependent_parameters">
+<span class="sig-name descname"><span class="pre">update_time_dependent_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/simulation.html#Simulation.update_time_dependent_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Simulation.update_time_dependent_parameters" title="Link to this definition"></a></dt>
+<dd><p>時間依存パラメタのフックを評価し、背景場を差分更新する。</p>
+<p>規約: cfg に呼び出し可能な属性 <code class="docutils literal notranslate"><span class="pre">uu0_of_time(t)</span></code> / <code class="docutils literal notranslate"><span class="pre">so0_of_time(t)</span></code>
+(t はシミュレーション時刻 [s]、返り値は振幅) が定義されていれば、
+現在時刻で評価して cfg.uu0 / cfg.so0 を更新し、Setup の該当
+プロファイルのみ再構築する。流れが変わった場合は CFL も再計算する。</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="S2MFD.Simulation.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/simulation.html#Simulation.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Simulation.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">legendre</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/simulation.html#Simulation.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Simulation.__init__" title="Link to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>cfg</strong> (<a class="reference internal" href="S2MFD.Cfg.html#S2MFD.Cfg" title="S2MFD.Cfg"><em>S2MFD.Cfg</em></a>) – Configuration object</p></li>
 <li><p><strong>grid</strong> (<a class="reference internal" href="S2MFD.Grid.html#S2MFD.Grid" title="S2MFD.Grid"><em>S2MFD.Grid</em></a><em>, </em><em>optional</em>) – Grid object</p></li>
 <li><p><strong>setup</strong> (<a class="reference internal" href="S2MFD.Setup.html#S2MFD.Setup" title="S2MFD.Setup"><em>S2MFD.Setup</em></a><em>, </em><em>optional</em>) – Setup object</p></li>
+<li><p><strong>legendre</strong> (<a class="reference internal" href="S2MFD.Legendre.html#S2MFD.Legendre" title="S2MFD.Legendre"><em>S2MFD.Legendre</em></a><em>, </em><em>optional</em>) – Legendre object</p></li>
 </ul>
 </dd>
 </dl>
@@ -202,7 +318,7 @@
   </div>
   <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
-      Version: main
+      Version: 
       <span class="fa fa-caret-down"></span>
     </span>
     <div class="rst-other-versions">
@@ -211,11 +327,7 @@
       <dl>
         <dt>Versions</dt>
         
-          <dd><a href="../../v0.1.0/index.html">v0.1.0</a></dd>
-        
-          <dd><a href="../../v0.2.0/index.html">v0.2.0</a></dd>
-        
-          <dd><a href="S2MFD.Simulation.html">main</a></dd>
+          <dd><a href=""></a></dd>
         
       </dl>
       

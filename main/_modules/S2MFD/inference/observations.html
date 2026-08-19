@@ -1,0 +1,268 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>S2MFD.inference.observations &mdash; S2MFD 0.2.1.dev91 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            S2MFD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_reference.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">S2MFD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">S2MFD.inference.observations</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for S2MFD.inference.observations</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""観測データ (黒点数時系列) の読み込み・内挿・極小期検出。</span>
+
+<span class="sd">データ規約 (旧 IDPA の make_time_series.py と同一):</span>
+
+<span class="sd">- 年単位の時系列を 40 日間隔に線形内挿して使う</span>
+<span class="sd">  (シミュレーションの出力間隔 dtout = 40 日と 1:1 対応させるため)</span>
+<span class="sd">- 時刻の単位は「年 × 365 日 × 86400 秒」</span>
+<span class="sd">"""</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">importlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">resources</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.signal</span><span class="w"> </span><span class="kn">import</span> <span class="n">argrelextrema</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'Observations'</span><span class="p">,</span> <span class="s1">'interpolate_to_interval'</span><span class="p">,</span> <span class="s1">'load_observations'</span><span class="p">,</span>
+           <span class="s1">'detect_minimum_years'</span><span class="p">,</span> <span class="s1">'load_initial_field'</span><span class="p">]</span>
+
+<span class="n">YEAR_SECONDS</span> <span class="o">=</span> <span class="mi">365</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">3600</span>
+<span class="n">DEFAULT_INTERVAL_DAYS</span> <span class="o">=</span> <span class="mi">40</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_package_data_path</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">resources</span><span class="o">.</span><span class="n">files</span><span class="p">(</span><span class="s1">'S2MFD.inference'</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">'data'</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Observations">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.observations.Observations.html#S2MFD.inference.Observations">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Observations</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""40日間隔に内挿済みの黒点数観測時系列。</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    years : numpy.ndarray</span>
+<span class="sd">        年 (小数)</span>
+<span class="sd">    seconds : numpy.ndarray</span>
+<span class="sd">        絶対時刻 [s] (= years * 365 * 86400)。シミュレーション時刻と直接</span>
+<span class="sd">        比較する。</span>
+<span class="sd">    ssn : numpy.ndarray</span>
+<span class="sd">        黒点数 (内挿済み)</span>
+<span class="sd">    """</span>
+    <span class="n">years</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="n">seconds</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="n">ssn</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+
+<div class="viewcode-block" id="Observations.index_of_year">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.observations.Observations.html#S2MFD.inference.Observations.index_of_year">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">index_of_year</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">year</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""指定した年に最も近いデータ点のインデックスを返す。"""</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">years</span> <span class="o">-</span> <span class="n">year</span><span class="p">)))</span></div>
+
+
+<div class="viewcode-block" id="Observations.detect_minima_indices">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.observations.Observations.html#S2MFD.inference.Observations.detect_minima_indices">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detect_minima_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">27</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""黒点数の極小期のインデックスを返す。</span>
+
+<span class="sd">        order=27 は 27 点 × 40 日 ≈ 2.96 年の窓で前後比較する</span>
+<span class="sd">        (旧 detect_minimum.py と同じ)。平坦区間対策として微小な</span>
+<span class="sd">        単調増加を加えてタイブレークする。</span>
+<span class="sd">        """</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="mf">1e-6</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ssn</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">argrelextrema</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ssn</span> <span class="o">+</span> <span class="n">eps</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">less</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Observations.detect_minima_years">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.observations.Observations.html#S2MFD.inference.Observations.detect_minima_years">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detect_minima_years</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">27</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""黒点数の極小期の年のリストを返す。"""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">years</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">detect_minima_indices</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)]</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="interpolate_to_interval">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.observations.interpolate_to_interval.html#S2MFD.inference.interpolate_to_interval">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">interpolate_to_interval</span><span class="p">(</span><span class="n">years</span><span class="p">,</span> <span class="n">ssn</span><span class="p">,</span> <span class="n">interval_days</span><span class="o">=</span><span class="n">DEFAULT_INTERVAL_DAYS</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""年単位の時系列を interval_days 間隔に線形内挿する。"""</span>
+    <span class="n">interval</span> <span class="o">=</span> <span class="n">interval_days</span> <span class="o">/</span> <span class="mf">365.0</span>
+    <span class="n">years_interp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">years</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">years</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">interval</span><span class="p">)</span>
+    <span class="n">seconds_interp</span> <span class="o">=</span> <span class="n">years_interp</span> <span class="o">*</span> <span class="n">YEAR_SECONDS</span>
+    <span class="n">ssn_interp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">years_interp</span><span class="p">,</span> <span class="n">years</span><span class="p">,</span> <span class="n">ssn</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Observations</span><span class="p">(</span><span class="n">years</span><span class="o">=</span><span class="n">years_interp</span><span class="p">,</span> <span class="n">seconds</span><span class="o">=</span><span class="n">seconds_interp</span><span class="p">,</span> <span class="n">ssn</span><span class="o">=</span><span class="n">ssn_interp</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="load_observations">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.observations.load_observations.html#S2MFD.inference.load_observations">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_observations</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="s1">'OBS'</span><span class="p">,</span> <span class="n">time_col</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ssn_col</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                      <span class="n">interval_days</span><span class="o">=</span><span class="n">DEFAULT_INTERVAL_DAYS</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""観測データを読み込み、40日間隔の Observations を返す。</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    source : str</span>
+<span class="sd">        'OBS' ならパッケージ同梱の SILSO 年平均黒点数 (SN_Yearly.csv,</span>
+<span class="sd">        1700-2024) を使う。それ以外は CSV ファイルパスとして読む</span>
+<span class="sd">        (1行目はヘッダとしてスキップ)。</span>
+<span class="sd">    time_col, ssn_col : int</span>
+<span class="sd">        CSV の年・黒点数の列番号 (0始まり)。</span>
+<span class="sd">    interval_days : float</span>
+<span class="sd">        内挿間隔 [日]。シミュレーションの dtout と一致させること。</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Observations</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s1">'OBS'</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">resources</span><span class="o">.</span><span class="n">as_file</span><span class="p">(</span><span class="n">_package_data_path</span><span class="p">(</span><span class="s1">'SN_Yearly.csv'</span><span class="p">))</span> <span class="k">as</span> <span class="n">p</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">','</span><span class="p">,</span> <span class="n">skip_header</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"observation file not found: </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">','</span><span class="p">,</span> <span class="n">skip_header</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">years</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span> <span class="n">time_col</span><span class="p">]</span>
+    <span class="n">ssn</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span> <span class="n">ssn_col</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">interpolate_to_interval</span><span class="p">(</span><span class="n">years</span><span class="p">,</span> <span class="n">ssn</span><span class="p">,</span> <span class="n">interval_days</span><span class="o">=</span><span class="n">interval_days</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="detect_minimum_years">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.observations.detect_minimum_years.html#S2MFD.inference.detect_minimum_years">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">detect_minimum_years</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="s1">'OBS'</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">27</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""観測データの極小年リストを返す (旧 S2MFD.detect_minimum 相当)。"""</span>
+    <span class="k">return</span> <span class="n">load_observations</span><span class="p">(</span><span class="n">source</span><span class="p">)</span><span class="o">.</span><span class="n">detect_minima_years</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="load_initial_field">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.observations.load_initial_field.html#S2MFD.inference.load_initial_field">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_initial_field</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">"""スピンアップ用の初期磁場 (Jouve+2008 平衡場、128x128格子) を返す。</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple of numpy.ndarray</span>
+<span class="sd">        (Bph, Aph)。形状 (130, 130) = 128 + ゴーストセル2。</span>
+<span class="sd">    """</span>
+    <span class="k">with</span> <span class="n">resources</span><span class="o">.</span><span class="n">as_file</span><span class="p">(</span><span class="n">_package_data_path</span><span class="p">(</span><span class="s1">'Bpht_saved.npy'</span><span class="p">))</span> <span class="k">as</span> <span class="n">p</span><span class="p">:</span>
+        <span class="n">Bph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">resources</span><span class="o">.</span><span class="n">as_file</span><span class="p">(</span><span class="n">_package_data_path</span><span class="p">(</span><span class="s1">'Apht_saved.npy'</span><span class="p">))</span> <span class="k">as</span> <span class="n">p</span><span class="p">:</span>
+        <span class="n">Aph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, S2MFD project.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      Version: 
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+      
+      
+      <dl>
+        <dt>Versions</dt>
+        
+          <dd><a href=""></a></dd>
+        
+      </dl>
+      
+      <br>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

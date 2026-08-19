@@ -1,0 +1,7 @@
+Legendre
+========
+
+.. currentmodule:: S2MFD
+
+.. autoclass:: Legendre
+   :show-inheritance:

@@ -1,0 +1,6 @@
+linear_plus_sines
+=================
+
+.. currentmodule:: S2MFD.inference.problem
+
+.. autofunction:: linear_plus_sines

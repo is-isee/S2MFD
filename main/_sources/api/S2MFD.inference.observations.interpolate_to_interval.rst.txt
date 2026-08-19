@@ -1,0 +1,6 @@
+interpolate_to_interval
+=======================
+
+.. currentmodule:: S2MFD.inference.observations
+
+.. autofunction:: interpolate_to_interval

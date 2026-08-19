@@ -1,0 +1,232 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Parameter Inference (GA) &mdash; S2MFD 0.2.1.dev91 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=9a923341"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tutorial: パラメタ推定を実際に回す" href="tutorial_inference.html" />
+    <link rel="prev" title="Usage" href="usage.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            S2MFD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Parameter Inference (GA)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">手法の概要</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">コマンドラインからの実行</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#python-api">Python API からの実行</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">計算コストの目安</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">S2MFD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Parameter Inference (GA)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/inference.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="parameter-inference-ga">
+<h1>Parameter Inference (GA)<a class="headerlink" href="#parameter-inference-ga" title="Link to this heading"></a></h1>
+<p><code class="code docutils literal notranslate"><span class="pre">S2MFD.inference</span></code> は、遺伝的アルゴリズム (GA) による磁束輸送ダイナモ
+モデルのパラメタ推定パッケージである。手法の詳細は
+<a class="reference external" href="https://doi.org/10.3847/1538-4357/ae2855">Shimizu &amp; Hotta (2026), ApJ 996, 102</a>
+を参照。<strong>フルスケール実行の実務手順 (ジョブの流し方・ログと出力の読み方・
+トラブルシューティング) は</strong> <a class="reference internal" href="tutorial_inference.html"><span class="doc">Tutorial: パラメタ推定を実際に回す</span></a> <strong>を参照。</strong></p>
+<section id="id1">
+<h2>手法の概要<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>推定対象: 子午面流振幅 <span class="math notranslate nohighlight">\(u_0(t)\)</span> と Babcock-Leighton α効果振幅
+<span class="math notranslate nohighlight">\(s_0(t)\)</span> の時間変化。それぞれ「線形関数 + sin級数 (l = 1, 2, 4)」の
+5係数で表現する (論文式 2.10)。</p></li>
+<li><p>適応度: <span class="math notranslate nohighlight">\(F = 0.9\,r - 0.1\,e\)</span> (黒点数時系列の相関係数 − 正規化二乗誤差、
+論文式 3.1)。40日間隔でサンプリングした黒点数プロキシ
+<span class="math notranslate nohighlight">\(\mathrm{SSN} = \gamma B_\phi^2(0.7R_\odot, 75^\circ)\)</span> を観測
+(SILSO 年平均黒点数、パッケージに同梱) と比較する。</p></li>
+<li><p>2段階推定: 同時推定は局所解に陥るため、Step 1 で <span class="math notranslate nohighlight">\(u_0(t)\)</span>
+(<span class="math notranslate nohighlight">\(s_0\)</span> は定数扱い)、Step 2 で <span class="math notranslate nohighlight">\(s_0(t)\)</span> (<span class="math notranslate nohighlight">\(u_0\)</span> は既知) の
+順に推定する。</p></li>
+<li><p>GA: 個体数30・最大50世代、SBX交叉 (<span class="math notranslate nohighlight">\(\eta=2\)</span>, 80%)、ガウス変異
+(<span class="math notranslate nohighlight">\(\sigma = 0.1|x|\)</span>, 30%)、ASPトーナメント選択 (適応度停滞と多様性に
+応じてトーナメントサイズ 3/7/5 を切替)、エリート保存。</p></li>
+<li><p>各個体の評価: Jouve+2008 平衡場から開始振幅で80年+黒点数極小期まで
+スピンアップした後、観測窓を積分して比較する。</p></li>
+</ul>
+</section>
+<section id="id2">
+<h2>コマンドラインからの実行<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 観測データの極小年を確認 (推定窓は極小年から始める)</span>
+python<span class="w"> </span>-m<span class="w"> </span>S2MFD.inference.cli<span class="w"> </span>--list-minima
+
+<span class="c1"># 1944-1996 年を推定 (論文設定: 個体数30, 最大50世代)</span>
+python<span class="w"> </span>-m<span class="w"> </span>S2MFD.inference.cli<span class="w"> </span>--start-year<span class="w"> </span><span class="m">1944</span><span class="w"> </span>--end-year<span class="w"> </span><span class="m">1996</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--pop<span class="w"> </span><span class="m">30</span><span class="w"> </span>--generations<span class="w"> </span><span class="m">50</span><span class="w"> </span>--seed<span class="w"> </span><span class="m">42</span>
+
+<span class="c1"># 対話モード (旧 IDPA.py 互換)</span>
+python<span class="w"> </span>-m<span class="w"> </span>S2MFD.inference.cli<span class="w"> </span>--interactive
+</pre></div>
+</div>
+<p>主なオプション:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">--data</span></code>: ‘OBS’ (同梱の SILSO 年平均) または自前の CSV
+(1列目=年, 2列目=黒点数, ヘッダ1行)。40日間隔への内挿は自動で行われる。</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">--stage</span> <span class="pre">both|u0|s0</span></code>: 実行する段階。Step 2 のみ実行する場合は
+Step 1 の結果 (<code class="code docutils literal notranslate"><span class="pre">stage_result.json</span></code>) が必要。</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">--fitness</span> <span class="pre">standard|period</span></code>: 適応度。<code class="code docutils literal notranslate"><span class="pre">period</span></code> は周期の
+平均二乗誤差ベース (ダルトンミニマムなどの急変期用、論文式 4.2)。</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">--seed</span></code>: 乱数シード (再現可能な実行)。</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">--workers</span></code>: 並列評価のプロセス数 (既定: min(個体数, CPU数))。</p></li>
+</ul>
+<p>出力は <code class="code docutils literal notranslate"><span class="pre">results/datas_{開始}_{終了}/data_{u0,s0}_{開始}_{終了}/</span></code> に:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">stage_result.json</span></code> — 推定パラメタ・適応度・GA履歴・設定の一式</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">parameters.txt</span></code> — 推定パラメタ (旧 IDPA 互換形式)</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">P_sunspots_number_compare.png</span></code> / <code class="code docutils literal notranslate"><span class="pre">P_u0_compare.png</span></code> /
+<code class="code docutils literal notranslate"><span class="pre">P_s0_compare.png</span></code> / <code class="code docutils literal notranslate"><span class="pre">split_functions_now.png</span></code> — 比較プロット</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">fitness_time.png</span></code> / <code class="code docutils literal notranslate"><span class="pre">diversity_time.png</span></code> — GA の収束履歴</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">data.NNNNNN.npz</span></code> — 最良個体の再シミュレーションのスナップショット</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">numerical_result.txt</span></code> — 相関係数・NMSE・適応度</p></li>
+</ul>
+<p>既に <code class="code docutils literal notranslate"><span class="pre">stage_result.json</span></code> がある段階はスキップされる (レジューム)。</p>
+</section>
+<section id="python-api">
+<h2>Python API からの実行<a class="headerlink" href="#python-api" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">S2MFD.inference</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">load_observations</span><span class="p">,</span> <span class="n">DynamoProblem</span><span class="p">,</span> <span class="n">GeneticAlgorithm</span><span class="p">,</span> <span class="n">GAConfig</span><span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">S2MFD.inference.observations</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_initial_field</span>
+
+<span class="n">obs</span> <span class="o">=</span> <span class="n">load_observations</span><span class="p">(</span><span class="s1">'OBS'</span><span class="p">)</span>
+<span class="n">Bph0</span><span class="p">,</span> <span class="n">Aph0</span> <span class="o">=</span> <span class="n">load_initial_field</span><span class="p">()</span>
+<span class="n">i0</span><span class="p">,</span> <span class="n">i1</span> <span class="o">=</span> <span class="n">obs</span><span class="o">.</span><span class="n">index_of_year</span><span class="p">(</span><span class="mi">1944</span><span class="p">),</span> <span class="n">obs</span><span class="o">.</span><span class="n">index_of_year</span><span class="p">(</span><span class="mi">1996</span><span class="p">)</span>
+
+<span class="n">problem</span> <span class="o">=</span> <span class="n">DynamoProblem</span><span class="p">(</span>
+    <span class="s1">'parameters/inference.py'</span><span class="p">,</span> <span class="n">obs</span><span class="o">.</span><span class="n">seconds</span><span class="p">,</span> <span class="n">obs</span><span class="o">.</span><span class="n">ssn</span><span class="p">,</span>
+    <span class="n">i0</span><span class="p">,</span> <span class="n">i1</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">'u0'</span><span class="p">,</span> <span class="n">initial_Bph</span><span class="o">=</span><span class="n">Bph0</span><span class="p">,</span> <span class="n">initial_Aph</span><span class="o">=</span><span class="n">Aph0</span><span class="p">)</span>
+
+<span class="n">ga</span> <span class="o">=</span> <span class="n">GeneticAlgorithm</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">problem</span><span class="o">.</span><span class="n">param_spec</span><span class="p">(),</span>
+                      <span class="n">population_size</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+                      <span class="n">config</span><span class="o">=</span><span class="n">GAConfig</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">))</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">ga</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">best_params</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">best_fitness</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Twin experiment (合成データによる検証) は、真値パラメタで
+<code class="code docutils literal notranslate"><span class="pre">problem.simulate(true_params)</span></code> を実行して得た時系列を観測の代わりに
+使えばよい。真値の適応度は定義上 0.9 (相関1, NMSE 0) になるため、
+パイプラインの健全性チェックにも使える。</p>
+</section>
+<section id="id3">
+<h2>計算コストの目安<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>1個体の評価は約3万ステップ (80年スピンアップ + 50年窓、128×128格子) で、
+1コアあたり数分程度。論文設定 (個体数30×50世代) はマルチコアで数時間〜の
+計算になる。開発・検証には <code class="code docutils literal notranslate"><span class="pre">spinup_years</span></code> や窓の長さを縮めた設定が
+有効 (<code class="code docutils literal notranslate"><span class="pre">DynamoProblem(spinup_years=...,</span> <span class="pre">until_minimum=...)</span></code>)。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="usage.html" class="btn btn-neutral float-left" title="Usage" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tutorial_inference.html" class="btn btn-neutral float-right" title="Tutorial: パラメタ推定を実際に回す" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, S2MFD project.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      Version: 
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+      
+      
+      <dl>
+        <dt>Versions</dt>
+        
+          <dd><a href=""></a></dd>
+        
+      </dl>
+      
+      <br>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

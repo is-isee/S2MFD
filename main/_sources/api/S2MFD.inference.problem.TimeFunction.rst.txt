@@ -1,0 +1,17 @@
+TimeFunction
+============
+
+.. currentmodule:: S2MFD.inference.problem
+
+.. autoclass:: TimeFunction
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~TimeFunction.__call__
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

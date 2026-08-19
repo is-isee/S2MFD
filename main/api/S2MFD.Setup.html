@@ -6,22 +6,22 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Setup &mdash; S2MFD 0.1.dev111 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+  <title>Setup &mdash; S2MFD 0.2.1.dev91 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=1c57b938"></script>
-      <script src="../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Data" href="S2MFD.Data.html" />
-    <link rel="prev" title="Grid" href="S2MFD.Grid.html" /> 
+    <link rel="prev" title="Legendre" href="S2MFD.Legendre.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,12 +47,15 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api_reference.html">API reference</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api_reference.html#module-S2MFD">S2MFD Package</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="../api_reference.html#functions">Functions</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="../api_reference.html#classes">Classes</a><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.Cfg.html">Cfg</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.Grid.html">Grid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="S2MFD.Legendre.html">Legendre</a></li>
 <li class="toctree-l4 current"><a class="current reference internal" href="#">Setup</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.Data.html">Data</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.Simulation.html">Simulation</a></li>
@@ -62,6 +65,11 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.physics">S2MFD.physics Package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.tools">S2MFD.tools Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.inference">S2MFD.inference Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.inference.metrics">S2MFD.inference.metrics Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.inference.genetic">S2MFD.inference.genetic Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.inference.problem">S2MFD.inference.problem Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api_reference.html#module-S2MFD.inference.observations">S2MFD.inference.observations Module</a></li>
 </ul>
 </li>
 </ul>
@@ -95,55 +103,68 @@
 <h1>Setup<a class="headerlink" href="#setup" title="Link to this heading"></a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="S2MFD.Setup">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">Setup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/setup.html#Setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Setup" title="Link to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">Setup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/setup.html#Setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Setup" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">NpzIO</span></code></p>
 <p>Class to configure and initialize physical properties used in simulations.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>urr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Radial component of the meridional flow velocity.</p></li>
-<li><p><strong>uth</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Latitudinal component of the meridional flow velocity.</p></li>
-<li><p><strong>om</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Angular velocity distribution based on the differential rotation profile.</p></li>
-<li><p><strong>omrr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Radial derivative of angular velocity.</p></li>
-<li><p><strong>omth</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Latitudinal derivative of angular velocity.</p></li>
-<li><p><strong>et</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Magnetic diffusivity profile.</p></li>
-<li><p><strong>etrr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>numpy.ndarray</em></a>) – Radial derivative of the magnetic diffusivity.</p></li>
-<li><p><strong>ibase</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Index corresponding to the tachocline region in the radial direction.</p></li>
+<li><p><strong>urr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Radial component of the meridional flow velocity.</p></li>
+<li><p><strong>uth</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Latitudinal component of the meridional flow velocity.</p></li>
+<li><p><strong>om</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Angular velocity distribution based on the differential rotation profile.</p></li>
+<li><p><strong>omrr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Radial derivative of angular velocity.</p></li>
+<li><p><strong>omth</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Latitudinal derivative of angular velocity.</p></li>
+<li><p><strong>et</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Magnetic diffusivity profile.</p></li>
+<li><p><strong>etrr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Radial derivative of the magnetic diffusivity.</p></li>
+<li><p><strong>so</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Alpha effect (poloidal source) amplitude profile.</p></li>
+<li><p><strong>ibase</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Index corresponding to the tachocline region in the radial direction.</p></li>
 </ul>
 </dd>
 </dl>
 <p class="rubric">Methods Summary</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Setup.load" title="S2MFD.Setup.load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code></a>(filename)</p></td>
-<td><p>Load the setup data from a file.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Setup.build_alpha" title="S2MFD.Setup.build_alpha"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_alpha</span></code></a>(cfg, grid)</p></td>
+<td><p>α効果 (ポロイダル場ソース) プロファイル so を構築する。</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Setup.save" title="S2MFD.Setup.save"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code></a>(filename)</p></td>
-<td><p>Save the setup data to a file.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Setup.build_diffusivity" title="S2MFD.Setup.build_diffusivity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_diffusivity</span></code></a>(cfg, grid)</p></td>
+<td><p>磁気拡散プロファイル (et, etrr) を構築する。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Setup.build_flow" title="S2MFD.Setup.build_flow"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_flow</span></code></a>(cfg, grid)</p></td>
+<td><p>子午面流プロファイル (urr, uth) を構築する。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Setup.build_rotation" title="S2MFD.Setup.build_rotation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_rotation</span></code></a>(cfg, grid)</p></td>
+<td><p>差動回転プロファイル (om, omrr, omth) を構築する。</p></td>
 </tr>
 </tbody>
 </table>
 <p class="rubric">Methods Documentation</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="S2MFD.Setup.load">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/setup.html#Setup.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Setup.load" title="Link to this definition"></a></dt>
-<dd><p>Load the setup data from a file.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – File path to load the setup data.</p>
-</dd>
-</dl>
+<dt class="sig sig-object py" id="S2MFD.Setup.build_alpha">
+<span class="sig-name descname"><span class="pre">build_alpha</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/setup.html#Setup.build_alpha"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Setup.build_alpha" title="Link to this definition"></a></dt>
+<dd><p>α効果 (ポロイダル場ソース) プロファイル so を構築する。</p>
+<p>cfg.so0 を変更した後にこのメソッドを呼ぶと so だけを更新できる
+(時間依存パラメタの差分更新用)。</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="S2MFD.Setup.save">
-<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/setup.html#Setup.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Setup.save" title="Link to this definition"></a></dt>
-<dd><p>Save the setup data to a file.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – File path to save the setup data.</p>
-</dd>
-</dl>
+<dt class="sig sig-object py" id="S2MFD.Setup.build_diffusivity">
+<span class="sig-name descname"><span class="pre">build_diffusivity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/setup.html#Setup.build_diffusivity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Setup.build_diffusivity" title="Link to this definition"></a></dt>
+<dd><p>磁気拡散プロファイル (et, etrr) を構築する。</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Setup.build_flow">
+<span class="sig-name descname"><span class="pre">build_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/setup.html#Setup.build_flow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Setup.build_flow" title="Link to this definition"></a></dt>
+<dd><p>子午面流プロファイル (urr, uth) を構築する。</p>
+<p>cfg.uu0 を変更した後にこのメソッドを呼ぶと urr/uth だけを更新できる
+(時間依存パラメタの差分更新用)。</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Setup.build_rotation">
+<span class="sig-name descname"><span class="pre">build_rotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/setup.html#Setup.build_rotation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Setup.build_rotation" title="Link to this definition"></a></dt>
+<dd><p>差動回転プロファイル (om, omrr, omth) を構築する。</p>
 </dd></dl>
 
 <dl class="py method">
@@ -168,7 +189,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="S2MFD.Grid.html" class="btn btn-neutral float-left" title="Grid" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="S2MFD.Legendre.html" class="btn btn-neutral float-left" title="Legendre" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="S2MFD.Data.html" class="btn btn-neutral float-right" title="Data" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
@@ -190,7 +211,7 @@
   </div>
   <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
-      Version: main
+      Version: 
       <span class="fa fa-caret-down"></span>
     </span>
     <div class="rst-other-versions">
@@ -199,11 +220,7 @@
       <dl>
         <dt>Versions</dt>
         
-          <dd><a href="../../v0.1.0/index.html">v0.1.0</a></dd>
-        
-          <dd><a href="../../v0.2.0/index.html">v0.2.0</a></dd>
-        
-          <dd><a href="S2MFD.Setup.html">main</a></dd>
+          <dd><a href=""></a></dd>
         
       </dl>
       

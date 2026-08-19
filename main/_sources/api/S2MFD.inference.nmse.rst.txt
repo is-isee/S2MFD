@@ -1,0 +1,6 @@
+nmse
+====
+
+.. currentmodule:: S2MFD.inference
+
+.. autofunction:: nmse

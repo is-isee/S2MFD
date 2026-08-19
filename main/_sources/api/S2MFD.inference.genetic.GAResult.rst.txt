@@ -1,0 +1,29 @@
+GAResult
+========
+
+.. currentmodule:: S2MFD.inference.genetic
+
+.. autoclass:: GAResult
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~GAResult.best_fitness
+      ~GAResult.best_params
+      ~GAResult.diversity_history
+      ~GAResult.fitness_history
+      ~GAResult.generations_run
+      ~GAResult.interrupted
+      ~GAResult.population
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: best_fitness
+   .. autoattribute:: best_params
+   .. autoattribute:: diversity_history
+   .. autoattribute:: fitness_history
+   .. autoattribute:: generations_run
+   .. autoattribute:: interrupted
+   .. autoattribute:: population

@@ -6,22 +6,22 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API reference &mdash; S2MFD 0.1.dev111 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+  <title>API reference &mdash; S2MFD 0.2.1.dev91 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=1c57b938"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/documentation_options.js?v=9a923341"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="run_simulation" href="api/S2MFD.run_simulation.html" />
-    <link rel="prev" title="Usage" href="usage.html" /> 
+    <link rel="prev" title="Tutorial: パラメタ推定を実際に回す" href="tutorial_inference.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,6 +47,8 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#module-S2MFD">S2MFD Package</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#functions">Functions</a><ul>
@@ -56,6 +58,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.Cfg.html">Cfg</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.Grid.html">Grid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.Legendre.html">Legendre</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.Setup.html">Setup</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.Data.html">Data</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.Simulation.html">Simulation</a></li>
@@ -82,6 +85,79 @@
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.tools.drr2.html">drr2</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.tools.dth1.html">dth1</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.tools.dth2.html">dth2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.tools.sunspot_proxy.html">sunspot_proxy</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-S2MFD.inference">S2MFD.inference Package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.load_observations.html">load_observations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.detect_minimum_years.html">detect_minimum_years</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.correlation.html">correlation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.nmse.html">nmse</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.total_count_error.html">total_count_error</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.period_mse.html">period_mse</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.mape.html">mape</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.fitness.html">fitness</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.linear_plus_sines.html">linear_plus_sines</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.compare_with_observation.html">compare_with_observation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.Observations.html">Observations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.GAConfig.html">GAConfig</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.GeneticAlgorithm.html">GeneticAlgorithm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.GAResult.html">GAResult</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.DynamoProblem.html">DynamoProblem</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-S2MFD.inference.metrics">S2MFD.inference.metrics Module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id5">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.metrics.correlation.html">correlation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.metrics.total_count_error.html">total_count_error</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.metrics.period_mse.html">period_mse</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.metrics.nmse.html">nmse</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.metrics.mape.html">mape</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.metrics.fitness.html">fitness</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-S2MFD.inference.genetic">S2MFD.inference.genetic Module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id6">Classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.genetic.GAConfig.html">GAConfig</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.genetic.Chromosome.html">Chromosome</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.genetic.GAResult.html">GAResult</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.genetic.GeneticAlgorithm.html">GeneticAlgorithm</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-S2MFD.inference.problem">S2MFD.inference.problem Module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id7">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.problem.linear_plus_sines.html">linear_plus_sines</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id8">Classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.problem.DynamoProblem.html">DynamoProblem</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.problem.TimeFunction.html">TimeFunction</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-S2MFD.inference.observations">S2MFD.inference.observations Module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id9">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.observations.interpolate_to_interval.html">interpolate_to_interval</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.observations.load_observations.html">load_observations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.observations.detect_minimum_years.html">detect_minimum_years</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.observations.load_initial_field.html">load_initial_field</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id10">Classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.inference.observations.Observations.html">Observations</a></li>
 </ul>
 </li>
 </ul>
@@ -120,7 +196,7 @@
 <span id="s2mfd-package"></span><h2>S2MFD Package<a class="headerlink" href="#module-S2MFD" title="Link to this heading"></a></h2>
 <p>S2MFD: A Python package for solving 2D mean field dynamo equations in background of solar/stellar convection zone.</p>
 <p class="rubric">Example</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">S2MFD</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">S2MFD</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">S2MFD</span><span class="o">.</span><span class="n">run_simulation</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -144,13 +220,16 @@
 <tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.Grid.html#S2MFD.Grid" title="S2MFD.Grid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Grid</span></code></a>(ix, jx, margin, rrmin, rrmax, thmin, thmax)</p></td>
 <td><p>Class for managing the grid data.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.Setup.html#S2MFD.Setup" title="S2MFD.Setup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Setup</span></code></a>(cfg, grid)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.Legendre.html#S2MFD.Legendre" title="S2MFD.Legendre"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Legendre</span></code></a>(grid)</p></td>
+<td><p>Class for managing the associated Legendre polynomials used by the 'potential' upper boundary condition.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.Setup.html#S2MFD.Setup" title="S2MFD.Setup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Setup</span></code></a>(cfg, grid)</p></td>
 <td><p>Class to configure and initialize physical properties used in simulations.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.Data.html#S2MFD.Data" title="S2MFD.Data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Data</span></code></a>(cfg, grid, setup)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.Data.html#S2MFD.Data" title="S2MFD.Data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Data</span></code></a>(cfg, grid, setup, legendre)</p></td>
 <td><p>Class for managing the whole simulation data.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.Simulation.html#S2MFD.Simulation" title="S2MFD.Simulation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Simulation</span></code></a>(cfg[, grid, setup])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.Simulation.html#S2MFD.Simulation" title="S2MFD.Simulation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Simulation</span></code></a>(cfg[, grid, setup, legendre])</p></td>
 <td><p>Class for running the simulation inheriting from S2MFD.Data</p></td>
 </tr>
 </tbody>
@@ -167,7 +246,7 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.physics.time_marching.html#S2MFD.physics.time_marching" title="S2MFD.physics.time_marching"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time_marching</span></code></a>(Bph, Aph, dt, cfg, grid, setup)</p></td>
 <td><p>Perform time marching for the magnetic field.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.physics.boundary_condition.html#S2MFD.physics.boundary_condition" title="S2MFD.physics.boundary_condition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">boundary_condition</span></code></a>(Bph, Aph, grid)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.physics.boundary_condition.html#S2MFD.physics.boundary_condition" title="S2MFD.physics.boundary_condition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">boundary_condition</span></code></a>(Bph, Aph, cfg, grid, legendre)</p></td>
 <td><p>Applies boundary condition for the magnetic field.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.physics.poloidal_mag.html#S2MFD.physics.poloidal_mag" title="S2MFD.physics.poloidal_mag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">poloidal_mag</span></code></a>(Aph, RR, sinTH, drr, dth)</p></td>
@@ -210,6 +289,237 @@
 <tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.tools.dth2.html#S2MFD.tools.dth2" title="S2MFD.tools.dth2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dth2</span></code></a>(qq, dth)</p></td>
 <td><p>To calculate 2nd order accuracy derivative in theta direction</p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.tools.sunspot_proxy.html#S2MFD.tools.sunspot_proxy" title="S2MFD.tools.sunspot_proxy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sunspot_proxy</span></code></a>(Bph, grid, cfg[, gamma, ...])</p></td>
+<td><p>黒点数プロキシ SN = gamma * Bph(r = r_frac*RSUN, theta = theta_deg)^2</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="module-S2MFD.inference">
+<span id="s2mfd-inference-package"></span><h2>S2MFD.inference Package<a class="headerlink" href="#module-S2MFD.inference" title="Link to this heading"></a></h2>
+<p>S2MFD.inference: 遺伝的アルゴリズム (GA) によるダイナモモデルの
+パラメタ推定パッケージ。</p>
+<p>Shimizu &amp; Hotta (2026), ApJ 996, 102 の手法の実装。
+子午面流振幅 u0(t) と Babcock-Leighton α効果振幅 s0(t) の時間変化を、
+黒点数観測 (SILSO) との比較で2段階推定する。</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">S2MFD</span><span class="w"> </span><span class="kn">import</span> <span class="n">inference</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">obs</span> <span class="o">=</span> <span class="n">inference</span><span class="o">.</span><span class="n">load_observations</span><span class="p">(</span><span class="s1">'OBS'</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># コマンドラインからは: python -m S2MFD.inference.cli --help</span>
+</pre></div>
+</div>
+<section id="id3">
+<h3>Functions<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.load_observations.html#S2MFD.inference.load_observations" title="S2MFD.inference.load_observations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_observations</span></code></a>([source, time_col, ...])</p></td>
+<td><p>観測データを読み込み、40日間隔の Observations を返す。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.inference.detect_minimum_years.html#S2MFD.inference.detect_minimum_years" title="S2MFD.inference.detect_minimum_years"><code class="xref py py-obj docutils literal notranslate"><span class="pre">detect_minimum_years</span></code></a>([source, order])</p></td>
+<td><p>観測データの極小年リストを返す (旧 S2MFD.detect_minimum 相当)。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.correlation.html#S2MFD.inference.correlation" title="S2MFD.inference.correlation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">correlation</span></code></a>(obs, sim)</p></td>
+<td><p>ピアソン相関係数 (旧 judge)。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.inference.nmse.html#S2MFD.inference.nmse" title="S2MFD.inference.nmse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nmse</span></code></a>(obs, sim)</p></td>
+<td><p>正規化平均二乗誤差 (旧 judge4)。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.total_count_error.html#S2MFD.inference.total_count_error" title="S2MFD.inference.total_count_error"><code class="xref py py-obj docutils literal notranslate"><span class="pre">total_count_error</span></code></a>(obs, sim)</p></td>
+<td><p>黒点総数の相対誤差 (旧 judge2)。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.inference.period_mse.html#S2MFD.inference.period_mse" title="S2MFD.inference.period_mse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">period_mse</span></code></a>(obs, sim, t_obs, t_sim[, order])</p></td>
+<td><p>周期の平均二乗誤差 [年^2] (旧 judge3 の中身、符号は正)。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.mape.html#S2MFD.inference.mape" title="S2MFD.inference.mape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mape</span></code></a>(obs, sim[, eps])</p></td>
+<td><p>平均絶対パーセント誤差 (旧 judge5)。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.inference.fitness.html#S2MFD.inference.fitness" title="S2MFD.inference.fitness"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fitness</span></code></a>(obs, sim[, alpha])</p></td>
+<td><p>適応度 F = alpha * 相関係数 - (1 - alpha) * NMSE (論文式 3.1)。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.linear_plus_sines.html#S2MFD.inference.linear_plus_sines" title="S2MFD.inference.linear_plus_sines"><code class="xref py py-obj docutils literal notranslate"><span class="pre">linear_plus_sines</span></code></a>(t, a_start, a_end, a1, a2, ...)</p></td>
+<td><p>時間変化関数: 線形 + sin級数 (論文式 2.10, lmax=4, l=3 除外)。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.inference.compare_with_observation.html#S2MFD.inference.compare_with_observation" title="S2MFD.inference.compare_with_observation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compare_with_observation</span></code></a>(obs, index_start, ...)</p></td>
+<td><p>推定結果の比較プロットと数値結果を output_dir に保存する。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id4">
+<h3>Classes<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.Observations.html#S2MFD.inference.Observations" title="S2MFD.inference.Observations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Observations</span></code></a>(years, seconds, ssn)</p></td>
+<td><p>40日間隔に内挿済みの黒点数観測時系列。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.inference.GAConfig.html#S2MFD.inference.GAConfig" title="S2MFD.inference.GAConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GAConfig</span></code></a>([threshold, max_generations, ...])</p></td>
+<td><p>GA のハイパーパラメタ。既定値は論文 (Shimizu &amp; Hotta 2026) に準拠。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.GeneticAlgorithm.html#S2MFD.inference.GeneticAlgorithm" title="S2MFD.inference.GeneticAlgorithm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GeneticAlgorithm</span></code></a>(evaluator, param_spec, ...)</p></td>
+<td><p>遺伝的アルゴリズム本体。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.inference.GAResult.html#S2MFD.inference.GAResult" title="S2MFD.inference.GAResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GAResult</span></code></a>(best_params, best_fitness, ...)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.DynamoProblem.html#S2MFD.inference.DynamoProblem" title="S2MFD.inference.DynamoProblem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DynamoProblem</span></code></a>(parameter_file, obs_seconds, ...)</p></td>
+<td><p>GA の評価器: evaluator(params) -&gt; fitness。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="module-S2MFD.inference.metrics">
+<span id="s2mfd-inference-metrics-module"></span><h2>S2MFD.inference.metrics Module<a class="headerlink" href="#module-S2MFD.inference.metrics" title="Link to this heading"></a></h2>
+<p>観測とシミュレーションの黒点数時系列を比較する評価指標 (純関数)。</p>
+<p>旧 IDPA の Simulation.judge1〜judge5 を副作用なし (プロット・print なし) の
+関数として移植したもの。</p>
+<section id="id5">
+<h3>Functions<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.metrics.correlation.html#S2MFD.inference.metrics.correlation" title="S2MFD.inference.metrics.correlation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">correlation</span></code></a>(obs, sim)</p></td>
+<td><p>ピアソン相関係数 (旧 judge)。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.inference.metrics.total_count_error.html#S2MFD.inference.metrics.total_count_error" title="S2MFD.inference.metrics.total_count_error"><code class="xref py py-obj docutils literal notranslate"><span class="pre">total_count_error</span></code></a>(obs, sim)</p></td>
+<td><p>黒点総数の相対誤差 (旧 judge2)。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.metrics.period_mse.html#S2MFD.inference.metrics.period_mse" title="S2MFD.inference.metrics.period_mse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">period_mse</span></code></a>(obs, sim, t_obs, t_sim[, order])</p></td>
+<td><p>周期の平均二乗誤差 [年^2] (旧 judge3 の中身、符号は正)。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.inference.metrics.nmse.html#S2MFD.inference.metrics.nmse" title="S2MFD.inference.metrics.nmse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nmse</span></code></a>(obs, sim)</p></td>
+<td><p>正規化平均二乗誤差 (旧 judge4)。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.metrics.mape.html#S2MFD.inference.metrics.mape" title="S2MFD.inference.metrics.mape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mape</span></code></a>(obs, sim[, eps])</p></td>
+<td><p>平均絶対パーセント誤差 (旧 judge5)。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.inference.metrics.fitness.html#S2MFD.inference.metrics.fitness" title="S2MFD.inference.metrics.fitness"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fitness</span></code></a>(obs, sim[, alpha])</p></td>
+<td><p>適応度 F = alpha * 相関係数 - (1 - alpha) * NMSE (論文式 3.1)。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="module-S2MFD.inference.genetic">
+<span id="s2mfd-inference-genetic-module"></span><h2>S2MFD.inference.genetic Module<a class="headerlink" href="#module-S2MFD.inference.genetic" title="Link to this heading"></a></h2>
+<p>パラメタ非依存の遺伝的アルゴリズム (GA)。</p>
+<p>旧 IDPA の GA_for_u0.py / GA_for_s0.py (98% 重複した2ファイル) を、
+推定パラメタの仕様 (param_spec) を引数で受ける1つの実装に統合したもの。</p>
+<p>アルゴリズムは Shimizu &amp; Hotta (2026) 3章に準拠:</p>
+<ul class="simple">
+<li><p>選択: ASP (Adaptive Selection Pressure) トーナメント。
+適応度変化率と多様性に応じてトーナメントサイズを 3/7/5 に切替</p></li>
+<li><p>交叉: SBX (Simulated Binary Crossover), eta=2, 交叉確率 0.8</p></li>
+<li><p>変異: ガウス変異 (sigma = 0.1|x|), 変異確率 0.3</p></li>
+<li><p>エリート保存</p></li>
+</ul>
+<p>旧実装との意図的な差異 (doc/dev_records/2026-08-19_idpa_analysis.md 参照):</p>
+<ul class="simple">
+<li><p>トーナメントサイズは個体数比 (len//10 等) ではなく論文どおりの固定値
+3/7/5 (個体数30では両者は一致する)。少数個体でも壊れないようガード付き。</p></li>
+<li><p>エリートは固定スロット3ではなくランダムな1個体を置換する。</p></li>
+<li><p>乱数は numpy Generator に統一し、seed 指定で再現可能。</p></li>
+<li><p>個体評価はディスク出力なしで行い、並列実行時の出力ディレクトリ競合を
+解消した (評価器側の設計)。</p></li>
+</ul>
+<section id="id6">
+<h3>Classes<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.genetic.GAConfig.html#S2MFD.inference.genetic.GAConfig" title="S2MFD.inference.genetic.GAConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GAConfig</span></code></a>([threshold, max_generations, ...])</p></td>
+<td><p>GA のハイパーパラメタ。既定値は論文 (Shimizu &amp; Hotta 2026) に準拠。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.inference.genetic.Chromosome.html#S2MFD.inference.genetic.Chromosome" title="S2MFD.inference.genetic.Chromosome"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Chromosome</span></code></a>(params[, fitness])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.genetic.GAResult.html#S2MFD.inference.genetic.GAResult" title="S2MFD.inference.genetic.GAResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GAResult</span></code></a>(best_params, best_fitness, ...)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.inference.genetic.GeneticAlgorithm.html#S2MFD.inference.genetic.GeneticAlgorithm" title="S2MFD.inference.genetic.GeneticAlgorithm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GeneticAlgorithm</span></code></a>(evaluator, param_spec, ...)</p></td>
+<td><p>遺伝的アルゴリズム本体。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="module-S2MFD.inference.problem">
+<span id="s2mfd-inference-problem-module"></span><h2>S2MFD.inference.problem Module<a class="headerlink" href="#module-S2MFD.inference.problem" title="Link to this heading"></a></h2>
+<p>ダイナモシミュレーションによる個体評価 (GA と Simulation の接続)。</p>
+<p>旧 IDPA の DefunctionProblem + run_defunction_simulation の再設計。</p>
+<p>個体評価の流れ (Shimizu &amp; Hotta 2026, 2.7章):</p>
+<ol class="arabic simple">
+<li><p>Jouve+2008 の平衡場から、ゲノムの開始振幅 (定数) で 80 年 + 黒点数
+極小期までスピンアップ</p></li>
+<li><p>時刻を観測窓の開始に整列し、時間変化関数 (線形 + sin級数) をフックとして
+取り付けて観測窓を積分</p></li>
+<li><p>40日間隔の黒点数プロキシ時系列を観測と比較して適応度を返す</p></li>
+</ol>
+<p>旧実装との差異:</p>
+<ul class="simple">
+<li><p>個体評価はディスク出力なし (save_dir=None)。並列実行時の出力ディレクトリ
+競合が原因ごと消える。最良個体の最終ランのみ save_dir を指定して
+スナップショットを保存する。</p></li>
+<li><p>数値的に不安定な個体 (NaN 発散) は例外ではなく適応度 -inf として扱う。</p></li>
+</ul>
+<section id="id7">
+<h3>Functions<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.problem.linear_plus_sines.html#S2MFD.inference.problem.linear_plus_sines" title="S2MFD.inference.problem.linear_plus_sines"><code class="xref py py-obj docutils literal notranslate"><span class="pre">linear_plus_sines</span></code></a>(t, a_start, a_end, a1, a2, ...)</p></td>
+<td><p>時間変化関数: 線形 + sin級数 (論文式 2.10, lmax=4, l=3 除外)。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id8">
+<h3>Classes<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.problem.DynamoProblem.html#S2MFD.inference.problem.DynamoProblem" title="S2MFD.inference.problem.DynamoProblem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DynamoProblem</span></code></a>(parameter_file, obs_seconds, ...)</p></td>
+<td><p>GA の評価器: evaluator(params) -&gt; fitness。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.inference.problem.TimeFunction.html#S2MFD.inference.problem.TimeFunction" title="S2MFD.inference.problem.TimeFunction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TimeFunction</span></code></a>(a_start, a_end, a1, a2, a4, ...)</p></td>
+<td><p>絶対時刻 [s] を受けて振幅を返す呼び出し可能オブジェクト。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="module-S2MFD.inference.observations">
+<span id="s2mfd-inference-observations-module"></span><h2>S2MFD.inference.observations Module<a class="headerlink" href="#module-S2MFD.inference.observations" title="Link to this heading"></a></h2>
+<p>観測データ (黒点数時系列) の読み込み・内挿・極小期検出。</p>
+<p>データ規約 (旧 IDPA の make_time_series.py と同一):</p>
+<ul class="simple">
+<li><p>年単位の時系列を 40 日間隔に線形内挿して使う
+(シミュレーションの出力間隔 dtout = 40 日と 1:1 対応させるため)</p></li>
+<li><p>時刻の単位は「年 × 365 日 × 86400 秒」</p></li>
+</ul>
+<section id="id9">
+<h3>Functions<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.observations.interpolate_to_interval.html#S2MFD.inference.observations.interpolate_to_interval" title="S2MFD.inference.observations.interpolate_to_interval"><code class="xref py py-obj docutils literal notranslate"><span class="pre">interpolate_to_interval</span></code></a>(years, ssn[, ...])</p></td>
+<td><p>年単位の時系列を interval_days 間隔に線形内挿する。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.inference.observations.load_observations.html#S2MFD.inference.observations.load_observations" title="S2MFD.inference.observations.load_observations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_observations</span></code></a>([source, time_col, ...])</p></td>
+<td><p>観測データを読み込み、40日間隔の Observations を返す。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.observations.detect_minimum_years.html#S2MFD.inference.observations.detect_minimum_years" title="S2MFD.inference.observations.detect_minimum_years"><code class="xref py py-obj docutils literal notranslate"><span class="pre">detect_minimum_years</span></code></a>([source, order])</p></td>
+<td><p>観測データの極小年リストを返す (旧 S2MFD.detect_minimum 相当)。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.inference.observations.load_initial_field.html#S2MFD.inference.observations.load_initial_field" title="S2MFD.inference.observations.load_initial_field"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_initial_field</span></code></a>()</p></td>
+<td><p>スピンアップ用の初期磁場 (Jouve+2008 平衡場、128x128格子) を返す。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id10">
+<h3>Classes<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.inference.observations.Observations.html#S2MFD.inference.observations.Observations" title="S2MFD.inference.observations.Observations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Observations</span></code></a>(years, seconds, ssn)</p></td>
+<td><p>40日間隔に内挿済みの黒点数観測時系列。</p></td>
+</tr>
 </tbody>
 </table>
 </section>
@@ -220,7 +530,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="usage.html" class="btn btn-neutral float-left" title="Usage" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tutorial_inference.html" class="btn btn-neutral float-left" title="Tutorial: パラメタ推定を実際に回す" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="api/S2MFD.run_simulation.html" class="btn btn-neutral float-right" title="run_simulation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
@@ -242,7 +552,7 @@
   </div>
   <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
-      Version: main
+      Version: 
       <span class="fa fa-caret-down"></span>
     </span>
     <div class="rst-other-versions">
@@ -251,11 +561,7 @@
       <dl>
         <dt>Versions</dt>
         
-          <dd><a href="../v0.1.0/api_reference.html">v0.1.0</a></dd>
-        
-          <dd><a href="../v0.2.0/api_reference.html">v0.2.0</a></dd>
-        
-          <dd><a href="api_reference.html">main</a></dd>
+          <dd><a href=""></a></dd>
         
       </dl>
       

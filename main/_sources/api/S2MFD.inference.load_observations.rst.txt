@@ -1,0 +1,6 @@
+load_observations
+=================
+
+.. currentmodule:: S2MFD.inference
+
+.. autofunction:: load_observations

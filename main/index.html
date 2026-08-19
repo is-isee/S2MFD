@@ -6,17 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD Documentation &mdash; S2MFD 0.1.dev111 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+  <title>S2MFD Documentation &mdash; S2MFD 0.2.1.dev91 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=1c57b938"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/documentation_options.js?v=9a923341"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -46,6 +46,8 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference.html">API reference</a></li>
 </ul>
 
@@ -79,11 +81,44 @@
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#id1">基本の実行</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#id2">パラメタの変更</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#id3">物理モデルの選択肢</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#id4">ランの継続 (リスタート)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#id5">時間依存パラメタ</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#id6">解析スクリプト</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#id7">テスト</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="inference.html">Parameter Inference (GA)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="inference.html#id1">手法の概要</a></li>
+<li class="toctree-l2"><a class="reference internal" href="inference.html#id2">コマンドラインからの実行</a></li>
+<li class="toctree-l2"><a class="reference internal" href="inference.html#python-api">Python API からの実行</a></li>
+<li class="toctree-l2"><a class="reference internal" href="inference.html#id3">計算コストの目安</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_inference.html#id1">0. 準備</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_inference.html#id2">1. 推定窓を決める</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_inference.html#id3">2. フルスケール実行</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_inference.html#id4">3. ログの読み方</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_inference.html#id5">4. 中断と再開</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_inference.html#id6">5. 出力の読み方</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_inference.html#id7">6. 自前の観測データを使う</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_inference.html#twin-experiment">7. 検証 (twin experiment) のやり方</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_inference.html#id8">8. トラブルシューティング</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference.html">API reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api_reference.html#module-S2MFD">S2MFD Package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api_reference.html#module-S2MFD.physics">S2MFD.physics Package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api_reference.html#module-S2MFD.tools">S2MFD.tools Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#module-S2MFD.inference">S2MFD.inference Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#module-S2MFD.inference.metrics">S2MFD.inference.metrics Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#module-S2MFD.inference.genetic">S2MFD.inference.genetic Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#module-S2MFD.inference.problem">S2MFD.inference.problem Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#module-S2MFD.inference.observations">S2MFD.inference.observations Module</a></li>
 </ul>
 </li>
 </ul>
@@ -115,7 +150,7 @@
   </div>
   <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
-      Version: main
+      Version: 
       <span class="fa fa-caret-down"></span>
     </span>
     <div class="rst-other-versions">
@@ -124,11 +159,7 @@
       <dl>
         <dt>Versions</dt>
         
-          <dd><a href="../v0.1.0/index.html">v0.1.0</a></dd>
-        
-          <dd><a href="../v0.2.0/index.html">v0.2.0</a></dd>
-        
-          <dd><a href="index.html">main</a></dd>
+          <dd><a href=""></a></dd>
         
       </dl>
       

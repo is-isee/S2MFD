@@ -1,0 +1,59 @@
+DynamoProblem
+=============
+
+.. currentmodule:: S2MFD.inference.problem
+
+.. autoclass:: DynamoProblem
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~DynamoProblem.alpha
+      ~DynamoProblem.fitness_kind
+      ~DynamoProblem.index_end
+      ~DynamoProblem.index_start
+      ~DynamoProblem.initial_Aph
+      ~DynamoProblem.initial_Bph
+      ~DynamoProblem.mode
+      ~DynamoProblem.obs_seconds
+      ~DynamoProblem.obs_ssn
+      ~DynamoProblem.obs_window
+      ~DynamoProblem.parameter_file
+      ~DynamoProblem.spinup_years
+      ~DynamoProblem.stage1_params
+      ~DynamoProblem.until_minimum
+      ~DynamoProblem.window_length
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~DynamoProblem.__call__
+      ~DynamoProblem.param_spec
+      ~DynamoProblem.simulate
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: alpha
+   .. autoattribute:: fitness_kind
+   .. autoattribute:: index_end
+   .. autoattribute:: index_start
+   .. autoattribute:: initial_Aph
+   .. autoattribute:: initial_Bph
+   .. autoattribute:: mode
+   .. autoattribute:: obs_seconds
+   .. autoattribute:: obs_ssn
+   .. autoattribute:: obs_window
+   .. autoattribute:: parameter_file
+   .. autoattribute:: spinup_years
+   .. autoattribute:: stage1_params
+   .. autoattribute:: until_minimum
+   .. autoattribute:: window_length
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: param_spec
+   .. automethod:: simulate

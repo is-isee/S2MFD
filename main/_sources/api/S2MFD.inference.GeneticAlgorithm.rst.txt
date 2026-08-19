@@ -1,0 +1,19 @@
+GeneticAlgorithm
+================
+
+.. currentmodule:: S2MFD.inference
+
+.. autoclass:: GeneticAlgorithm
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~GeneticAlgorithm.diversity
+      ~GeneticAlgorithm.run
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: diversity
+   .. automethod:: run

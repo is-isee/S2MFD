@@ -5,17 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.physics.boundary_condition &mdash; S2MFD 0.1.dev111 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+  <title>S2MFD.physics.boundary_condition &mdash; S2MFD 0.2.1.dev91 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=1c57b938"></script>
-      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -44,6 +44,8 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_reference.html">API reference</a></li>
 </ul>
 
@@ -72,11 +74,12 @@
            <div itemprop="articleBody">
              
   <h1>Source code for S2MFD.physics.boundary_condition</h1><div class="highlight"><pre>
-<span></span><span class="c1">#</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
 <div class="viewcode-block" id="boundary_condition">
 <a class="viewcode-back" href="../../../api/S2MFD.physics.boundary_condition.html#S2MFD.physics.boundary_condition">[docs]</a>
-<span class="k">def</span> <span class="nf">boundary_condition</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
-<span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">boundary_condition</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">legendre</span><span class="p">):</span>
+<span class="w">   </span><span class="sd">"""</span>
 <span class="sd">   Applies boundary condition for the magnetic field.</span>
 <span class="sd">   </span>
 <span class="sd">   Parameters</span>
@@ -89,30 +92,59 @@
 <span class="sd">   Returns</span>
 <span class="sd">   -------</span>
 <span class="sd">   tuple of numpy.ndarray</span>
-<span class="sd">      - Bph : Radial  magnetic field</span>
-<span class="sd">      - Aph : Latitudinal magnetic</span>
-<span class="sd">      </span>
+<span class="sd">      - Bph : Longitudinal magnetic field (ghost cells filled)</span>
+<span class="sd">      - Aph : Longitudinal vector potential (ghost cells filled)</span>
+
+
 <span class="sd">   Notes</span>
 <span class="sd">   -----</span>
 <span class="sd">   We do not have to return Bph and Aph because they are mutable objects, but we do so for clarity.</span>
-<span class="sd">   </span>
-<span class="sd">   &quot;&quot;&quot;</span>
-   <span class="c1"># 動径方向境界条件</span>
-   <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">):</span>
-      <span class="c1"># bottom boundary condition</span>
-      <span class="c1"># perfect conductor</span>
-      <span class="c1"># Aph = 0, d(r*Bph)/dr = 0</span>
-      <span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span> <span class="n">Aph</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span>
-      <span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> <span class="o">=</span> <span class="o">+</span> <span class="n">Bph</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> \
-         <span class="o">/</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-
-      <span class="c1"># top boundary condition </span>
-      <span class="c1"># radial condition </span>
-      <span class="c1"># Bph = 0, d(r*Aph)/dr = 0</span>
+<span class="sd">   """</span>
+   <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">boundary_condition_type</span> <span class="o">==</span> <span class="s1">'vertical'</span><span class="p">:</span>
+      <span class="c1"># 動径方向境界条件</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">):</span>
+         <span class="c1"># top boundary condition </span>
+         <span class="c1"># radial condition </span>
+         <span class="c1"># Bph = 0, d(r*Aph)/dr = 0</span>
+         <span class="n">Bph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">Bph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">+</span><span class="n">i</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span>
+         <span class="n">Aph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> <span class="o">=</span> <span class="o">+</span><span class="n">Aph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">+</span><span class="n">i</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> \
+            <span class="o">/</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">+</span><span class="n">i</span><span class="p">]</span>
+         <span class="c1"># bottom boundary condition</span>
+         <span class="c1"># perfect conductor</span>
+         <span class="c1"># Aph = 0, d(r*Bph)/dr = 0</span>
+         <span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span> <span class="n">Aph</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span>
+         <span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> <span class="o">=</span> <span class="o">+</span> <span class="n">Bph</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> \
+            <span class="o">/</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
       
-      <span class="n">Bph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">Bph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">+</span><span class="n">i</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span>
-      <span class="n">Aph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> <span class="o">=</span> <span class="o">+</span><span class="n">Aph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">+</span><span class="n">i</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> \
-         <span class="o">/</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">+</span><span class="n">i</span><span class="p">]</span>
+         
+   <span class="k">elif</span> <span class="n">cfg</span><span class="o">.</span><span class="n">boundary_condition_type</span> <span class="o">==</span> <span class="s1">'potential'</span><span class="p">:</span>
+      <span class="c1"># 時間不変量 (sinth, n_values, coefficients, P1n_reduced) は</span>
+      <span class="c1"># Legendre.__init__ で事前計算済み</span>
+      <span class="c1"># 太陽表面 (最外物理セル) の Aφ を Legendre 陪多項式に射影する</span>
+      <span class="n">Aph_reduced</span> <span class="o">=</span> <span class="n">Aph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span> <span class="o">-</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span> <span class="o">-</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span>  <span class="c1"># (jx,)</span>
+      <span class="c1"># 0~πの積分 (中点則): itg_n = ∫ Aφ P^1_n sinθ dθ</span>
+      <span class="n">itg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Aph_reduced</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">legendre</span><span class="o">.</span><span class="n">P1n_reduced</span>
+                   <span class="o">*</span> <span class="n">legendre</span><span class="o">.</span><span class="n">sinth</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">grid</span><span class="o">.</span><span class="n">dth</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (lmax-1,)</span>
+      <span class="n">ant</span> <span class="o">=</span> <span class="n">legendre</span><span class="o">.</span><span class="n">coefficients</span> <span class="o">*</span> <span class="n">itg</span>  <span class="c1"># (lmax-1,)</span>
+      <span class="n">n_col</span> <span class="o">=</span> <span class="n">legendre</span><span class="o">.</span><span class="n">n_values</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>  <span class="c1"># (lmax-1, 1)</span>
+
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">):</span>
+         <span class="c1"># top boundary condition</span>
+         <span class="c1"># no electrical current</span>
+         <span class="c1"># Bph = 0, smoothly match Aph with an exterior potential field solution</span>
+         <span class="n">Bph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">Bph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">+</span><span class="n">i</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span>
+         <span class="n">Aph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="n">ant</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span> <span class="o">-</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="p">(</span><span class="n">n_col</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="o">*</span> <span class="n">legendre</span><span class="o">.</span><span class="n">P1n_reduced</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+         <span class="c1"># bottom boundary condition</span>
+         <span class="c1"># perfect conductor</span>
+         <span class="c1"># Aph = 0, d(r*Bph)/dr = 0</span>
+         <span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span> <span class="n">Aph</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span>
+         <span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> <span class="o">=</span> <span class="o">+</span> <span class="n">Bph</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> \
+            <span class="o">/</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
    <span class="c1"># 緯度方向境界条件      </span>
    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">):</span>
@@ -148,7 +180,7 @@
   </div>
   <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
-      Version: main
+      Version: 
       <span class="fa fa-caret-down"></span>
     </span>
     <div class="rst-other-versions">
@@ -157,11 +189,7 @@
       <dl>
         <dt>Versions</dt>
         
-          <dd><a href="../../../../v0.1.0/index.html">v0.1.0</a></dd>
-        
-          <dd><a href="../../../../v0.2.0/index.html">v0.2.0</a></dd>
-        
-          <dd><a href="boundary_condition.html">main</a></dd>
+          <dd><a href=""></a></dd>
         
       </dl>
       

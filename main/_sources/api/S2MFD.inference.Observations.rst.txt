@@ -1,0 +1,35 @@
+Observations
+============
+
+.. currentmodule:: S2MFD.inference
+
+.. autoclass:: Observations
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Observations.seconds
+      ~Observations.ssn
+      ~Observations.years
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Observations.detect_minima_indices
+      ~Observations.detect_minima_years
+      ~Observations.index_of_year
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: seconds
+   .. autoattribute:: ssn
+   .. autoattribute:: years
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: detect_minima_indices
+   .. automethod:: detect_minima_years
+   .. automethod:: index_of_year

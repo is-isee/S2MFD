@@ -10,10 +10,14 @@ Setup
 
    .. autosummary::
 
-      ~Setup.load
-      ~Setup.save
+      ~Setup.build_alpha
+      ~Setup.build_diffusivity
+      ~Setup.build_flow
+      ~Setup.build_rotation
 
    .. rubric:: Methods Documentation
 
-   .. automethod:: load
-   .. automethod:: save
+   .. automethod:: build_alpha
+   .. automethod:: build_diffusivity
+   .. automethod:: build_flow
+   .. automethod:: build_rotation

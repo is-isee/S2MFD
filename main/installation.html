@@ -6,17 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Installation &mdash; S2MFD 0.1.dev111 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+  <title>Installation &mdash; S2MFD 0.2.1.dev91 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=1c57b938"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/documentation_options.js?v=9a923341"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -47,6 +47,8 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference.html">API reference</a></li>
 </ul>
 
@@ -78,13 +80,19 @@
 <h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
 <p>現在は、S2MFDは開発中のため、PyPIには登録されていない。
 そのため、GitHubから直接インストールする必要がある。</p>
-<p>開発のためには、editableモードでインストールすることを推奨する。</p>
+<p>開発のためには、editableモード + 開発用依存 (pytest) でインストールすることを推奨する。</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/is-isee/S2MFD.git
 $<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>S2MFD
-$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span>
 </pre></div>
 </div>
-<p>これで、S2MFDがインストールされる。任意の場所からS2MFDをインポートすることができる。</p>
+<p>これで、S2MFDがインストールされる。任意の場所からS2MFDをインポートすることができる。
+依存関係 (numpy, scipy, numba, matplotlib) は <code class="code docutils literal notranslate"><span class="pre">pyproject.toml</span></code> に
+宣言されており、自動でインストールされる。</p>
+<p>利用のみであれば通常のインストールでもよい。</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>.
+</pre></div>
+</div>
 </section>
 
 
@@ -113,7 +121,7 @@ $<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </sp
   </div>
   <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
-      Version: main
+      Version: 
       <span class="fa fa-caret-down"></span>
     </span>
     <div class="rst-other-versions">
@@ -122,11 +130,7 @@ $<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </sp
       <dl>
         <dt>Versions</dt>
         
-          <dd><a href="../v0.1.0/installation.html">v0.1.0</a></dd>
-        
-          <dd><a href="../v0.2.0/installation.html">v0.2.0</a></dd>
-        
-          <dd><a href="installation.html">main</a></dd>
+          <dd><a href=""></a></dd>
         
       </dl>
       

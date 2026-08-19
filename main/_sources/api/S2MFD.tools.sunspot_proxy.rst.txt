@@ -1,0 +1,6 @@
+sunspot_proxy
+=============
+
+.. currentmodule:: S2MFD.tools
+
+.. autofunction:: sunspot_proxy

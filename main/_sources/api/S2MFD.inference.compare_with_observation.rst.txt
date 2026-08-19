@@ -1,0 +1,6 @@
+compare_with_observation
+========================
+
+.. currentmodule:: S2MFD.inference
+
+.. autofunction:: compare_with_observation

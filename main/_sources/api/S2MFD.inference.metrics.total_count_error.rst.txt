@@ -1,0 +1,6 @@
+total_count_error
+=================
+
+.. currentmodule:: S2MFD.inference.metrics
+
+.. autofunction:: total_count_error

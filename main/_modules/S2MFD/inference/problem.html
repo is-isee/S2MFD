@@ -1,0 +1,413 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>S2MFD.inference.problem &mdash; S2MFD 0.2.1.dev91 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            S2MFD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_reference.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">S2MFD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">S2MFD.inference.problem</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for S2MFD.inference.problem</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""ダイナモシミュレーションによる個体評価 (GA と Simulation の接続)。</span>
+
+<span class="sd">旧 IDPA の DefunctionProblem + run_defunction_simulation の再設計。</span>
+
+<span class="sd">個体評価の流れ (Shimizu &amp; Hotta 2026, 2.7章):</span>
+
+<span class="sd">1. Jouve+2008 の平衡場から、ゲノムの開始振幅 (定数) で 80 年 + 黒点数</span>
+<span class="sd">   極小期までスピンアップ</span>
+<span class="sd">2. 時刻を観測窓の開始に整列し、時間変化関数 (線形 + sin級数) をフックとして</span>
+<span class="sd">   取り付けて観測窓を積分</span>
+<span class="sd">3. 40日間隔の黒点数プロキシ時系列を観測と比較して適応度を返す</span>
+
+<span class="sd">旧実装との差異:</span>
+
+<span class="sd">- 個体評価はディスク出力なし (save_dir=None)。並列実行時の出力ディレクトリ</span>
+<span class="sd">  競合が原因ごと消える。最良個体の最終ランのみ save_dir を指定して</span>
+<span class="sd">  スナップショットを保存する。</span>
+<span class="sd">- 数値的に不安定な個体 (NaN 発散) は例外ではなく適応度 -inf として扱う。</span>
+<span class="sd">"""</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">S2MFD</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">S2MFD.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">sunspot_proxy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">metrics</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'DynamoProblem'</span><span class="p">,</span> <span class="s1">'TimeFunction'</span><span class="p">,</span> <span class="s1">'linear_plus_sines'</span><span class="p">,</span>
+           <span class="s1">'U0_SPEC'</span><span class="p">,</span> <span class="s1">'S0_SPEC'</span><span class="p">,</span> <span class="s1">'U0_KEYS'</span><span class="p">,</span> <span class="s1">'S0_KEYS'</span><span class="p">]</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">YEAR_SECONDS</span> <span class="o">=</span> <span class="mi">365</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">3600</span>
+
+<span class="c1"># 初期集団の一様分布範囲 (論文表 3.1)</span>
+<span class="n">U0_SPEC</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">'as_u'</span><span class="p">:</span> <span class="p">(</span><span class="mf">500.0</span><span class="p">,</span> <span class="mf">900.0</span><span class="p">),</span>
+    <span class="s1">'ae_u'</span><span class="p">:</span> <span class="p">(</span><span class="mf">500.0</span><span class="p">,</span> <span class="mf">900.0</span><span class="p">),</span>
+    <span class="s1">'a1_u'</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">150.0</span><span class="p">,</span> <span class="mf">150.0</span><span class="p">),</span>
+    <span class="s1">'a2_u'</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">150.0</span><span class="p">,</span> <span class="mf">150.0</span><span class="p">),</span>
+    <span class="s1">'a4_u'</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">150.0</span><span class="p">,</span> <span class="mf">150.0</span><span class="p">),</span>
+    <span class="s1">'a0_s'</span><span class="p">:</span> <span class="p">(</span><span class="mf">40.0</span><span class="p">,</span> <span class="mf">65.0</span><span class="p">),</span>   <span class="c1"># u0 推定中は定数として扱う α 振幅</span>
+<span class="p">}</span>
+<span class="n">S0_SPEC</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">'as_s'</span><span class="p">:</span> <span class="p">(</span><span class="mf">40.0</span><span class="p">,</span> <span class="mf">65.0</span><span class="p">),</span>
+    <span class="s1">'ae_s'</span><span class="p">:</span> <span class="p">(</span><span class="mf">40.0</span><span class="p">,</span> <span class="mf">65.0</span><span class="p">),</span>
+    <span class="s1">'a1_s'</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">15.0</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">),</span>
+    <span class="s1">'a2_s'</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">15.0</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">),</span>
+    <span class="s1">'a4_s'</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mf">15.0</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">),</span>
+<span class="p">}</span>
+
+<span class="n">U0_KEYS</span> <span class="o">=</span> <span class="p">(</span><span class="s1">'as_u'</span><span class="p">,</span> <span class="s1">'ae_u'</span><span class="p">,</span> <span class="s1">'a1_u'</span><span class="p">,</span> <span class="s1">'a2_u'</span><span class="p">,</span> <span class="s1">'a4_u'</span><span class="p">)</span>
+<span class="n">S0_KEYS</span> <span class="o">=</span> <span class="p">(</span><span class="s1">'as_s'</span><span class="p">,</span> <span class="s1">'ae_s'</span><span class="p">,</span> <span class="s1">'a1_s'</span><span class="p">,</span> <span class="s1">'a2_s'</span><span class="p">,</span> <span class="s1">'a4_s'</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="linear_plus_sines">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.problem.linear_plus_sines.html#S2MFD.inference.linear_plus_sines">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">linear_plus_sines</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">a_start</span><span class="p">,</span> <span class="n">a_end</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">a4</span><span class="p">,</span> <span class="n">t_span</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""時間変化関数: 線形 + sin級数 (論文式 2.10, lmax=4, l=3 除外)。</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    t : float</span>
+<span class="sd">        窓開始からの経過時間 [s] (0 &lt;= t &lt;= t_span)</span>
+<span class="sd">    a_start, a_end : float</span>
+<span class="sd">        窓の始点・終点での振幅 (線形成分)</span>
+<span class="sd">    a1, a2, a4 : float</span>
+<span class="sd">        sin 級数の係数</span>
+<span class="sd">    t_span : float</span>
+<span class="sd">        窓の長さ [s]。omega = 2*pi / (2 * t_span) (窓の2倍を基本周期とする)</span>
+<span class="sd">    """</span>
+    <span class="n">omega</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="p">(</span><span class="n">t_span</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">lin</span> <span class="o">=</span> <span class="p">(</span><span class="n">a_start</span> <span class="o">*</span> <span class="p">(</span><span class="n">t_span</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="n">a_end</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span> <span class="o">/</span> <span class="n">t_span</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">lin</span>
+            <span class="o">+</span> <span class="n">a1</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">*</span> <span class="n">omega</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">a2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">omega</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">a4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">4.0</span> <span class="o">*</span> <span class="n">omega</span> <span class="o">*</span> <span class="n">t</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="TimeFunction">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.problem.TimeFunction.html#S2MFD.inference.TimeFunction">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TimeFunction</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""絶対時刻 [s] を受けて振幅を返す呼び出し可能オブジェクト。</span>
+
+<span class="sd">    cfg.uu0_of_time / cfg.so0_of_time にそのまま渡せる。</span>
+<span class="sd">    (クロージャと違い picklable なので、必要ならプロセス間も運べる)</span>
+<span class="sd">    """</span>
+
+<div class="viewcode-block" id="TimeFunction.__init__">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.problem.TimeFunction.html#S2MFD.inference.TimeFunction.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a_start</span><span class="p">,</span> <span class="n">a_end</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">a4</span><span class="p">,</span> <span class="n">t_start</span><span class="p">,</span> <span class="n">t_span</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a_start</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">a_start</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a_end</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">a_end</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">a2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a4</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">a4</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t_start</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t_start</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t_span</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t_span</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TimeFunction.__call__">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.problem.TimeFunction.html#S2MFD.inference.TimeFunction.__call__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">linear_plus_sines</span><span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_start</span><span class="p">,</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">a_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">a_end</span><span class="p">,</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">a1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">a2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">a4</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_span</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DynamoProblem">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.problem.DynamoProblem.html#S2MFD.inference.DynamoProblem">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DynamoProblem</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""GA の評価器: evaluator(params) -&gt; fitness。</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    parameter_file : str</span>
+<span class="sd">        シミュレーション設定 (S2MFD.Cfg に渡すパス)</span>
+<span class="sd">    obs_seconds, obs_ssn : numpy.ndarray</span>
+<span class="sd">        40日間隔に内挿済みの観測時系列 (observations.Observations の</span>
+<span class="sd">        seconds / ssn)</span>
+<span class="sd">    index_start, index_end : int</span>
+<span class="sd">        推定窓の観測インデックス範囲 [index_start, index_end]</span>
+<span class="sd">    mode : str</span>
+<span class="sd">        'u0' (Step 1: 子午面流) または 's0' (Step 2: α効果)</span>
+<span class="sd">    stage1_params : dict, optional</span>
+<span class="sd">        mode='s0' のとき必須。Step 1 で推定した u0 係数</span>
+<span class="sd">        {'as_u', 'ae_u', 'a1_u', 'a2_u', 'a4_u'}</span>
+<span class="sd">    initial_Bph, initial_Aph : numpy.ndarray</span>
+<span class="sd">        スピンアップの初期磁場 (observations.load_initial_field() 等)</span>
+<span class="sd">    spinup_years : float</span>
+<span class="sd">        スピンアップの最低年数 (論文では 80 年)</span>
+<span class="sd">    alpha : float</span>
+<span class="sd">        適応度の重み (論文では 0.9)</span>
+<span class="sd">    """</span>
+    <span class="n">parameter_file</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">obs_seconds</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="n">obs_ssn</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="n">index_start</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">index_end</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">initial_Bph</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="n">initial_Aph</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="n">stage1_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">spinup_years</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">80.0</span>
+    <span class="n">until_minimum</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># スピンアップ後に黒点数極小まで継続するか</span>
+    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span>
+    <span class="n">fitness_kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'standard'</span>  <span class="c1"># 'standard' (式3.1) or 'period' (式4.2)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'u0'</span><span class="p">,</span> <span class="s1">'s0'</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"mode must be 'u0' or 's0', got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">'s0'</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage1_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"mode='s0' requires stage1_params (Step 1 の結果)"</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">window_length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_end</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_start</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">obs_window</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">obs_ssn</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index_start</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">index_end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+<div class="viewcode-block" id="DynamoProblem.param_spec">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.problem.DynamoProblem.html#S2MFD.inference.DynamoProblem.param_spec">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">param_spec</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">U0_SPEC</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">'u0'</span> <span class="k">else</span> <span class="nb">dict</span><span class="p">(</span><span class="n">S0_SPEC</span><span class="p">)</span></div>
+
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+<div class="viewcode-block" id="DynamoProblem.simulate">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.problem.DynamoProblem.html#S2MFD.inference.DynamoProblem.simulate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">simulate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">save_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""1個体分のシミュレーションを実行する。</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        params : dict</span>
+<span class="sd">            ゲノム (U0_SPEC / S0_SPEC のキー)</span>
+<span class="sd">        save_dir : str, optional</span>
+<span class="sd">            指定すると観測窓のスナップショット一式を保存する</span>
+<span class="sd">            (最良個体の最終ラン用)。None なら完全にディスク出力なし。</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            (sn_sim, ts_sim, sim) — 黒点数プロキシ時系列 (長さ</span>
+<span class="sd">            window_length)、対応する時刻 [s]、Simulation オブジェクト。</span>
+<span class="sd">        """</span>
+        <span class="n">t_start</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obs_seconds</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index_start</span><span class="p">])</span>
+        <span class="n">t_end</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obs_seconds</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index_end</span><span class="p">])</span>
+        <span class="n">t_span</span> <span class="o">=</span> <span class="n">t_end</span> <span class="o">-</span> <span class="n">t_start</span>
+
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Cfg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_file</span><span class="p">)</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># スピンアップは開始振幅の定数で行う</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">'u0'</span><span class="p">:</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">uu0</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">'as_u'</span><span class="p">])</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">so0</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">'a0_s'</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">uu0</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stage1_params</span><span class="p">[</span><span class="s1">'as_u'</span><span class="p">])</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">so0</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">'as_s'</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">save_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span> <span class="o">=</span> <span class="n">save_dir</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">cont_flag</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">sim</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Simulation</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">save_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sim</span><span class="o">.</span><span class="n">initialize_simulation</span><span class="p">()</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">cfl_condition</span><span class="p">()</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">set_field</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_Bph</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_Aph</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">spin_up</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spinup_years</span> <span class="o">*</span> <span class="n">YEAR_SECONDS</span><span class="p">,</span>
+                    <span class="n">until_minimum</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">until_minimum</span><span class="p">)</span>
+
+        <span class="c1"># 観測窓の開始に整列</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">t_start</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">nd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_start</span>
+
+        <span class="c1"># 時間変化関数の取り付け</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">'u0'</span><span class="p">:</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">uu0_of_time</span> <span class="o">=</span> <span class="n">TimeFunction</span><span class="p">(</span>
+                <span class="n">params</span><span class="p">[</span><span class="s1">'as_u'</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="s1">'ae_u'</span><span class="p">],</span>
+                <span class="n">params</span><span class="p">[</span><span class="s1">'a1_u'</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="s1">'a2_u'</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="s1">'a4_u'</span><span class="p">],</span>
+                <span class="n">t_start</span><span class="p">,</span> <span class="n">t_span</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage1_params</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">uu0_of_time</span> <span class="o">=</span> <span class="n">TimeFunction</span><span class="p">(</span>
+                <span class="n">s1</span><span class="p">[</span><span class="s1">'as_u'</span><span class="p">],</span> <span class="n">s1</span><span class="p">[</span><span class="s1">'ae_u'</span><span class="p">],</span> <span class="n">s1</span><span class="p">[</span><span class="s1">'a1_u'</span><span class="p">],</span> <span class="n">s1</span><span class="p">[</span><span class="s1">'a2_u'</span><span class="p">],</span> <span class="n">s1</span><span class="p">[</span><span class="s1">'a4_u'</span><span class="p">],</span>
+                <span class="n">t_start</span><span class="p">,</span> <span class="n">t_span</span><span class="p">)</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">so0_of_time</span> <span class="o">=</span> <span class="n">TimeFunction</span><span class="p">(</span>
+                <span class="n">params</span><span class="p">[</span><span class="s1">'as_s'</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="s1">'ae_s'</span><span class="p">],</span>
+                <span class="n">params</span><span class="p">[</span><span class="s1">'a1_s'</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="s1">'a2_s'</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="s1">'a4_s'</span><span class="p">],</span>
+                <span class="n">t_start</span><span class="p">,</span> <span class="n">t_span</span><span class="p">)</span>
+
+        <span class="n">sn</span> <span class="o">=</span> <span class="p">[</span><span class="n">sunspot_proxy</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">Bph</span><span class="p">,</span> <span class="n">sim</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">cfg</span><span class="p">)]</span>
+        <span class="n">ts</span> <span class="o">=</span> <span class="p">[</span><span class="n">sim</span><span class="o">.</span><span class="n">time</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">save_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sim</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">record</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+            <span class="n">sn</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sunspot_proxy</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">Bph</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">cfg</span><span class="p">))</span>
+            <span class="n">ts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+
+        <span class="n">sim</span><span class="o">.</span><span class="n">run_window</span><span class="p">(</span><span class="n">t_end</span><span class="p">,</span> <span class="n">on_output</span><span class="o">=</span><span class="n">record</span><span class="p">,</span>
+                       <span class="n">save_output</span><span class="o">=</span><span class="p">(</span><span class="n">save_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">))</span>
+
+        <span class="n">sn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sn</span><span class="p">)</span>
+        <span class="n">ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sn</span><span class="p">)</span> <span class="o">!=</span> <span class="n">L</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"simulated series length </span><span class="si">%d</span><span class="s2"> != window length </span><span class="si">%d</span><span class="s2"> "</span>
+                           <span class="s2">"(adjusting)"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sn</span><span class="p">),</span> <span class="n">L</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sn</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">L</span><span class="p">:</span>
+                <span class="n">sn</span><span class="p">,</span> <span class="n">ts</span> <span class="o">=</span> <span class="n">sn</span><span class="p">[:</span><span class="n">L</span><span class="p">],</span> <span class="n">ts</span><span class="p">[:</span><span class="n">L</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">sn</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">sn</span><span class="p">)),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">'edge'</span><span class="p">)</span>
+                <span class="n">ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">ts</span><span class="p">)),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">'edge'</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sn</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">sim</span></div>
+
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+<div class="viewcode-block" id="DynamoProblem.__call__">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.problem.DynamoProblem.html#S2MFD.inference.DynamoProblem.__call__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""適応度を返す。</span>
+
+<span class="sd">        fitness_kind='standard': F = alpha*相関 - (1-alpha)*NMSE (論文式 3.1)</span>
+<span class="sd">        fitness_kind='period':   F = -周期MSE (ダルトンミニマム用、論文式 4.2)</span>
+
+<span class="sd">        数値的に破綻した個体 (NaN 発散など) は -inf を返す。</span>
+<span class="sd">        """</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sn</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">RuntimeError</span><span class="p">,</span> <span class="ne">FloatingPointError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"individual failed (</span><span class="si">%s</span><span class="s2">); fitness = -inf"</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+            <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitness_kind</span> <span class="o">==</span> <span class="s1">'period'</span><span class="p">:</span>
+            <span class="n">t_obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">obs_seconds</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index_start</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">index_end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">return</span> <span class="o">-</span><span class="n">metrics</span><span class="o">.</span><span class="n">period_mse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obs_window</span><span class="p">,</span> <span class="n">sn</span><span class="p">,</span> <span class="n">t_obs</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">metrics</span><span class="o">.</span><span class="n">fitness</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obs_window</span><span class="p">,</span> <span class="n">sn</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, S2MFD project.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      Version: 
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+      
+      
+      <dl>
+        <dt>Versions</dt>
+        
+          <dd><a href=""></a></dd>
+        
+      </dl>
+      
+      <br>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

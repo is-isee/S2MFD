@@ -5,17 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.tools.tools &mdash; S2MFD 0.1.dev111 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+  <title>S2MFD.tools.tools &mdash; S2MFD 0.2.1.dev91 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=1c57b938"></script>
-      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -44,6 +44,8 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_reference.html">API reference</a></li>
 </ul>
 
@@ -72,18 +74,16 @@
            <div itemprop="articleBody">
              
   <h1>Source code for S2MFD.tools.tools</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">njit</span><span class="p">,</span> <span class="n">float64</span>
-<span class="kn">from</span> <span class="nn">numba.types</span> <span class="kn">import</span> <span class="n">Array</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">unicode_type</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numba</span><span class="w"> </span><span class="kn">import</span> <span class="n">njit</span>
 
 <div class="viewcode-block" id="drr1">
 <a class="viewcode-back" href="../../../api/S2MFD.tools.drr1.html#S2MFD.tools.drr1">[docs]</a>
 <span class="nd">@njit</span>
-<span class="k">def</span> <span class="nf">drr1</span><span class="p">(</span><span class="n">qq</span><span class="p">,</span><span class="n">drr</span><span class="p">,</span><span class="nb">dir</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">drr1</span><span class="p">(</span><span class="n">qq</span><span class="p">,</span><span class="n">drr</span><span class="p">,</span><span class="nb">dir</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">'''</span>
 <span class="sd">    To calculate 1st order accuracy derivative in r direction</span>
-<span class="sd">   </span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    qq : numpy.ndarray, float</span>
@@ -91,43 +91,40 @@
 <span class="sd">    drr : float</span>
 <span class="sd">        Grid spacing in r direction</span>
 <span class="sd">    dir: string</span>
-<span class="sd">        &#39;up&#39; or &#39;dw&#39;</span>
-<span class="sd">        </span>
-<span class="sd">        &#39;up&#39;: qq[i] = qq[i+1] - qq[i]</span>
-<span class="sd">        &#39;dw&#39;: qq[i] = qq[i] - qq[i-1]</span>
+<span class="sd">        'up' or 'dw'</span>
+
+<span class="sd">        'up': dqq[i] = (qq[i] - qq[i-1])/drr  (後退差分、i=1..N-1 に格納)</span>
+<span class="sd">        'dw': dqq[i] = (qq[i+1] - qq[i])/drr  (前進差分、i=0..N-2 に格納)</span>
+
+<span class="sd">        セル境界 i-1/2 の勾配を 'up' で作り、'dw' で発散を取ると</span>
+<span class="sd">        保存形の2階差分になる (diffusion() での用法)。</span>
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    dqq: numpy.ndarray, float</span>
 <span class="sd">        Differentiated quantity (2D)</span>
-<span class="sd">    &#39;&#39;&#39;</span>
-   
-    <span class="k">if</span> <span class="nb">dir</span> <span class="o">==</span> <span class="s1">&#39;up&#39;</span><span class="p">:</span>
+<span class="sd">    '''</span>
+
+    <span class="k">if</span> <span class="nb">dir</span> <span class="o">==</span> <span class="s1">'up'</span><span class="p">:</span>
         <span class="n">i0</span><span class="p">,</span> <span class="n">i1</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">qq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">elif</span> <span class="nb">dir</span> <span class="o">==</span> <span class="s1">&#39;dw&#39;</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="nb">dir</span> <span class="o">==</span> <span class="s1">'dw'</span><span class="p">:</span>
         <span class="n">i0</span><span class="p">,</span> <span class="n">i1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">qq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error: dir must be up or dw&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">'dir must be up or dw'</span><span class="p">)</span>
 
-    <span class="c1"># vectorization</span>
-    <span class="c1"># dqq = np.zeros_like(qq)</span>
-    <span class="c1"># dqq[i0:i1,:] = (qq[1:,:] - qq[:-1,:])/drr</span>
-
-    <span class="c1"># for loop</span>
-    <span class="n">inum</span> <span class="o">=</span> <span class="n">qq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">jnum</span> <span class="o">=</span> <span class="n">qq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">dqq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">qq</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i1</span><span class="o">-</span><span class="n">i0</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">jnum</span><span class="p">):</span>
             <span class="n">dqq</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="n">i0</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">qq</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">qq</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">])</span><span class="o">/</span><span class="n">drr</span>
-   
+
     <span class="k">return</span> <span class="n">dqq</span></div>
 
 
 <div class="viewcode-block" id="drr2">
 <a class="viewcode-back" href="../../../api/S2MFD.tools.drr2.html#S2MFD.tools.drr2">[docs]</a>
 <span class="nd">@njit</span>
-<span class="k">def</span> <span class="nf">drr2</span><span class="p">(</span><span class="n">qq</span><span class="p">,</span><span class="n">drr</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">drr2</span><span class="p">(</span><span class="n">qq</span><span class="p">,</span><span class="n">drr</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">'''</span>
 <span class="sd">    To calculate 2nd order accuracy derivative in r direction</span>
 <span class="sd">   </span>
 <span class="sd">    Parameters</span>
@@ -140,13 +137,8 @@
 <span class="sd">    -------</span>
 <span class="sd">        dqq: numpy.ndarray, float</span>
 <span class="sd">            Differentiated quantity (2D)</span>
-<span class="sd">    &#39;&#39;&#39;</span>   
+<span class="sd">    '''</span>
 
-    <span class="c1"># vectorization</span>
-    <span class="c1"># dqq = np.zeros_like(qq)</span>
-    <span class="c1"># dqq[1:-1,:] = (qq[2:qq.shape[0],:] - qq[0:-2,:])/drr*0.5</span>
-
-    <span class="c1"># for loop</span>
     <span class="n">inum</span> <span class="o">=</span> <span class="n">qq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">jnum</span> <span class="o">=</span> <span class="n">qq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">dqq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">qq</span><span class="p">)</span>
@@ -160,39 +152,35 @@
 <div class="viewcode-block" id="dth1">
 <a class="viewcode-back" href="../../../api/S2MFD.tools.dth1.html#S2MFD.tools.dth1">[docs]</a>
 <span class="nd">@njit</span>
-<span class="k">def</span> <span class="nf">dth1</span><span class="p">(</span><span class="n">qq</span><span class="p">,</span><span class="n">dth</span><span class="p">,</span><span class="nb">dir</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">dth1</span><span class="p">(</span><span class="n">qq</span><span class="p">,</span><span class="n">dth</span><span class="p">,</span><span class="nb">dir</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">'''</span>
 <span class="sd">    To calculate 1st order accuracy derivative in theta direction</span>
 <span class="sd">   </span>
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">        qq: numpy.ndarray, float</span>
 <span class="sd">            Quantity to be differentiated (2D)</span>
-<span class="sd">        drr: float</span>
+<span class="sd">        dth: float</span>
 <span class="sd">            Grid spacing in theta direction</span>
 <span class="sd">        dir: string</span>
-<span class="sd">            &#39;up&#39; or &#39;dw&#39;</span>
-<span class="sd">            &#39;up&#39;: qq[j] = qq[j+1] - qq[j]</span>
-<span class="sd">            &#39;dw&#39;: qq[j] = qq[j] - qq[j-1]</span>
-<span class="sd">    </span>
+<span class="sd">            'up' or 'dw'</span>
+
+<span class="sd">            'up': dqq[j] = (qq[j] - qq[j-1])/dth  (後退差分、j=1..N-1 に格納)</span>
+<span class="sd">            'dw': dqq[j] = (qq[j+1] - qq[j])/dth  (前進差分、j=0..N-2 に格納)</span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">        dqq: numpy.ndarray</span>
 <span class="sd">            Differentiated quantity (2D)</span>
-<span class="sd">    &#39;&#39;&#39;</span>
-   
-    <span class="k">if</span> <span class="nb">dir</span> <span class="o">==</span> <span class="s1">&#39;up&#39;</span><span class="p">:</span>
+<span class="sd">    '''</span>
+
+    <span class="k">if</span> <span class="nb">dir</span> <span class="o">==</span> <span class="s1">'up'</span><span class="p">:</span>
         <span class="n">j0</span><span class="p">,</span> <span class="n">j1</span><span class="o">=</span> <span class="mi">1</span><span class="p">,</span><span class="n">qq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="k">elif</span> <span class="nb">dir</span> <span class="o">==</span> <span class="s1">&#39;dw&#39;</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="nb">dir</span> <span class="o">==</span> <span class="s1">'dw'</span><span class="p">:</span>
         <span class="n">j0</span><span class="p">,</span> <span class="n">j1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">qq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error: dir must be up or dw&#39;</span><span class="p">)</span>
-   
-    <span class="c1"># vectorization</span>
-    <span class="c1"># dqq = np.zeros_like(qq)</span>
-    <span class="c1"># dqq[:,j0:j1] = (qq[:,1:] - qq[:,:-1])/dth</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">'dir must be up or dw'</span><span class="p">)</span>
 
-    <span class="c1"># for loop</span>
     <span class="n">inum</span> <span class="o">=</span> <span class="n">qq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">dqq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">qq</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">inum</span><span class="p">):</span>
@@ -205,27 +193,22 @@
 <div class="viewcode-block" id="dth2">
 <a class="viewcode-back" href="../../../api/S2MFD.tools.dth2.html#S2MFD.tools.dth2">[docs]</a>
 <span class="nd">@njit</span>
-<span class="k">def</span> <span class="nf">dth2</span><span class="p">(</span><span class="n">qq</span><span class="p">,</span><span class="n">dth</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">dth2</span><span class="p">(</span><span class="n">qq</span><span class="p">,</span><span class="n">dth</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">'''</span>
 <span class="sd">    To calculate 2nd order accuracy derivative in theta direction</span>
 <span class="sd">   </span>
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">        qq: numpy.ndarray</span>
 <span class="sd">            Quantity to be differentiated (2D)</span>
-<span class="sd">        drr: float</span>
+<span class="sd">        dth: float</span>
 <span class="sd">            Grid spacing in theta direction</span>
-<span class="sd">    </span>
+
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">        dqq: differentiated quantity (2D)</span>
-<span class="sd">    &#39;&#39;&#39;</span>
-    
-    <span class="c1"># vectorization</span>
-    <span class="c1"># dqq = np.zeros_like(qq)</span>
-    <span class="c1"># dqq[:,1:-1] = (qq[:,2:qq.shape[1]] - qq[:,0:-2])/dth*0.5</span>
+<span class="sd">    '''</span>
 
-    <span class="c1"># for loop</span>
     <span class="n">inum</span> <span class="o">=</span> <span class="n">qq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">jnum</span> <span class="o">=</span> <span class="n">qq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">dqq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">qq</span><span class="p">)</span>
@@ -234,6 +217,40 @@
             <span class="n">dqq</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">qq</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">qq</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">])</span><span class="o">/</span><span class="n">dth</span><span class="o">*</span><span class="mf">0.5</span>
 
     <span class="k">return</span> <span class="n">dqq</span></div>
+
+
+<div class="viewcode-block" id="sunspot_proxy">
+<a class="viewcode-back" href="../../../api/S2MFD.tools.sunspot_proxy.html#S2MFD.tools.sunspot_proxy">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sunspot_proxy</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">5.8653520852</span><span class="p">,</span> <span class="n">r_frac</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">theta_deg</span><span class="o">=</span><span class="mf">75.0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">'''</span>
+<span class="sd">    黒点数プロキシ SN = gamma * Bph(r = r_frac*RSUN, theta = theta_deg)^2</span>
+
+<span class="sd">    Shimizu &amp; Hotta (2026) 式 (3.5) 相当。gamma は平均的な太陽極大期の</span>
+<span class="sd">    黒点数 166.5 に合うよう較正された値。</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Bph : numpy.ndarray</span>
+<span class="sd">        Longitudinal magnetic field (2D)</span>
+<span class="sd">    grid : S2MFD.Grid</span>
+<span class="sd">        Grid object</span>
+<span class="sd">    cfg : S2MFD.Cfg</span>
+<span class="sd">        Configuration object (RSUN を参照)</span>
+<span class="sd">    gamma : float</span>
+<span class="sd">        較正係数</span>
+<span class="sd">    r_frac : float</span>
+<span class="sd">        参照半径 (RSUN 単位)</span>
+<span class="sd">    theta_deg : float</span>
+<span class="sd">        参照余緯度 (度)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        黒点数プロキシ</span>
+<span class="sd">    '''</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span> <span class="o">-</span> <span class="n">r_frac</span><span class="o">*</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="p">))</span>
+    <span class="n">loca</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">th</span> <span class="o">-</span> <span class="n">theta_deg</span><span class="o">/</span><span class="mi">180</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">Bph</span><span class="p">[</span><span class="n">base</span><span class="p">,</span> <span class="n">loca</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span></div>
 
 </pre></div>
 
@@ -259,7 +276,7 @@
   </div>
   <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
-      Version: main
+      Version: 
       <span class="fa fa-caret-down"></span>
     </span>
     <div class="rst-other-versions">
@@ -268,11 +285,7 @@
       <dl>
         <dt>Versions</dt>
         
-          <dd><a href="../../../../v0.1.0/index.html">v0.1.0</a></dd>
-        
-          <dd><a href="../../../../v0.2.0/index.html">v0.2.0</a></dd>
-        
-          <dd><a href="tools.html">main</a></dd>
+          <dd><a href=""></a></dd>
         
       </dl>
       

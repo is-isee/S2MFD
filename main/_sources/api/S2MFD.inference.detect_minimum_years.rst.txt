@@ -1,0 +1,6 @@
+detect_minimum_years
+====================
+
+.. currentmodule:: S2MFD.inference
+
+.. autofunction:: detect_minimum_years

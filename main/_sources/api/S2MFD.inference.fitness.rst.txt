@@ -1,0 +1,6 @@
+fitness
+=======
+
+.. currentmodule:: S2MFD.inference
+
+.. autofunction:: fitness

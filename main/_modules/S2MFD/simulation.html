@@ -5,17 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.simulation &mdash; S2MFD 0.1.dev111 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+  <title>S2MFD.simulation &mdash; S2MFD 0.2.1.dev91 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=1c57b938"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -44,6 +44,8 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api_reference.html">API reference</a></li>
 </ul>
 
@@ -72,19 +74,30 @@
            <div itemprop="articleBody">
              
   <h1>Source code for S2MFD.simulation</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">S2MFD</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">glob</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">S2MFD</span>
+
+<span class="c1"># 再開時の整合性チェックで比較しないキー (再開時に変更してよいもの)</span>
+<span class="n">_RESUMABLE_KEYS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">'cont_flag'</span><span class="p">,</span> <span class="s1">'tend'</span><span class="p">,</span> <span class="s1">'dtout'</span><span class="p">,</span> <span class="s1">'datadir'</span><span class="p">,</span> <span class="s1">'parameter_file'</span><span class="p">,</span>
+    <span class="s1">'configfile'</span><span class="p">,</span> <span class="s1">'gridfile'</span><span class="p">,</span> <span class="s1">'setupfile'</span><span class="p">,</span> <span class="s1">'legendrefile'</span><span class="p">,</span>
+<span class="p">}</span>
+
 
 <div class="viewcode-block" id="Simulation">
 <a class="viewcode-back" href="../../api/S2MFD.Simulation.html#S2MFD.Simulation">[docs]</a>
-<span class="k">class</span> <span class="nc">Simulation</span><span class="p">(</span><span class="n">S2MFD</span><span class="o">.</span><span class="n">Data</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Simulation</span><span class="p">(</span><span class="n">S2MFD</span><span class="o">.</span><span class="n">Data</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Class for running the simulation inheriting from S2MFD.Data</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 <div class="viewcode-block" id="Simulation.__init__">
 <a class="viewcode-back" href="../../api/S2MFD.Simulation.html#S2MFD.Simulation.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">setup</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">setup</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">legendre</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        cfg : S2MFD.Cfg</span>
@@ -93,7 +106,13 @@
 <span class="sd">            Grid object</span>
 <span class="sd">        setup : S2MFD.Setup, optional</span>
 <span class="sd">            Setup object</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        legendre : S2MFD.Legendre, optional</span>
+<span class="sd">            Legendre object</span>
+<span class="sd">        """</span>
+        <span class="c1"># 基本量が変更されている場合に派生パラメタへ反映する</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'resolve'</span><span class="p">):</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+
         <span class="k">if</span> <span class="n">grid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">grid</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Grid</span><span class="p">(</span>
                 <span class="n">ix</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">ix</span><span class="p">,</span> <span class="n">jx</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">jx</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">margin</span>
@@ -102,163 +121,358 @@
                <span class="p">)</span>
         <span class="k">if</span> <span class="n">setup</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">setup</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Setup</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span>
-        
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">setup</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="n">legendre</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">legendre</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Legendre</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">setup</span><span class="p">,</span> <span class="n">legendre</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Simulation.initialize_simulation">
 <a class="viewcode-back" href="../../api/S2MFD.Simulation.html#S2MFD.Simulation.initialize_simulation">[docs]</a>
-    <span class="k">def</span> <span class="nf">initialize_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialize_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Initialize the simulation by setting up the grid and setup objects.</span>
-<span class="sd">        &quot;&quot;&quot;</span>   
-        <span class="kn">import</span> <span class="nn">os</span>
-        
+
+<span class="sd">        If ``cfg.cont_flag`` is True and the data directory already exists,</span>
+<span class="sd">        the run is resumed from the saved grid/setup files. In that case the</span>
+<span class="sd">        current configuration must be consistent with the saved one</span>
+<span class="sd">        (except for keys such as ``tend``/``dtout``); otherwise a</span>
+<span class="sd">        RuntimeError is raised.</span>
+<span class="sd">        """</span>
         <span class="c1"># make data directory</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">cont_flag</span> <span class="o">=</span> <span class="kc">False</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">cont_flag</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_check_resume_consistency</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Resuming existing run in '</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="si">}</span><span class="s2">' "</span>
+                  <span class="s2">"(set cfg.cont_flag = False to start a fresh run)"</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
 
         <span class="c1"># create grid and setup</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">cont_flag</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">grid</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Grid</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">gridfile</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">setup</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Setup</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">setupfile</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Grid</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">gridfile</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setup</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Setup</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">setupfile</span><span class="p">))</span>
+            <span class="c1"># Legendre は grid の純関数なので再構築する</span>
+            <span class="c1"># (旧フォーマットの legendre.npz との互換性のため)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">legendre</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Legendre</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">gridfile</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">setup</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">setupfile</span><span class="p">)</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">gridfile</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setup</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">setupfile</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">legendre</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">legendrefile</span><span class="p">))</span></div>
 
-        
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_resume_consistency</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""再開時に既存の config.json と現在の設定の整合性を確認する。</span>
+
+<span class="sd">        再開ランは grid/setup を既存の npz から読み込むため、それらに影響する</span>
+<span class="sd">        パラメタが変わっていると「設定と実際の背景場が食い違う」状態になる。</span>
+<span class="sd">        """</span>
+        <span class="n">configpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">configfile</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">configpath</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">configpath</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">saved</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="n">mismatches</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">saved_value</span> <span class="ow">in</span> <span class="n">saved</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">_RESUMABLE_KEYS</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">))):</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">current</span> <span class="o">!=</span> <span class="n">saved_value</span><span class="p">:</span>
+                <span class="n">mismatches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: saved=</span><span class="si">{</span><span class="n">saved_value</span><span class="si">!r}</span><span class="s2"> current=</span><span class="si">{</span><span class="n">current</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mismatches</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">"Resume consistency check failed for "</span>
+                <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="si">}</span><span class="s2">'. The existing run was created with a "</span>
+                <span class="s2">"different configuration:</span><span class="se">\n</span><span class="s2">  "</span>
+                <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">  "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">mismatches</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">Use a new datadir (or set cfg.cont_flag = False after "</span>
+                <span class="s2">"removing the old data) to start a fresh run."</span>
+            <span class="p">)</span>
+
 <div class="viewcode-block" id="Simulation.cfl_condition">
 <a class="viewcode-back" href="../../api/S2MFD.Simulation.html#S2MFD.Simulation.cfl_condition">[docs]</a>
-    <span class="k">def</span> <span class="nf">cfl_condition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cfl_condition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Applies CFL condition</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span>
         <span class="n">setup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">setup</span>
-        <span class="c1">#CFL condition</span>
-        <span class="n">c_cfl</span><span class="o">=</span><span class="mf">0.8</span>
-        <span class="n">dtmin</span> <span class="o">=</span> <span class="mf">1.e10</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">):</span>
-                <span class="n">dt_adv</span> <span class="o">=</span> <span class="n">c_cfl</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">([</span><span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">dth</span><span class="p">])</span><span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">setup</span><span class="o">.</span><span class="n">urr</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">setup</span><span class="o">.</span><span class="n">uth</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mf">1.e-20</span><span class="p">)</span>
-                <span class="n">dt_dif</span> <span class="o">=</span> <span class="n">c_cfl</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">([</span><span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">dth</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">setup</span><span class="o">.</span><span class="n">et</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1.e-20</span><span class="p">)</span>
-                <span class="n">dtmin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">([</span><span class="n">dtmin</span><span class="p">,</span><span class="n">dt_adv</span><span class="p">,</span><span class="n">dt_dif</span><span class="p">])</span>
-                
-        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>  <span class="o">=</span> <span class="n">dtmin</span></div>
+        <span class="c1"># CFL condition</span>
+        <span class="c1"># NOTE: 拡散制限の min(dr, r*dθ)**2/(2η) 形は dr &lt;&lt; r*dθ (現行の</span>
+        <span class="c1"># 128x128 格子で約6倍差) を前提とした近似。セルが等方に近い格子に</span>
+        <span class="c1"># 変更する場合は 1/(2η(1/dr² + 1/(r dθ)²)) 形への修正を検討すること。</span>
+        <span class="n">c_cfl</span> <span class="o">=</span> <span class="mf">0.8</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span>
+        <span class="n">rr</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">m</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span> <span class="o">-</span> <span class="n">m</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">cell</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">,</span> <span class="n">rr</span> <span class="o">*</span> <span class="n">grid</span><span class="o">.</span><span class="n">dth</span><span class="p">)</span>
+        <span class="n">urr</span> <span class="o">=</span> <span class="n">setup</span><span class="o">.</span><span class="n">urr</span><span class="p">[</span><span class="n">m</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span> <span class="o">-</span> <span class="n">m</span><span class="p">,</span> <span class="n">m</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span> <span class="o">-</span> <span class="n">m</span><span class="p">]</span>
+        <span class="n">uth</span> <span class="o">=</span> <span class="n">setup</span><span class="o">.</span><span class="n">uth</span><span class="p">[</span><span class="n">m</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span> <span class="o">-</span> <span class="n">m</span><span class="p">,</span> <span class="n">m</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span> <span class="o">-</span> <span class="n">m</span><span class="p">]</span>
+        <span class="n">et</span> <span class="o">=</span> <span class="n">setup</span><span class="o">.</span><span class="n">et</span><span class="p">[</span><span class="n">m</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span> <span class="o">-</span> <span class="n">m</span><span class="p">,</span> <span class="n">m</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span> <span class="o">-</span> <span class="n">m</span><span class="p">]</span>
+        <span class="n">dt_adv</span> <span class="o">=</span> <span class="n">c_cfl</span> <span class="o">*</span> <span class="n">cell</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">urr</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">uth</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mf">1.e-20</span><span class="p">)</span>
+        <span class="n">dt_dif</span> <span class="o">=</span> <span class="n">c_cfl</span> <span class="o">*</span> <span class="n">cell</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">et</span> <span class="o">+</span> <span class="mf">1.e-20</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.e10</span><span class="p">,</span> <span class="n">dt_adv</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">dt_dif</span><span class="o">.</span><span class="n">min</span><span class="p">())</span></div>
 
-    
+
 <div class="viewcode-block" id="Simulation.save">
 <a class="viewcode-back" href="../../api/S2MFD.Simulation.html#S2MFD.Simulation.save">[docs]</a>
-    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Saves data to file</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span>
-        <span class="n">Brr</span><span class="p">,</span> <span class="n">Bth</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">poloidal_mag</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Aph</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">sinTH</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">dth</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="o">/</span><span class="mi">86400</span><span class="si">:</span><span class="s2">7.1f</span><span class="si">}</span><span class="s2"> [day]; n=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="si">:</span><span class="s2">06d</span><span class="si">}</span><span class="s2">; nd=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nd</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        nd, dt に加えて、その時点の uu0 (子午面流振幅), so0 (α効果振幅) も</span>
+<span class="sd">        保存する。時間依存パラメタのランを事後解析で復元するため。</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'verbose'</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="o">/</span><span class="mi">86400</span><span class="si">:</span><span class="s2">7.1f</span><span class="si">}</span><span class="s2"> [day]; n=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="si">:</span><span class="s2">06d</span><span class="si">}</span><span class="s2">; nd=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nd</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data_file_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nd</span><span class="p">)</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">savez</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">filename</span> \
-                    <span class="p">,</span><span class="n">Bph</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Bph</span><span class="p">,</span><span class="n">Aph</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Aph</span><span class="p">,</span><span class="n">time</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span><span class="n">n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">)</span></div>
+        <span class="n">np</span><span class="o">.</span><span class="n">savez</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+                 <span class="n">Bph</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Aph</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">,</span>
+                 <span class="n">nd</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nd</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span>
+                 <span class="n">uu0</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">uu0</span><span class="p">),</span> <span class="n">so0</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">so0</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Simulation.initial_condition">
 <a class="viewcode-back" href="../../api/S2MFD.Simulation.html#S2MFD.Simulation.initial_condition">[docs]</a>
-    <span class="k">def</span> <span class="nf">initial_condition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initial_condition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Applies initial condition</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span>
         <span class="n">grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span>
         <span class="n">setup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">setup</span>
-        <span class="kn">import</span> <span class="nn">glob</span>
         <span class="c1"># 初期条件</span>
         <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">cont_flag</span><span class="p">:</span>
-            <span class="n">files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="o">+</span><span class="s1">&#39;data.*.npz&#39;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">nd</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">])</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span><span class="p">,</span> <span class="s1">'data.*.npz'</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nd</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">'.'</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">])</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">data_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nd</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">nd</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="mf">0.0</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">Aph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">Bph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">Aph</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">sinTH</span><span class="o">/</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="o">/</span><span class="mi">100</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">Aph</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">setup</span><span class="o">.</span><span class="n">ibase</span><span class="p">,:]</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="c1"># data.Bph = np.sin(2*grid.TH)*0.4</span>
-            <span class="c1"># data.Bph[0:setup.ibase,:] = 0</span>
-            
-        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Aph</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">setup</span><span class="o">.</span><span class="n">ibase</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_time_dependent_parameters</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
 
-        
+
+<div class="viewcode-block" id="Simulation.update_time_dependent_parameters">
+<a class="viewcode-back" href="../../api/S2MFD.Simulation.html#S2MFD.Simulation.update_time_dependent_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_time_dependent_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""時間依存パラメタのフックを評価し、背景場を差分更新する。</span>
+
+<span class="sd">        規約: cfg に呼び出し可能な属性 ``uu0_of_time(t)`` / ``so0_of_time(t)``</span>
+<span class="sd">        (t はシミュレーション時刻 [s]、返り値は振幅) が定義されていれば、</span>
+<span class="sd">        現在時刻で評価して cfg.uu0 / cfg.so0 を更新し、Setup の該当</span>
+<span class="sd">        プロファイルのみ再構築する。流れが変わった場合は CFL も再計算する。</span>
+<span class="sd">        """</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span>
+        <span class="n">flow_updated</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'so0_of_time'</span><span class="p">,</span> <span class="kc">None</span><span class="p">)):</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">so0</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">so0_of_time</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setup</span><span class="o">.</span><span class="n">build_alpha</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'uu0_of_time'</span><span class="p">,</span> <span class="kc">None</span><span class="p">)):</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">uu0</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">uu0_of_time</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setup</span><span class="o">.</span><span class="n">build_flow</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
+            <span class="n">flow_updated</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">flow_updated</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cfl_condition</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Simulation.check_finite">
+<a class="viewcode-back" href="../../api/S2MFD.Simulation.html#S2MFD.Simulation.check_finite">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_finite</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Raises RuntimeError if the fields contain NaN/Inf.</span>
+
+<span class="sd">        発散したランを tend まで走らせないための早期検知。</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Bph</span><span class="p">))</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Aph</span><span class="p">))):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Non-finite field detected at t=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="o">/</span><span class="mi">86400</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> day "</span>
+                <span class="sa">f</span><span class="s2">"(n=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="si">}</span><span class="s2">). The run is numerically unstable "</span>
+                <span class="s2">"(check CFL condition and parameter values)."</span>
+            <span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="Simulation.tvd_runge_kutta">
 <a class="viewcode-back" href="../../api/S2MFD.Simulation.html#S2MFD.Simulation.tvd_runge_kutta">[docs]</a>
-    <span class="k">def</span> <span class="nf">tvd_runge_kutta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tvd_runge_kutta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Applies TVD Runge-Kutta method</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span>
         <span class="n">grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span>
         <span class="n">setup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">setup</span>
-        <span class="c1">#### dynamo equation               </span>
-        <span class="n">Bphm</span><span class="p">,</span> <span class="n">Aphm</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">time_marching</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Bph</span> <span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Aph</span> <span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">setup</span><span class="p">)</span>
-        <span class="n">Bphm</span><span class="p">,</span> <span class="n">Aphm</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">boundary_condition</span><span class="p">(</span><span class="n">Bphm</span><span class="p">,</span> <span class="n">Aphm</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span>
+        <span class="n">legendre</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">legendre</span>
+        <span class="c1">#### dynamo equation</span>
+        <span class="n">Bphm</span><span class="p">,</span> <span class="n">Aphm</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">time_marching</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Bph</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Aph</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">setup</span><span class="p">)</span>
+        <span class="n">Bphm</span><span class="p">,</span> <span class="n">Aphm</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">boundary_condition</span><span class="p">(</span><span class="n">Bphm</span><span class="p">,</span> <span class="n">Aphm</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">legendre</span><span class="p">)</span>
 
         <span class="n">Bphn</span><span class="p">,</span> <span class="n">Aphn</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">time_marching</span><span class="p">(</span><span class="n">Bphm</span><span class="p">,</span> <span class="n">Aphm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">setup</span><span class="p">)</span>
-        <span class="n">Bphn</span><span class="p">,</span> <span class="n">Aphn</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">boundary_condition</span><span class="p">(</span><span class="n">Bphn</span><span class="p">,</span> <span class="n">Aphn</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span>
-        
+        <span class="n">Bphn</span><span class="p">,</span> <span class="n">Aphn</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">boundary_condition</span><span class="p">(</span><span class="n">Bphn</span><span class="p">,</span> <span class="n">Aphn</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">legendre</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">Bph</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">Bph</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">Bphn</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">Aph</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">Aph</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">Aphn</span></div>
 
-    
+
 <div class="viewcode-block" id="Simulation.main_loop">
 <a class="viewcode-back" href="../../api/S2MFD.Simulation.html#S2MFD.Simulation.main_loop">[docs]</a>
-    <span class="k">def</span> <span class="nf">main_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">main_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Runs the main loop of the simulation</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-        
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        スナップショットは「積分 → 時刻更新 → 出力」の順で書かれるため、</span>
+<span class="sd">        保存される場は time ラベルと一致する (2026-08-19 修正。それ以前は</span>
+<span class="sd">        1ステップ前の場が保存されていた)。</span>
+<span class="sd">        """</span>
         <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span>
-        <span class="n">grid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span>
-            
-        <span class="c1"># plt.clf()</span>
-        <span class="c1"># plt.close(&#39;all&#39;)</span>
-        <span class="c1"># fig = plt.figure(&#39;dynamo&#39;,figsize=(5,10))   </span>
-        <span class="c1"># ax = fig.add_subplot(111,aspect=&#39;equal&#39;)</span>
-        
+
         <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">&lt;</span> <span class="n">cfg</span><span class="o">.</span><span class="n">tend</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tvd_runge_kutta</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
             <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="o">//</span><span class="n">cfg</span><span class="o">.</span><span class="n">dtout</span> <span class="o">!=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span><span class="o">//</span><span class="n">cfg</span><span class="o">.</span><span class="n">dtout</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">nd</span> <span class="o">+=</span> <span class="mi">1</span>
-                <span class="c1"># ax.clear()</span>
-                <span class="c1"># ax.pcolormesh(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,data.Bph,vmax=5.e0,vmin=-5.e0,cmap=&#39;bwr&#39;,shading=&#39;auto&#39;)</span>
-                <span class="c1"># ax.contour(grid.Y/cfg.RSUN,grid.X/cfg.RSUN,grid.RR/cfg.RSUN*grid.sinTH*data.Aph/cfg.RSUN,colors=&#39;black&#39;,levels=np.linspace(-0.02,0.02,16))</span>
-                <span class="c1"># radius = grid.rrmax/cfg.RSUN</span>
-                <span class="c1"># ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color=&#39;black&#39;,alpha=0.4)</span>
-                <span class="c1"># radius = grid.rrmin/cfg.RSUN         </span>
-                <span class="c1"># ax.plot(radius*np.sin(grid.th),radius*np.cos(grid.th),color=&#39;black&#39;,alpha=0.4)</span>
-                <span class="c1"># ax.set_xlim( 0,1)</span>
-                <span class="c1"># ax.set_ylim(-1,1)</span>
-                <span class="c1"># plt.pause(0.01)</span>
-                        
-                <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_time_dependent_parameters</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">check_finite</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">tvd_runge_kutta</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Simulation.run_window">
+<a class="viewcode-back" href="../../api/S2MFD.Simulation.html#S2MFD.Simulation.run_window">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run_window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_end</span><span class="p">,</span> <span class="n">on_output</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_output</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""指定時刻まで積分する (パラメタ推定用の観測窓ループ)。</span>
+
+<span class="sd">        main_loop と同じ構造だが、終了時刻を引数で受け、出力ステップ毎に</span>
+<span class="sd">        コールバックを呼べる。時間依存パラメタのフック</span>
+<span class="sd">        (cfg.uu0_of_time / cfg.so0_of_time) も出力ステップ毎に評価される。</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        t_end : float</span>
+<span class="sd">            終了時刻 [s]</span>
+<span class="sd">        on_output : callable, optional</span>
+<span class="sd">            出力ステップ毎に on_output(self) の形で呼ばれる。</span>
+<span class="sd">            黒点数時系列の記録などに使う。</span>
+<span class="sd">        save_output : bool</span>
+<span class="sd">            False にするとスナップショットを書かない (GA の個体評価など</span>
+<span class="sd">            ディスク出力が不要な場合)。</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        S2MFD.Simulation</span>
+<span class="sd">            self</span>
+<span class="sd">        """</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">&lt;</span> <span class="n">t_end</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tvd_runge_kutta</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="o">//</span><span class="n">cfg</span><span class="o">.</span><span class="n">dtout</span> <span class="o">!=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span><span class="o">//</span><span class="n">cfg</span><span class="o">.</span><span class="n">dtout</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nd</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_time_dependent_parameters</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">check_finite</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">save_output</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">on_output</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">on_output</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Simulation.set_field">
+<a class="viewcode-back" href="../../api/S2MFD.Simulation.html#S2MFD.Simulation.set_field">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">nd</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""磁場の状態を直接設定する (スピンアップ初期場の投入などに使う)。"""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Bph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Aph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Aph</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nd</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nd</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Simulation.spin_up">
+<a class="viewcode-back" href="../../api/S2MFD.Simulation.html#S2MFD.Simulation.spin_up">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">spin_up</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">until_minimum</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">proxy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">max_extra</span><span class="o">=</span><span class="mi">100</span> <span class="o">*</span> <span class="mi">365</span> <span class="o">*</span> <span class="mi">86400</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""現在の状態から助走計算を行う (パラメタ推定の初期条件生成)。</span>
+
+<span class="sd">        Shimizu &amp; Hotta (2026) の手順:</span>
+
+<span class="sd">        1. duration (既定は呼び出し側で 80 年を指定) だけ積分する</span>
+<span class="sd">        2. until_minimum=True なら、黒点数プロキシが極小 (連続3点の中央が</span>
+<span class="sd">           最小) になるまで積分を続ける</span>
+
+<span class="sd">        スナップショットは出力しない。終了時の self.Bph/Aph が推定の</span>
+<span class="sd">        初期状態になる。時刻・ステップ数のラベル合わせは呼び出し側で行う</span>
+<span class="sd">        (set_field や time/nd への代入)。</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        duration : float</span>
+<span class="sd">            最低限積分する時間 [s]</span>
+<span class="sd">        until_minimum : bool</span>
+<span class="sd">            True なら黒点数プロキシの極小まで継続する</span>
+<span class="sd">        proxy : callable, optional</span>
+<span class="sd">            proxy(sim) -&gt; float。既定は tools.sunspot_proxy。</span>
+<span class="sd">        max_extra : float</span>
+<span class="sd">            極小検出の打ち切り時間 [s] (発振しない解での無限ループ防止)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        S2MFD.Simulation</span>
+<span class="sd">            self</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">proxy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">proxy</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">tools</span><span class="o">.</span><span class="n">sunspot_proxy</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">Bph</span><span class="p">,</span> <span class="n">sim</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">sim</span><span class="o">.</span><span class="n">cfg</span><span class="p">)</span>
+
+        <span class="n">t_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span>
+        <span class="n">sn_history</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tvd_runge_kutta</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">sn_history</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">&lt;</span> <span class="n">t_start</span> <span class="o">+</span> <span class="n">duration</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tvd_runge_kutta</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">sn_history</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">sn_history</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">until_minimum</span><span class="p">:</span>
+            <span class="n">t_limit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+</span> <span class="n">max_extra</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="p">(</span><span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                       <span class="ow">and</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">&gt;</span> <span class="n">t_limit</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                        <span class="s2">"spin_up: no sunspot-number minimum detected within "</span>
+                        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">max_extra</span><span class="o">/</span><span class="mi">86400</span><span class="o">/</span><span class="mi">365</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> years of extra integration."</span>
+                    <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">tvd_runge_kutta</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">sn_history</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">sn_history</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_finite</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
 </div>
 
-            
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-         <span class="s1">&#39;initialize&#39;</span><span class="p">,</span>
-         <span class="s1">&#39;cfl_condition&#39;</span><span class="p">,</span>
-         <span class="s1">&#39;save&#39;</span><span class="p">,</span>
-         <span class="s1">&#39;initial_condition&#39;</span><span class="p">,</span>
-         <span class="s1">&#39;tvd_runge_kutta&#39;</span><span class="p">,</span>
-         <span class="s1">&#39;main_loop&#39;</span><span class="p">,</span>
-         <span class="p">]</span>
 </pre></div>
 
            </div>
@@ -283,7 +497,7 @@
   </div>
   <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
-      Version: main
+      Version: 
       <span class="fa fa-caret-down"></span>
     </span>
     <div class="rst-other-versions">
@@ -292,11 +506,7 @@
       <dl>
         <dt>Versions</dt>
         
-          <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
-        
-          <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
-        
-          <dd><a href="simulation.html">main</a></dd>
+          <dd><a href=""></a></dd>
         
       </dl>
       

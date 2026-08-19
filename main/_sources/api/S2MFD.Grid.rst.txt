@@ -6,14 +6,54 @@ Grid
 .. autoclass:: Grid
    :show-inheritance:
 
-   .. rubric:: Methods Summary
+   .. rubric:: Attributes Summary
 
    .. autosummary::
 
-      ~Grid.load
-      ~Grid.save
+      ~Grid.RR
+      ~Grid.RRm
+      ~Grid.TH
+      ~Grid.THm
+      ~Grid.X
+      ~Grid.Y
+      ~Grid.cosTH
+      ~Grid.drr
+      ~Grid.dth
+      ~Grid.ix
+      ~Grid.ixg
+      ~Grid.jx
+      ~Grid.jxg
+      ~Grid.margin
+      ~Grid.rr
+      ~Grid.rrmax
+      ~Grid.rrmin
+      ~Grid.sinTH
+      ~Grid.sinTHm
+      ~Grid.th
+      ~Grid.thmax
+      ~Grid.thmin
 
-   .. rubric:: Methods Documentation
+   .. rubric:: Attributes Documentation
 
-   .. automethod:: load
-   .. automethod:: save
+   .. autoattribute:: RR
+   .. autoattribute:: RRm
+   .. autoattribute:: TH
+   .. autoattribute:: THm
+   .. autoattribute:: X
+   .. autoattribute:: Y
+   .. autoattribute:: cosTH
+   .. autoattribute:: drr
+   .. autoattribute:: dth
+   .. autoattribute:: ix
+   .. autoattribute:: ixg
+   .. autoattribute:: jx
+   .. autoattribute:: jxg
+   .. autoattribute:: margin
+   .. autoattribute:: rr
+   .. autoattribute:: rrmax
+   .. autoattribute:: rrmin
+   .. autoattribute:: sinTH
+   .. autoattribute:: sinTHm
+   .. autoattribute:: th
+   .. autoattribute:: thmax
+   .. autoattribute:: thmin

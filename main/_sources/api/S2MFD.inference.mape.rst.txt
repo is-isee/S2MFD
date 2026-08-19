@@ -1,0 +1,6 @@
+mape
+====
+
+.. currentmodule:: S2MFD.inference
+
+.. autofunction:: mape

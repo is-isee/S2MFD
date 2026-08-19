@@ -5,17 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.physics.physics_core &mdash; S2MFD 0.1.dev111 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+  <title>S2MFD.physics.physics_core &mdash; S2MFD 0.2.1.dev91 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=1c57b938"></script>
-      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -44,6 +44,8 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_reference.html">API reference</a></li>
 </ul>
 
@@ -73,15 +75,15 @@
              
   <h1>Source code for S2MFD.physics.physics_core</h1><div class="highlight"><pre>
 <span></span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">S2MFD.tools</span> <span class="kn">import</span> <span class="n">drr1</span><span class="p">,</span> <span class="n">drr2</span><span class="p">,</span> <span class="n">dth1</span><span class="p">,</span> <span class="n">dth2</span>
-<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">njit</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">S2MFD.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">drr1</span><span class="p">,</span> <span class="n">drr2</span><span class="p">,</span> <span class="n">dth1</span><span class="p">,</span> <span class="n">dth2</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numba</span><span class="w"> </span><span class="kn">import</span> <span class="n">njit</span>
 
 <div class="viewcode-block" id="poloidal_mag">
 <a class="viewcode-back" href="../../../api/S2MFD.physics.poloidal_mag.html#S2MFD.physics.poloidal_mag">[docs]</a>
 <span class="nd">@njit</span>
-<span class="k">def</span> <span class="nf">poloidal_mag</span><span class="p">(</span><span class="n">Aph</span><span class="p">,</span> <span class="n">RR</span><span class="p">,</span> <span class="n">sinTH</span><span class="p">,</span> <span class="n">drr</span><span class="p">,</span> <span class="n">dth</span><span class="p">):</span>
-<span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">poloidal_mag</span><span class="p">(</span><span class="n">Aph</span><span class="p">,</span> <span class="n">RR</span><span class="p">,</span> <span class="n">sinTH</span><span class="p">,</span> <span class="n">drr</span><span class="p">,</span> <span class="n">dth</span><span class="p">):</span>
+<span class="w">   </span><span class="sd">"""</span>
 <span class="sd">   Calculate the poloidal magnetic field.</span>
 
 <span class="sd">   Parameters</span>
@@ -102,7 +104,7 @@
 <span class="sd">      - Brr : Radial  magnetic field</span>
 <span class="sd">      - Bth : Latitudinal magnetic field</span>
 <span class="sd">         </span>
-<span class="sd">   &quot;&quot;&quot;</span>
+<span class="sd">   """</span>
    <span class="n">Brr</span> <span class="o">=</span> <span class="o">+</span> <span class="n">dth2</span><span class="p">(</span><span class="n">sinTH</span><span class="o">*</span><span class="n">Aph</span><span class="p">,</span><span class="n">dth</span><span class="p">)</span><span class="o">/</span><span class="n">RR</span><span class="o">/</span><span class="n">sinTH</span>
    <span class="n">Bth</span> <span class="o">=</span> <span class="o">-</span> <span class="n">drr2</span><span class="p">(</span>   <span class="n">RR</span><span class="o">*</span><span class="n">Aph</span><span class="p">,</span><span class="n">drr</span><span class="p">)</span><span class="o">/</span><span class="n">RR</span>
    
@@ -112,8 +114,8 @@
 <div class="viewcode-block" id="advection">
 <a class="viewcode-back" href="../../../api/S2MFD.physics.advection.html#S2MFD.physics.advection">[docs]</a>
 <span class="nd">@njit</span>
-<span class="k">def</span> <span class="nf">advection</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">RR</span><span class="p">,</span> <span class="n">sinTH</span><span class="p">,</span> <span class="n">urr</span><span class="p">,</span><span class="n">uth</span><span class="p">,</span><span class="n">drr</span><span class="p">,</span><span class="n">dth</span><span class="p">):</span>
-<span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">advection</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">RR</span><span class="p">,</span> <span class="n">sinTH</span><span class="p">,</span> <span class="n">urr</span><span class="p">,</span><span class="n">uth</span><span class="p">,</span><span class="n">drr</span><span class="p">,</span><span class="n">dth</span><span class="p">):</span>
+<span class="w">   </span><span class="sd">"""</span>
 <span class="sd">   Calculate the advection terms of the magnetic field.</span>
 
 <span class="sd">   Parameters</span>
@@ -141,7 +143,7 @@
 <span class="sd">      - Bph_adth : Colatitudinal advection of Bph</span>
 <span class="sd">      - Aph_adrr : Radial advection of Aph</span>
 <span class="sd">      - Aph_adth : Colatitudinal advection of Aph</span>
-<span class="sd">   &quot;&quot;&quot;</span>
+<span class="sd">   """</span>
    <span class="c1"># 磁場の微分(移流量)</span>
    <span class="c1"># Bph_adrr = - drr2(Bph/RR   ,drr)*urr*RR #  動径方向の移流(Bph)</span>
    <span class="c1"># Bph_adth = - dth2(Bph/sinTH,dth)*uth*sinTH/RR #  緯度方向の移流(Bph)</span>
@@ -158,8 +160,8 @@
 <div class="viewcode-block" id="diffusion">
 <a class="viewcode-back" href="../../../api/S2MFD.physics.diffusion.html#S2MFD.physics.diffusion">[docs]</a>
 <span class="nd">@njit</span>
-<span class="k">def</span> <span class="nf">diffusion</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">RR</span><span class="p">,</span> <span class="n">sinTH</span><span class="p">,</span> <span class="n">RRm</span><span class="p">,</span> <span class="n">sinTHm</span><span class="p">,</span> <span class="n">drr</span><span class="p">,</span> <span class="n">dth</span><span class="p">,</span> <span class="n">et</span><span class="p">,</span> <span class="n">etrr</span><span class="p">):</span>
-<span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">diffusion</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">RR</span><span class="p">,</span> <span class="n">sinTH</span><span class="p">,</span> <span class="n">RRm</span><span class="p">,</span> <span class="n">sinTHm</span><span class="p">,</span> <span class="n">drr</span><span class="p">,</span> <span class="n">dth</span><span class="p">,</span> <span class="n">et</span><span class="p">,</span> <span class="n">etrr</span><span class="p">):</span>
+<span class="w">   </span><span class="sd">"""</span>
 <span class="sd">   Calculate the diffusion terms of the magnetic field.</span>
 
 <span class="sd">   Parameters</span>
@@ -191,19 +193,19 @@
 <span class="sd">      - Aph_dfth : Colatitudinal diffusion of Aph</span>
 <span class="sd">      - Aph_dfex : Extra diffusion term of Aph</span>
 <span class="sd">      </span>
-<span class="sd">   &quot;&quot;&quot;</span>   
+<span class="sd">   """</span>   
    <span class="c1"># magnetic derivative</span>
-   <span class="n">Bphrr</span> <span class="o">=</span> <span class="n">drr1</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span><span class="n">drr</span><span class="p">,</span><span class="s1">&#39;up&#39;</span><span class="p">)</span>
-   <span class="n">Bphth</span> <span class="o">=</span> <span class="n">dth1</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span><span class="n">dth</span><span class="p">,</span><span class="s1">&#39;up&#39;</span><span class="p">)</span>
-   <span class="n">Aphrr</span> <span class="o">=</span> <span class="n">drr1</span><span class="p">(</span><span class="n">Aph</span><span class="p">,</span><span class="n">drr</span><span class="p">,</span><span class="s1">&#39;up&#39;</span><span class="p">)</span>
-   <span class="n">Aphth</span> <span class="o">=</span> <span class="n">dth1</span><span class="p">(</span><span class="n">Aph</span><span class="p">,</span><span class="n">dth</span><span class="p">,</span><span class="s1">&#39;up&#39;</span><span class="p">)</span>
+   <span class="n">Bphrr</span> <span class="o">=</span> <span class="n">drr1</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span><span class="n">drr</span><span class="p">,</span><span class="s1">'up'</span><span class="p">)</span>
+   <span class="n">Bphth</span> <span class="o">=</span> <span class="n">dth1</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span><span class="n">dth</span><span class="p">,</span><span class="s1">'up'</span><span class="p">)</span>
+   <span class="n">Aphrr</span> <span class="o">=</span> <span class="n">drr1</span><span class="p">(</span><span class="n">Aph</span><span class="p">,</span><span class="n">drr</span><span class="p">,</span><span class="s1">'up'</span><span class="p">)</span>
+   <span class="n">Aphth</span> <span class="o">=</span> <span class="n">dth1</span><span class="p">(</span><span class="n">Aph</span><span class="p">,</span><span class="n">dth</span><span class="p">,</span><span class="s1">'up'</span><span class="p">)</span>
    
-   <span class="n">Bph_dfrr</span> <span class="o">=</span> <span class="o">+</span> <span class="n">et</span><span class="o">*</span><span class="n">drr1</span><span class="p">(</span><span class="n">RRm</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">Bphrr</span><span class="p">,</span><span class="n">drr</span><span class="p">,</span><span class="s1">&#39;dw&#39;</span><span class="p">)</span><span class="o">/</span><span class="n">RR</span><span class="o">**</span><span class="mi">2</span>
-   <span class="n">Bph_dfth</span> <span class="o">=</span> <span class="o">+</span> <span class="n">et</span><span class="o">*</span><span class="n">dth1</span><span class="p">(</span><span class="n">sinTHm</span><span class="o">*</span><span class="n">Bphth</span><span class="p">,</span><span class="n">dth</span><span class="p">,</span><span class="s1">&#39;dw&#39;</span><span class="p">)</span><span class="o">/</span><span class="n">RR</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">sinTH</span>
+   <span class="n">Bph_dfrr</span> <span class="o">=</span> <span class="o">+</span> <span class="n">et</span><span class="o">*</span><span class="n">drr1</span><span class="p">(</span><span class="n">RRm</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">Bphrr</span><span class="p">,</span><span class="n">drr</span><span class="p">,</span><span class="s1">'dw'</span><span class="p">)</span><span class="o">/</span><span class="n">RR</span><span class="o">**</span><span class="mi">2</span>
+   <span class="n">Bph_dfth</span> <span class="o">=</span> <span class="o">+</span> <span class="n">et</span><span class="o">*</span><span class="n">dth1</span><span class="p">(</span><span class="n">sinTHm</span><span class="o">*</span><span class="n">Bphth</span><span class="p">,</span><span class="n">dth</span><span class="p">,</span><span class="s1">'dw'</span><span class="p">)</span><span class="o">/</span><span class="n">RR</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">sinTH</span>
    <span class="n">Bph_dfex</span> <span class="o">=</span> <span class="o">-</span> <span class="n">et</span><span class="o">*</span><span class="n">Bph</span><span class="o">/</span><span class="n">RR</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">sinTH</span><span class="o">**</span><span class="mi">2</span>
    
-   <span class="n">Aph_dfrr</span> <span class="o">=</span> <span class="o">+</span> <span class="n">et</span><span class="o">*</span><span class="n">drr1</span><span class="p">(</span><span class="n">RRm</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">Aphrr</span><span class="p">,</span><span class="n">drr</span><span class="p">,</span><span class="s1">&#39;dw&#39;</span><span class="p">)</span><span class="o">/</span><span class="n">RR</span><span class="o">**</span><span class="mi">2</span>
-   <span class="n">Aph_dfth</span> <span class="o">=</span> <span class="o">+</span> <span class="n">et</span><span class="o">*</span><span class="n">dth1</span><span class="p">(</span><span class="n">sinTHm</span><span class="o">*</span><span class="n">Aphth</span><span class="p">,</span><span class="n">dth</span><span class="p">,</span><span class="s1">&#39;dw&#39;</span><span class="p">)</span><span class="o">/</span><span class="n">RR</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">sinTH</span>
+   <span class="n">Aph_dfrr</span> <span class="o">=</span> <span class="o">+</span> <span class="n">et</span><span class="o">*</span><span class="n">drr1</span><span class="p">(</span><span class="n">RRm</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">Aphrr</span><span class="p">,</span><span class="n">drr</span><span class="p">,</span><span class="s1">'dw'</span><span class="p">)</span><span class="o">/</span><span class="n">RR</span><span class="o">**</span><span class="mi">2</span>
+   <span class="n">Aph_dfth</span> <span class="o">=</span> <span class="o">+</span> <span class="n">et</span><span class="o">*</span><span class="n">dth1</span><span class="p">(</span><span class="n">sinTHm</span><span class="o">*</span><span class="n">Aphth</span><span class="p">,</span><span class="n">dth</span><span class="p">,</span><span class="s1">'dw'</span><span class="p">)</span><span class="o">/</span><span class="n">RR</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">sinTH</span>
    <span class="n">Aph_dfex</span> <span class="o">=</span> <span class="o">-</span> <span class="n">et</span><span class="o">*</span><span class="n">Aph</span><span class="o">/</span><span class="n">RR</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">sinTH</span><span class="o">**</span><span class="mi">2</span>
    
    <span class="c1"># diffusivity gradient influence</span>
@@ -215,8 +217,8 @@
 <div class="viewcode-block" id="omega_effect">
 <a class="viewcode-back" href="../../../api/S2MFD.physics.omega_effect.html#S2MFD.physics.omega_effect">[docs]</a>
 <span class="nd">@njit</span>
-<span class="k">def</span> <span class="nf">omega_effect</span><span class="p">(</span><span class="n">Brr</span><span class="p">,</span> <span class="n">Bth</span><span class="p">,</span> <span class="n">RR</span><span class="p">,</span> <span class="n">sinTH</span><span class="p">,</span> <span class="n">omrr</span><span class="p">,</span> <span class="n">omth</span><span class="p">):</span>
-<span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">omega_effect</span><span class="p">(</span><span class="n">Brr</span><span class="p">,</span> <span class="n">Bth</span><span class="p">,</span> <span class="n">RR</span><span class="p">,</span> <span class="n">sinTH</span><span class="p">,</span> <span class="n">omrr</span><span class="p">,</span> <span class="n">omth</span><span class="p">):</span>
+<span class="w">   </span><span class="sd">"""</span>
 <span class="sd">   Calculate the omega effect.</span>
 
 <span class="sd">   Parameters</span>
@@ -239,7 +241,7 @@
 <span class="sd">   Bph_omrr : Radial omega effect term of Bph</span>
 <span class="sd">   Bph_omrh : Colatitudinal omega effect term of Bph</span>
 <span class="sd">   </span>
-<span class="sd">   &quot;&quot;&quot;</span>
+<span class="sd">   """</span>
    <span class="n">Bph_omrr</span> <span class="o">=</span> <span class="n">Brr</span><span class="o">*</span><span class="n">omrr</span><span class="o">*</span><span class="n">RR</span><span class="o">*</span><span class="n">sinTH</span>
    <span class="n">Bph_omth</span> <span class="o">=</span> <span class="n">Bth</span><span class="o">*</span><span class="n">omth</span><span class="o">*</span><span class="n">RR</span><span class="o">*</span><span class="n">sinTH</span>
    
@@ -248,8 +250,8 @@
 
 <div class="viewcode-block" id="alpha_effect">
 <a class="viewcode-back" href="../../../api/S2MFD.physics.alpha_effect.html#S2MFD.physics.alpha_effect">[docs]</a>
-<span class="k">def</span> <span class="nf">alpha_effect</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">rr</span><span class="p">,</span> <span class="n">ibase</span><span class="p">,</span> <span class="n">so</span><span class="p">,</span> <span class="n">alpha_type</span><span class="p">):</span>
-<span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">alpha_effect</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">rr</span><span class="p">,</span> <span class="n">ibase</span><span class="p">,</span> <span class="n">so</span><span class="p">,</span> <span class="n">alpha_type</span><span class="p">):</span>
+<span class="w">   </span><span class="sd">"""</span>
 <span class="sd">   Calculate the alpha effect.</span>
 
 <span class="sd">   Parameters</span>
@@ -262,26 +264,31 @@
 <span class="sd">      Radial coordinate</span>
 <span class="sd">   ibase : int</span>
 <span class="sd">      Radial index for the base of the convection zone</span>
-<span class="sd">   so : float</span>
-<span class="sd">      Source term coefficient</span>
+<span class="sd">   so : numpy.ndarray</span>
+<span class="sd">      Source term amplitude profile (2D)</span>
+<span class="sd">   alpha_type : str</span>
+<span class="sd">      'BL', 'H10' (non-local) or 'normal' (local)</span>
 <span class="sd">   Returns</span>
 <span class="sd">   -------</span>
 <span class="sd">   Aph_sour : numpy.ndarray</span>
 <span class="sd">      Source term due to alpha effect</span>
-<span class="sd">   &quot;&quot;&quot;</span>
-   <span class="k">if</span> <span class="n">alpha_type</span> <span class="o">==</span> <span class="s1">&#39;BL&#39;</span><span class="p">:</span>
-      <span class="n">Bphso</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">Bph</span><span class="p">[</span><span class="n">ibase</span><span class="p">,</span> <span class="p">:][</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:],</span> <span class="nb">len</span><span class="p">(</span><span class="n">rr</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="sd">   """</span>
+   <span class="k">if</span> <span class="n">alpha_type</span> <span class="o">==</span> <span class="s1">'BL'</span> <span class="ow">or</span> <span class="n">alpha_type</span> <span class="o">==</span> <span class="s1">'H10'</span><span class="p">:</span>
+      <span class="c1"># 非局所 (Babcock-Leighton): タコクラインの Bph を全動径に放送</span>
+      <span class="n">Bphso</span> <span class="o">=</span> <span class="n">Bph</span><span class="p">[</span><span class="n">ibase</span><span class="p">,</span> <span class="p">:][</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
       <span class="n">Aph_sour</span> <span class="o">=</span> <span class="n">so</span><span class="o">*</span><span class="n">Bphso</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">Bphso</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
-   <span class="k">elif</span> <span class="n">alpha_type</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span><span class="p">:</span>
+   <span class="k">elif</span> <span class="n">alpha_type</span> <span class="o">==</span> <span class="s1">'normal'</span><span class="p">:</span>
       <span class="n">Aph_sour</span> <span class="o">=</span> <span class="n">so</span><span class="o">*</span><span class="n">Bph</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">Bph</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
-      
+   <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown alpha_type: </span><span class="si">{</span><span class="n">alpha_type</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+
    <span class="k">return</span> <span class="n">Aph_sour</span></div>
 
 
 <div class="viewcode-block" id="time_marching">
 <a class="viewcode-back" href="../../../api/S2MFD.physics.time_marching.html#S2MFD.physics.time_marching">[docs]</a>
-<span class="k">def</span> <span class="nf">time_marching</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">setup</span><span class="p">):</span>
-<span class="w">   </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">time_marching</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">setup</span><span class="p">):</span>
+<span class="w">   </span><span class="sd">"""</span>
 <span class="sd">   Perform time marching for the magnetic field.</span>
 
 <span class="sd">   Parameters</span>
@@ -301,7 +308,7 @@
 <span class="sd">   tuple of numpy</span>
 <span class="sd">      - Bphm : Updated longitudinal magnetic field</span>
 <span class="sd">      - Aphm : Updated longitudinal vector potential</span>
-<span class="sd">   &quot;&quot;&quot;</span>   
+<span class="sd">   """</span>   
    <span class="c1"># calculate poloidal magnetic field</span>
    <span class="n">Brr</span><span class="p">,</span> <span class="n">Bth</span> <span class="o">=</span> <span class="n">poloidal_mag</span><span class="p">(</span><span class="n">Aph</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">sinTH</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">dth</span><span class="p">)</span>
    
@@ -355,7 +362,7 @@
   </div>
   <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
-      Version: main
+      Version: 
       <span class="fa fa-caret-down"></span>
     </span>
     <div class="rst-other-versions">
@@ -364,11 +371,7 @@
       <dl>
         <dt>Versions</dt>
         
-          <dd><a href="../../../../v0.1.0/index.html">v0.1.0</a></dd>
-        
-          <dd><a href="../../../../v0.2.0/index.html">v0.2.0</a></dd>
-        
-          <dd><a href="physics_core.html">main</a></dd>
+          <dd><a href=""></a></dd>
         
       </dl>
       

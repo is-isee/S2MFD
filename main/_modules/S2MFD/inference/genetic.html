@@ -1,0 +1,448 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>S2MFD.inference.genetic &mdash; S2MFD 0.2.1.dev91 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            S2MFD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_reference.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">S2MFD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">S2MFD.inference.genetic</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for S2MFD.inference.genetic</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""パラメタ非依存の遺伝的アルゴリズム (GA)。</span>
+
+<span class="sd">旧 IDPA の GA_for_u0.py / GA_for_s0.py (98% 重複した2ファイル) を、</span>
+<span class="sd">推定パラメタの仕様 (param_spec) を引数で受ける1つの実装に統合したもの。</span>
+
+<span class="sd">アルゴリズムは Shimizu &amp; Hotta (2026) 3章に準拠:</span>
+
+<span class="sd">- 選択: ASP (Adaptive Selection Pressure) トーナメント。</span>
+<span class="sd">  適応度変化率と多様性に応じてトーナメントサイズを 3/7/5 に切替</span>
+<span class="sd">- 交叉: SBX (Simulated Binary Crossover), eta=2, 交叉確率 0.8</span>
+<span class="sd">- 変異: ガウス変異 (sigma = 0.1|x|), 変異確率 0.3</span>
+<span class="sd">- エリート保存</span>
+
+<span class="sd">旧実装との意図的な差異 (doc/dev_records/2026-08-19_idpa_analysis.md 参照):</span>
+
+<span class="sd">- トーナメントサイズは個体数比 (len//10 等) ではなく論文どおりの固定値</span>
+<span class="sd">  3/7/5 (個体数30では両者は一致する)。少数個体でも壊れないようガード付き。</span>
+<span class="sd">- エリートは固定スロット3ではなくランダムな1個体を置換する。</span>
+<span class="sd">- 乱数は numpy Generator に統一し、seed 指定で再現可能。</span>
+<span class="sd">- 個体評価はディスク出力なしで行い、並列実行時の出力ディレクトリ競合を</span>
+<span class="sd">  解消した (評価器側の設計)。</span>
+<span class="sd">"""</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessPoolExecutor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'GAConfig'</span><span class="p">,</span> <span class="s1">'Chromosome'</span><span class="p">,</span> <span class="s1">'GAResult'</span><span class="p">,</span> <span class="s1">'GeneticAlgorithm'</span><span class="p">]</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="GAConfig">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.genetic.GAConfig.html#S2MFD.inference.GAConfig">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GAConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""GA のハイパーパラメタ。既定値は論文 (Shimizu &amp; Hotta 2026) に準拠。"""</span>
+    <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.80</span>          <span class="c1"># 目標適応度 (到達で終了)</span>
+    <span class="n">max_generations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span>
+    <span class="n">mutation_probability</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span>
+    <span class="n">crossover_probability</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span>
+    <span class="n">eta_sbx</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>             <span class="c1"># SBX 分布指数</span>
+    <span class="n">mutation_sigma_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span>  <span class="c1"># ガウス変異の sigma = frac * |x|</span>
+    <span class="n">epsi_fit</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.005</span>          <span class="c1"># ASP: 適応度停滞の閾値</span>
+    <span class="n">epsi_div</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.10</span>           <span class="c1"># ASP: 多様性喪失の閾値</span>
+    <span class="n">tournament_low</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>          <span class="c1"># 停滞かつ多様性低 → 選択圧(低)</span>
+    <span class="n">tournament_high</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">7</span>         <span class="c1"># 停滞かつ多様性高 → 選択圧(大)</span>
+    <span class="n">tournament_mid</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>          <span class="c1"># それ以外 → 選択圧(中)</span>
+    <span class="c1"># --- オプション (既定は論文実装のまま = 無効) ---</span>
+    <span class="n">clip_to_bounds</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>     <span class="c1"># 変異・交叉後に初期範囲へクリップ</span>
+    <span class="n">mutation_sigma_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># sigma の下限 (0付近での凍結回避)</span>
+    <span class="c1"># --- 実行制御 ---</span>
+    <span class="n">max_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>          <span class="c1"># None なら min(個体数, CPU数)</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="Chromosome">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.genetic.Chromosome.html#S2MFD.inference.Chromosome">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Chromosome</span><span class="p">:</span>
+    <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span>
+    <span class="n">fitness</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="GAResult">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.genetic.GAResult.html#S2MFD.inference.GAResult">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GAResult</span><span class="p">:</span>
+    <span class="n">best_params</span><span class="p">:</span> <span class="nb">dict</span>
+    <span class="n">best_fitness</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">fitness_history</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>      <span class="c1"># 世代ごとの最良適応度</span>
+    <span class="n">diversity_history</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>    <span class="c1"># 世代ごとの多様性</span>
+    <span class="n">generations_run</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">interrupted</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">population</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>  <span class="c1"># 最終世代 (Chromosome)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_evaluate_one</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">evaluator</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">args</span>
+    <span class="k">return</span> <span class="n">evaluator</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="GeneticAlgorithm">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.genetic.GeneticAlgorithm.html#S2MFD.inference.GeneticAlgorithm">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GeneticAlgorithm</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""遺伝的アルゴリズム本体。</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    evaluator : callable</span>
+<span class="sd">        evaluator(params: dict) -&gt; float (適応度)。並列実行のため</span>
+<span class="sd">        picklable であること (クロージャ不可。dataclass 等を推奨)。</span>
+<span class="sd">    param_spec : dict[str, tuple[float, float]]</span>
+<span class="sd">        推定パラメタ名 → 初期集団の一様分布範囲 (min, max)。</span>
+<span class="sd">        例 (u0推定): {'as_u': (500, 900), ..., 'a0_s': (40, 65)}</span>
+<span class="sd">    population_size : int</span>
+<span class="sd">        個体数 (論文では 30)。</span>
+<span class="sd">    config : GAConfig, optional</span>
+<span class="sd">    """</span>
+
+<div class="viewcode-block" id="GeneticAlgorithm.__init__">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.genetic.GeneticAlgorithm.html#S2MFD.inference.GeneticAlgorithm.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">evaluator</span><span class="p">,</span> <span class="n">param_spec</span><span class="p">,</span> <span class="n">population_size</span><span class="p">,</span>
+                 <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">initial_population</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">evaluator</span> <span class="o">=</span> <span class="n">evaluator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_spec</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">param_spec</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span> <span class="ow">or</span> <span class="n">GAConfig</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">initial_population</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">population</span> <span class="o">=</span> <span class="p">[</span><span class="n">Chromosome</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">initial_population</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">population</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_make_random_chromosome</span><span class="p">()</span>
+                               <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">population_size</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">population</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"population_size must be &gt;= 2"</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitness_history</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">max_generations</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">diversity_history</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">max_generations</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generation_idx</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="c1"># 個体生成</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_random_chromosome</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">)</span>
+                  <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_spec</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="n">Chromosome</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="c1"># 評価</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_evaluate_population</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""未評価の個体を並列に評価する。"""</span>
+        <span class="n">todo</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">population</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">fitness</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">todo</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">max_workers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">max_workers</span> <span class="ow">or</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">todo</span><span class="p">),</span> <span class="n">_cpu_count</span><span class="p">())</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">evaluator</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">params</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">todo</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">max_workers</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">_evaluate_one</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="n">max_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+                <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">executor</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">_evaluate_one</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">chrom</span><span class="p">,</span> <span class="n">fit</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">todo</span><span class="p">,</span> <span class="n">results</span><span class="p">):</span>
+            <span class="n">chrom</span><span class="o">.</span><span class="n">fitness</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_best</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">population</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">fitness</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="c1"># 多様性 (論文式 3.7, 3.8)</span>
+<div class="viewcode-block" id="GeneticAlgorithm.diversity">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.genetic.GeneticAlgorithm.html#S2MFD.inference.GeneticAlgorithm.diversity">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">diversity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""個体群の多様性: パラメタ毎に min-max 正規化した標準偏差の平均。"""</span>
+        <span class="n">stds</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_spec</span><span class="p">:</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">c</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">population</span><span class="p">])</span>
+            <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">values</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">vmax</span> <span class="o">-</span> <span class="n">vmin</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="p">(</span><span class="n">values</span> <span class="o">-</span> <span class="n">vmin</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">vmax</span> <span class="o">-</span> <span class="n">vmin</span><span class="p">)</span>
+            <span class="n">stds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">stds</span><span class="p">))</span></div>
+
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="c1"># 選択 (ASPトーナメント、論文式 3.9)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_tournament_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">generation_idx</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">prev</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitness_history</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">generation_idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">cur</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitness_history</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">generation_idx</span><span class="p">]</span>
+            <span class="n">fitness_delta</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">cur</span> <span class="o">-</span> <span class="n">prev</span><span class="p">)</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">prev</span><span class="p">)</span> <span class="k">if</span> <span class="n">prev</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">10.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fitness_delta</span> <span class="o">=</span> <span class="mf">10.0</span>
+        <span class="n">div</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diversity</span><span class="p">()</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span>
+        <span class="k">if</span> <span class="n">fitness_delta</span> <span class="o">&lt;</span> <span class="n">cfg</span><span class="o">.</span><span class="n">epsi_fit</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">div</span> <span class="o">&lt;</span> <span class="n">cfg</span><span class="o">.</span><span class="n">epsi_div</span><span class="p">:</span>
+                <span class="n">k</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">tournament_low</span><span class="p">,</span> <span class="s1">'low'</span>    <span class="c1"># 局所解の可能性 → 圧を下げる</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">k</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">tournament_high</span><span class="p">,</span> <span class="s1">'high'</span>  <span class="c1"># 収束段階 → 圧を上げる</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">k</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">tournament_mid</span><span class="p">,</span> <span class="s1">'mid'</span>        <span class="c1"># 探索段階</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">population</span><span class="p">)))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"ASP tournament: size=</span><span class="si">%d</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">) dF=</span><span class="si">%.4g</span><span class="s2"> D=</span><span class="si">%.4g</span><span class="s2">"</span><span class="p">,</span>
+                     <span class="n">k</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">fitness_delta</span><span class="p">,</span> <span class="n">div</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">k</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_select_parents</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tournament_size</span><span class="p">()</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">population</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>  <span class="c1"># 重複許容</span>
+        <span class="n">participants</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">population</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx</span><span class="p">]</span>
+        <span class="n">participants</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">fitness</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">participants</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">participants</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="c1"># 交叉 (SBX、論文式 3.10, 3.11)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_sbx_crossover</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent_1</span><span class="p">,</span> <span class="n">parent_2</span><span class="p">):</span>
+        <span class="n">child_1</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">parent_1</span><span class="p">)</span>
+        <span class="n">child_2</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">parent_2</span><span class="p">)</span>
+        <span class="n">eta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">eta_sbx</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_spec</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">:</span>  <span class="c1"># 遺伝子ごとに交叉するか決定</span>
+                <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">u</span> <span class="o">&lt;=</span> <span class="mf">0.5</span><span class="p">:</span>
+                    <span class="n">beta</span> <span class="o">=</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">u</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">eta</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">beta</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">u</span><span class="p">)))</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">eta</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">))</span>
+                <span class="n">p1</span> <span class="o">=</span> <span class="n">parent_1</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="n">p2</span> <span class="o">=</span> <span class="n">parent_2</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="n">child_1</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">((</span><span class="mi">1</span> <span class="o">+</span> <span class="n">beta</span><span class="p">)</span> <span class="o">*</span> <span class="n">p1</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">beta</span><span class="p">)</span> <span class="o">*</span> <span class="n">p2</span><span class="p">)</span>
+                <span class="n">child_2</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">beta</span><span class="p">)</span> <span class="o">*</span> <span class="n">p1</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">beta</span><span class="p">)</span> <span class="o">*</span> <span class="n">p2</span><span class="p">)</span>
+        <span class="n">child_1</span><span class="o">.</span><span class="n">fitness</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">child_2</span><span class="o">.</span><span class="n">fitness</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">child_1</span><span class="p">,</span> <span class="n">child_2</span>
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="c1"># 変異 (ガウス変異)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_gaussian_mutation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chromosome</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_spec</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_spec</span><span class="p">))]</span>
+        <span class="n">before</span> <span class="o">=</span> <span class="n">chromosome</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">mutation_sigma_frac</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">before</span><span class="p">),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">mutation_sigma_min</span><span class="p">)</span>
+        <span class="n">chromosome</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">before</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">sigma</span><span class="p">))</span>
+        <span class="n">chromosome</span><span class="o">.</span><span class="n">fitness</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"gaussian_mutation: </span><span class="si">%s</span><span class="s2"> </span><span class="si">%.6g</span><span class="s2"> -&gt; </span><span class="si">%.6g</span><span class="s2">"</span><span class="p">,</span>
+                     <span class="n">name</span><span class="p">,</span> <span class="n">before</span><span class="p">,</span> <span class="n">chromosome</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_clip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chromosome</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_spec</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">chromosome</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">chromosome</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">))</span>
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+    <span class="c1"># 世代交代</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_next_generation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">elite</span><span class="p">):</span>
+        <span class="n">new_population</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_population</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">population</span><span class="p">):</span>
+            <span class="n">parent_1</span><span class="p">,</span> <span class="n">parent_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_parents</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">crossover_probability</span><span class="p">:</span>
+                <span class="n">child_1</span><span class="p">,</span> <span class="n">child_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sbx_crossover</span><span class="p">(</span><span class="n">parent_1</span><span class="p">,</span> <span class="n">parent_2</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">child_1</span><span class="p">,</span> <span class="n">child_2</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">parent_1</span><span class="p">),</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">parent_2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">mutation_probability</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_gaussian_mutation</span><span class="p">(</span><span class="n">child_1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_gaussian_mutation</span><span class="p">(</span><span class="n">child_2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">clip_to_bounds</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_clip</span><span class="p">(</span><span class="n">child_1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_clip</span><span class="p">(</span><span class="n">child_2</span><span class="p">)</span>
+            <span class="n">new_population</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">child_1</span><span class="p">,</span> <span class="n">child_2</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_population</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">population</span><span class="p">):</span>
+            <span class="k">del</span> <span class="n">new_population</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># エリート保存: ランダムな1個体を最良個体で置換</span>
+        <span class="n">slot</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">new_population</span><span class="p">)))</span>
+        <span class="n">new_population</span><span class="p">[</span><span class="n">slot</span><span class="p">]</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">elite</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">population</span> <span class="o">=</span> <span class="n">new_population</span>
+
+    <span class="c1"># ------------------------------------------------------------------ #</span>
+<div class="viewcode-block" id="GeneticAlgorithm.run">
+<a class="viewcode-back" href="../../../api/S2MFD.inference.genetic.GeneticAlgorithm.html#S2MFD.inference.GeneticAlgorithm.run">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""GA を実行して最良個体を返す。</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        GAResult</span>
+<span class="sd">            threshold 到達または max_generations 完了時点の結果。</span>
+<span class="sd">            KeyboardInterrupt 時は interrupted=True で途中結果を返す。</span>
+<span class="sd">        """</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span>
+        <span class="n">best</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">interrupted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">gen</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate_population</span><span class="p">()</span>
+            <span class="n">best</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_best</span><span class="p">())</span>
+            <span class="k">for</span> <span class="n">gen</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">max_generations</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">generation_idx</span> <span class="o">=</span> <span class="n">gen</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fitness_history</span><span class="p">[</span><span class="n">gen</span><span class="p">]</span> <span class="o">=</span> <span class="n">best</span><span class="o">.</span><span class="n">fitness</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">diversity_history</span><span class="p">[</span><span class="n">gen</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diversity</span><span class="p">()</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"generation </span><span class="si">%d</span><span class="s2">: best fitness=</span><span class="si">%.6f</span><span class="s2"> diversity=</span><span class="si">%.4f</span><span class="s2">"</span><span class="p">,</span>
+                            <span class="n">gen</span><span class="p">,</span> <span class="n">best</span><span class="o">.</span><span class="n">fitness</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">diversity_history</span><span class="p">[</span><span class="n">gen</span><span class="p">])</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"best params: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">best</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">best</span><span class="o">.</span><span class="n">fitness</span> <span class="o">&gt;=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">threshold</span> <span class="ow">or</span> <span class="n">gen</span> <span class="o">==</span> <span class="n">cfg</span><span class="o">.</span><span class="n">max_generations</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">break</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">_next_generation</span><span class="p">(</span><span class="n">elite</span><span class="o">=</span><span class="n">best</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate_population</span><span class="p">()</span>
+                <span class="n">current_best</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_best</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">current_best</span><span class="o">.</span><span class="n">fitness</span> <span class="o">&gt;</span> <span class="n">best</span><span class="o">.</span><span class="n">fitness</span><span class="p">:</span>
+                    <span class="n">best</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">current_best</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"GA interrupted at generation </span><span class="si">%d</span><span class="s2">; "</span>
+                           <span class="s2">"returning best-so-far result"</span><span class="p">,</span> <span class="n">gen</span><span class="p">)</span>
+            <span class="n">interrupted</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">best</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># 初世代の評価中に中断された場合</span>
+                <span class="n">evaluated</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">population</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">fitness</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">evaluated</span><span class="p">:</span>
+                    <span class="k">raise</span>
+                <span class="n">best</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">evaluated</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">fitness</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">GAResult</span><span class="p">(</span>
+            <span class="n">best_params</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">best</span><span class="o">.</span><span class="n">params</span><span class="p">),</span>
+            <span class="n">best_fitness</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">best</span><span class="o">.</span><span class="n">fitness</span><span class="p">),</span>
+            <span class="n">fitness_history</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fitness_history</span><span class="p">[:</span><span class="n">gen</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+            <span class="n">diversity_history</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diversity_history</span><span class="p">[:</span><span class="n">gen</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+            <span class="n">generations_run</span><span class="o">=</span><span class="n">gen</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="n">interrupted</span><span class="o">=</span><span class="n">interrupted</span><span class="p">,</span>
+            <span class="n">population</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">population</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_cpu_count</span><span class="p">():</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="ow">or</span> <span class="mi">1</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, S2MFD project.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      Version: 
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+      
+      
+      <dl>
+        <dt>Versions</dt>
+        
+          <dd><a href=""></a></dd>
+        
+      </dl>
+      
+      <br>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

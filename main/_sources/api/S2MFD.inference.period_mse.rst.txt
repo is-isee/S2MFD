@@ -1,0 +1,6 @@
+period_mse
+==========
+
+.. currentmodule:: S2MFD.inference
+
+.. autofunction:: period_mse

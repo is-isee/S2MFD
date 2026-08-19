@@ -11,17 +11,27 @@ Simulation
    .. autosummary::
 
       ~Simulation.cfl_condition
+      ~Simulation.check_finite
       ~Simulation.initial_condition
       ~Simulation.initialize_simulation
       ~Simulation.main_loop
+      ~Simulation.run_window
       ~Simulation.save
+      ~Simulation.set_field
+      ~Simulation.spin_up
       ~Simulation.tvd_runge_kutta
+      ~Simulation.update_time_dependent_parameters
 
    .. rubric:: Methods Documentation
 
    .. automethod:: cfl_condition
+   .. automethod:: check_finite
    .. automethod:: initial_condition
    .. automethod:: initialize_simulation
    .. automethod:: main_loop
+   .. automethod:: run_window
    .. automethod:: save
+   .. automethod:: set_field
+   .. automethod:: spin_up
    .. automethod:: tvd_runge_kutta
+   .. automethod:: update_time_dependent_parameters

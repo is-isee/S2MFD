@@ -1,0 +1,6 @@
+mape
+====
+
+.. currentmodule:: S2MFD.inference.metrics
+
+.. autofunction:: mape

@@ -157,6 +157,10 @@ class DynamicSolver:
         # 'flow' : エントロピーの人工拡散に流速 |v| を使う (既定)
         # 'fast' : 音速を使う (音響系と同じ。エントロピー摂動を潰すので非推奨)
         self.entropy_sld_speed = getattr(cfg, 'entropy_sld_speed', 'flow')
+        # 角運動量も音波では運ばれないので、既定は流速ベース。
+        # 放射層では nu_dif が対流層値の 2% (6e10) まで落ちているので、
+        # 音速ベース (4.3e11) だとタコクラインのせん断層をぼかしてしまう。
+        self.angmom_sld_speed = getattr(cfg, 'angmom_sld_speed', 'flow')
         self.consistent_advection = getattr(cfg, 'consistent_advection', False)
 
         # プリミティブ変数
@@ -215,6 +219,8 @@ class DynamicSolver:
         # エントロピー用の特性速度は別に持つ (下記 _update_characteristic_speed 参照)
         self.csp_s_r = np.zeros(self.shape)
         self.csp_s_th = np.zeros(self.shape)
+        self.csp_o_r = np.zeros(self.shape)
+        self.csp_o_th = np.zeros(self.shape)
 
     def _update_characteristic_speed(self):
         """人工拡散に使う特性速度を面上で作る.
@@ -255,12 +261,22 @@ class DynamicSolver:
                               / (4.0*np.pi*rho))
         self.csp_r[1:] = 0.5*(cc[1:] + cc[:-1])
         self.csp_th[:, 1:] = 0.5*(cc[:, 1:] + cc[:, :-1])
+        vf_r = np.zeros(self.shape)
+        vf_th = np.zeros(self.shape)
+        vf_r[1:] = 0.5*(vv[1:] + vv[:-1])
+        vf_th[:, 1:] = 0.5*(vv[:, 1:] + vv[:, :-1])
         if self.entropy_sld_speed == 'flow':
-            self.csp_s_r[1:] = 0.5*(vv[1:] + vv[:-1])
-            self.csp_s_th[:, 1:] = 0.5*(vv[:, 1:] + vv[:, :-1])
+            self.csp_s_r[:] = vf_r
+            self.csp_s_th[:] = vf_th
         else:
             self.csp_s_r[:] = self.csp_r
             self.csp_s_th[:] = self.csp_th
+        if self.angmom_sld_speed == 'flow':
+            self.csp_o_r[:] = vf_r
+            self.csp_o_th[:] = vf_th
+        else:
+            self.csp_o_r[:] = self.csp_r
+            self.csp_o_th[:] = self.csp_th
 
     # -- 状態の変換 -------------------------------------------------------
     def conserved(self):
@@ -348,7 +364,7 @@ class DynamicSolver:
             heat_before = heat.copy()
             artdif.sld_diffuse_work(ds_om, heat, self.om1,
                                     self.jacL_r, self.jacL_th,
-                                    self.csp_r, self.csp_th, self.sld_coef,
+                                    self.csp_o_r, self.csp_o_th, self.sld_coef,
                                     self.sld_floor,
                                     grid.drr, grid.dth, m, w.ffr, w.ffth)
             artdif.sld_diffuse(ds_mr, self.vrr, self.jacV_r, self.jacV_th,

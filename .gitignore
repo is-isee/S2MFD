@@ -161,7 +161,9 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-data*/
+# Simulation output directories (repository root only —
+# S2MFD/inference/data/ などのパッケージデータは除外しない)
+/data*/
 .DS_Store
 doc/source/api
 S2MFD/_version.py

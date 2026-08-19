@@ -14,6 +14,7 @@
 - **sphinx-multiversion は廃止**: Sphinx 8 と非互換(2020年から未保守、`Config.read()` の TypeError)のため。conf.py から拡張と smv_* 設定を除去し、バージョン別公開はワークフローのデプロイ先切替(destination_dir)で同等機能を実現。既存の gh-pages 構成(main/, v0.1.0/, v0.2.0/)とURL は不変。
 - pyproject に `[project.optional-dependencies] docs` を追加(sphinx, sphinx-automodapi, sphinx_rtd_theme)。README の Sphinx 節を現行手順に更新、CI 節を追加。
 - 検証: Sphinx ビルド警告ゼロ、workflow YAML パース確認、pytest 92 passed。
+- **CI 初回実行で問題を1件検出・修正**: `.gitignore` の `data*/`(シミュレーション出力用)が `S2MFD/inference/data/` にもマッチし、観測CSV・初期磁場の3ファイルが未コミットだった(ローカルではファイルが手元にあるため全テストが通っており、CI のクリーン環境で発覚)。パターンをルート限定 `/data*/` に修正しデータを追加(559f31e)。再実行で **Tests (Python 3.10 / 3.12) ともに success** を確認。
 - 注意: workflow は main へのマージ後に有効化される(GitHub Actions はデフォルトブランチ外の新規 workflow でも push イベントで動くが、docs は main への push がトリガーなのでマージ後に初回実行)。**Pages の設定が「Deploy from a branch: gh-pages」になっていることを要確認**(既存運用のままなら変更不要)。
 
 ### Phase 5: 統合検証

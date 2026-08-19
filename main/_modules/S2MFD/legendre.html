@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.legendre &mdash; S2MFD 0.2.1.dev91 documentation</title>
+  <title>S2MFD.legendre &mdash; S2MFD 0.2.1.dev105 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
@@ -13,7 +13,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../../_static/documentation_options.js?v=7ef1bbd8"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -121,7 +121,36 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sinth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">th</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span> <span class="o">-</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lmax</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_values</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_values</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_values</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">P1n_reduced</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">P1n</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:]</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">P1n_reduced</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">P1n</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_potential_operator</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Legendre.build_potential_operator">
+<a class="viewcode-back" href="../../api/S2MFD.Legendre.html#S2MFD.Legendre.build_potential_operator">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_potential_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""potential 境界条件の「表面値 → ゴースト値」線形作用素を作る。</span>
+
+<span class="sd">        境界条件は Aφ について線形なので、ルジャンドル射影と外部ポテンシャル場</span>
+<span class="sd">        による再構成をまとめて1つの行列で表せる::</span>
+
+<span class="sd">            Aph_ghost[k][j'] = sum_j Aph_surface[j] * M[k][j, j']</span>
+
+<span class="sd">        ここで</span>
+<span class="sd">        M[k][j,j'] = sin(th_j) dth * sum_n c_n (r_top/r_ghost_k)^(n+1)</span>
+<span class="sd">                                          P1n(th_j) P1n(th_j')</span>
+
+<span class="sd">        毎ステップ生成していた (lmax-1, jx) の一時配列と冪計算が、</span>
+<span class="sd">        1 回の行列ベクトル積 (jx x jx) に置き換わる。</span>
+<span class="sd">        """</span>
+        <span class="n">margin</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span>
+        <span class="n">r_top</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span> <span class="o">-</span> <span class="n">margin</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">P1n_reduced</span>                       <span class="c1"># (lmax-1, jx)</span>
+        <span class="n">row_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sinth</span> <span class="o">*</span> <span class="n">grid</span><span class="o">.</span><span class="n">dth</span>              <span class="c1"># (jx,)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential_operator</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">margin</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">jx</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">jx</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">margin</span><span class="p">):</span>
+            <span class="n">r_ghost</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span> <span class="o">-</span> <span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span> <span class="o">*</span> <span class="p">(</span><span class="n">r_top</span> <span class="o">/</span> <span class="n">r_ghost</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_values</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_operator</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">row_w</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">scale</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span><span class="p">))</span></div>
 </div>
 
 </pre></div>

@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API reference &mdash; S2MFD 0.2.1.dev91 documentation</title>
+  <title>API reference &mdash; S2MFD 0.2.1.dev105 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
@@ -14,7 +14,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=9a923341"></script>
+      <script src="_static/documentation_options.js?v=7ef1bbd8"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -69,6 +69,10 @@
 <li class="toctree-l2"><a class="reference internal" href="#module-S2MFD.physics">S2MFD.physics Package</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id1">Functions</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.time_marching.html">time_marching</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.time_marching_reference.html">time_marching_reference</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.get_time_marching_kernel.html">get_time_marching_kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.separable_profiles.html">separable_profiles</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.rk_combine.html">rk_combine</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.boundary_condition.html">boundary_condition</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.poloidal_mag.html">poloidal_mag</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/S2MFD.physics.advection.html">advection</a></li>
@@ -245,6 +249,18 @@
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.physics.time_marching.html#S2MFD.physics.time_marching" title="S2MFD.physics.time_marching"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time_marching</span></code></a>(Bph, Aph, dt, cfg, grid, setup)</p></td>
 <td><p>Perform time marching for the magnetic field.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.physics.time_marching_reference.html#S2MFD.physics.time_marching_reference" title="S2MFD.physics.time_marching_reference"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time_marching_reference</span></code></a>(Bph, Aph, dt, cfg, ...)</p></td>
+<td><p>Reference (unfused) implementation of one Euler substep.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.physics.get_time_marching_kernel.html#S2MFD.physics.get_time_marching_kernel" title="S2MFD.physics.get_time_marching_kernel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_time_marching_kernel</span></code></a>(fast, ...)</p></td>
+<td><p>(fast, nonlocal_alpha, separable) に対応するカーネルを返す (遅延生成)。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.physics.separable_profiles.html#S2MFD.physics.separable_profiles" title="S2MFD.physics.separable_profiles"><code class="xref py py-obj docutils literal notranslate"><span class="pre">separable_profiles</span></code></a>(setup)</p></td>
+<td><p>背景場の rank-1 分解を返す。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/S2MFD.physics.rk_combine.html#S2MFD.physics.rk_combine" title="S2MFD.physics.rk_combine"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rk_combine</span></code></a>(a, b)</p></td>
+<td><p>TVD Runge-Kutta の合成 0.5*a + 0.5*b を一時配列なしで行う。</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="api/S2MFD.physics.boundary_condition.html#S2MFD.physics.boundary_condition" title="S2MFD.physics.boundary_condition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">boundary_condition</span></code></a>(Bph, Aph, cfg, grid, legendre)</p></td>
 <td><p>Applies boundary condition for the magnetic field.</p></td>

@@ -1,0 +1,6 @@
+rk_combine
+==========
+
+.. currentmodule:: S2MFD.physics
+
+.. autofunction:: rk_combine

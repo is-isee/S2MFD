@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.physics.physics_core &mdash; S2MFD 0.2.1.dev91 documentation</title>
+  <title>S2MFD.physics.physics_core &mdash; S2MFD 0.2.1.dev105 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
@@ -13,7 +13,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../../../_static/documentation_options.js?v=7ef1bbd8"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -284,6 +284,407 @@
 
    <span class="k">return</span> <span class="n">Aph_sour</span></div>
 
+<span class="n">ALPHA_CODE</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'BL'</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">'H10'</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">'normal'</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_make_time_marching_kernel</span><span class="p">(</span><span class="n">fast</span><span class="p">,</span> <span class="n">nonlocal_alpha</span><span class="p">,</span> <span class="n">separable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">   </span><span class="sd">"""time_marching の内部カーネルを生成する。</span>
+
+<span class="sd">   fast=True  : 除算を逆数乗算に置換 + numba fastmath (既定)</span>
+<span class="sd">   fast=False : 参照実装と同じ演算順序 (ビット一致するが約17倍遅い)</span>
+<span class="sd">   nonlocal_alpha : True なら Babcock-Leighton 型 (BL/H10)、False なら 'normal'</span>
+<span class="sd">   separable : True なら背景場 (urr, uth, et, etrr, omth, so) を</span>
+<span class="sd">      rank-1 分解 f(r)g(theta) の 1D 配列から再構成する。</span>
+<span class="sd">      130x130 の 2D 配列 6 本を読まずに済み、メモリトラフィックが約半分になる。</span>
+<span class="sd">      GA は 30 プロセス同時実行で帯域律速になるため効果が大きい。</span>
+
+<span class="sd">   alpha 種別はコンパイル時に固定する。実行時分岐を内側ループに残すと</span>
+<span class="sd">   ベクトル化が阻害され 2 倍以上遅くなるため。</span>
+<span class="sd">   """</span>
+
+   <span class="nd">@njit</span><span class="p">(</span><span class="n">fastmath</span><span class="o">=</span><span class="n">fast</span><span class="p">,</span> <span class="n">boundscheck</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+   <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">rr</span><span class="p">,</span> <span class="n">sth</span><span class="p">,</span> <span class="n">rrm</span><span class="p">,</span> <span class="n">sthm</span><span class="p">,</span> <span class="n">drr</span><span class="p">,</span> <span class="n">dth</span><span class="p">,</span>
+              <span class="n">urr</span><span class="p">,</span> <span class="n">uth</span><span class="p">,</span> <span class="n">et</span><span class="p">,</span> <span class="n">etrr</span><span class="p">,</span> <span class="n">omrr</span><span class="p">,</span> <span class="n">omth</span><span class="p">,</span> <span class="n">so</span><span class="p">,</span> <span class="n">ibase</span><span class="p">,</span> <span class="n">alpha_code</span><span class="p">,</span>
+              <span class="n">inv_rr</span><span class="p">,</span> <span class="n">inv_rr2</span><span class="p">,</span> <span class="n">inv_sth</span><span class="p">,</span> <span class="n">inv_sth2</span><span class="p">,</span> <span class="n">alpha_fac</span><span class="p">,</span> <span class="n">Bphm</span><span class="p">,</span> <span class="n">Aphm</span><span class="p">,</span>
+              <span class="n">urr_u</span><span class="p">,</span> <span class="n">urr_v</span><span class="p">,</span> <span class="n">uth_u</span><span class="p">,</span> <span class="n">uth_v</span><span class="p">,</span> <span class="n">et_u</span><span class="p">,</span> <span class="n">et_v</span><span class="p">,</span> <span class="n">etrr_u</span><span class="p">,</span> <span class="n">etrr_v</span><span class="p">,</span>
+              <span class="n">omth_u</span><span class="p">,</span> <span class="n">omth_v</span><span class="p">,</span> <span class="n">so_u</span><span class="p">,</span> <span class="n">so_v</span><span class="p">):</span>
+      <span class="n">ixg</span><span class="p">,</span> <span class="n">jxg</span> <span class="o">=</span> <span class="n">Bph</span><span class="o">.</span><span class="n">shape</span>
+      <span class="n">idrr</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">drr</span>
+      <span class="n">idth</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">dth</span>
+
+      <span class="c1"># --- 内部セル: 分岐なし・除算なし (fast=True 時) ---</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ixg</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+         <span class="n">rr_i</span> <span class="o">=</span> <span class="n">rr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+         <span class="n">rr_im</span> <span class="o">=</span> <span class="n">rr</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+         <span class="n">rr_ip</span> <span class="o">=</span> <span class="n">rr</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+         <span class="n">rrm_i2</span> <span class="o">=</span> <span class="n">rrm</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span>
+         <span class="n">rrm_ip2</span> <span class="o">=</span> <span class="n">rrm</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span>
+         <span class="n">rr2</span> <span class="o">=</span> <span class="n">rr_i</span><span class="o">**</span><span class="mi">2</span>
+         <span class="n">irr</span> <span class="o">=</span> <span class="n">inv_rr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+         <span class="n">irr2</span> <span class="o">=</span> <span class="n">inv_rr2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+         <span class="k">if</span> <span class="n">separable</span><span class="p">:</span>
+            <span class="n">urr_ui</span> <span class="o">=</span> <span class="n">urr_u</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">urr_uip</span> <span class="o">=</span> <span class="n">urr_u</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">urr_uim</span> <span class="o">=</span> <span class="n">urr_u</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">uth_ui</span> <span class="o">=</span> <span class="n">uth_u</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">et_ui</span> <span class="o">=</span> <span class="n">et_u</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">etrr_ui</span> <span class="o">=</span> <span class="n">etrr_u</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">omth_ui</span> <span class="o">=</span> <span class="n">omth_u</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">so_ui</span> <span class="o">=</span> <span class="n">so_u</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">jxg</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">sth_j</span> <span class="o">=</span> <span class="n">sth</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">sth_jm</span> <span class="o">=</span> <span class="n">sth</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">sth_jp</span> <span class="o">=</span> <span class="n">sth</span><span class="p">[</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">sthm_j</span> <span class="o">=</span> <span class="n">sthm</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">sthm_jp</span> <span class="o">=</span> <span class="n">sthm</span><span class="p">[</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">isth</span> <span class="o">=</span> <span class="n">inv_sth</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">isth2</span> <span class="o">=</span> <span class="n">inv_sth2</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+
+            <span class="n">bph_c</span> <span class="o">=</span> <span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+            <span class="n">aph_c</span> <span class="o">=</span> <span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+            <span class="n">bph_im</span> <span class="o">=</span> <span class="n">Bph</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+            <span class="n">bph_ip</span> <span class="o">=</span> <span class="n">Bph</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+            <span class="n">bph_jm</span> <span class="o">=</span> <span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">bph_jp</span> <span class="o">=</span> <span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">aph_im</span> <span class="o">=</span> <span class="n">Aph</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+            <span class="n">aph_ip</span> <span class="o">=</span> <span class="n">Aph</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+            <span class="n">aph_jm</span> <span class="o">=</span> <span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">aph_jp</span> <span class="o">=</span> <span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">separable</span><span class="p">:</span>
+               <span class="n">et_c</span> <span class="o">=</span> <span class="n">et_ui</span><span class="o">*</span><span class="n">et_v</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+               <span class="n">etrr_c</span> <span class="o">=</span> <span class="n">etrr_ui</span><span class="o">*</span><span class="n">etrr_v</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+               <span class="n">so_c</span> <span class="o">=</span> <span class="n">so_ui</span><span class="o">*</span><span class="n">so_v</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+               <span class="n">omth_c</span> <span class="o">=</span> <span class="n">omth_ui</span><span class="o">*</span><span class="n">omth_v</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+               <span class="n">urr_c</span> <span class="o">=</span> <span class="n">urr_ui</span><span class="o">*</span><span class="n">urr_v</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+               <span class="n">urr_ip_c</span> <span class="o">=</span> <span class="n">urr_uip</span><span class="o">*</span><span class="n">urr_v</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+               <span class="n">urr_im_c</span> <span class="o">=</span> <span class="n">urr_uim</span><span class="o">*</span><span class="n">urr_v</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+               <span class="n">uth_c</span> <span class="o">=</span> <span class="n">uth_ui</span><span class="o">*</span><span class="n">uth_v</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+               <span class="n">uth_jp_c</span> <span class="o">=</span> <span class="n">uth_ui</span><span class="o">*</span><span class="n">uth_v</span><span class="p">[</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+               <span class="n">uth_jm_c</span> <span class="o">=</span> <span class="n">uth_ui</span><span class="o">*</span><span class="n">uth_v</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+               <span class="n">et_c</span> <span class="o">=</span> <span class="n">et</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+               <span class="n">etrr_c</span> <span class="o">=</span> <span class="n">etrr</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+               <span class="n">so_c</span> <span class="o">=</span> <span class="n">so</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+               <span class="n">omth_c</span> <span class="o">=</span> <span class="n">omth</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+               <span class="n">urr_c</span> <span class="o">=</span> <span class="n">urr</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+               <span class="n">urr_ip_c</span> <span class="o">=</span> <span class="n">urr</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+               <span class="n">urr_im_c</span> <span class="o">=</span> <span class="n">urr</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+               <span class="n">uth_c</span> <span class="o">=</span> <span class="n">uth</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+               <span class="n">uth_jp_c</span> <span class="o">=</span> <span class="n">uth</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+               <span class="n">uth_jm_c</span> <span class="o">=</span> <span class="n">uth</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">fast</span><span class="p">:</span>
+               <span class="n">Brr</span> <span class="o">=</span> <span class="p">(</span><span class="n">sth_jp</span><span class="o">*</span><span class="n">aph_jp</span> <span class="o">-</span> <span class="n">sth_jm</span><span class="o">*</span><span class="n">aph_jm</span><span class="p">)</span><span class="o">*</span><span class="n">idth</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">irr</span><span class="o">*</span><span class="n">isth</span>
+               <span class="n">Bth</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">rr_ip</span><span class="o">*</span><span class="n">aph_ip</span> <span class="o">-</span> <span class="n">rr_im</span><span class="o">*</span><span class="n">aph_im</span><span class="p">)</span><span class="o">*</span><span class="n">idrr</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">irr</span><span class="p">)</span>
+               <span class="n">Bph_adrr</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">bph_ip</span><span class="o">*</span><span class="n">urr_ip_c</span><span class="o">*</span><span class="n">rr_ip</span>
+                             <span class="o">-</span> <span class="n">bph_im</span><span class="o">*</span><span class="n">urr_im_c</span><span class="o">*</span><span class="n">rr_im</span><span class="p">)</span><span class="o">*</span><span class="n">idrr</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">irr</span><span class="p">)</span>
+               <span class="n">Bph_adth</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">bph_jp</span><span class="o">*</span><span class="n">uth_jp_c</span>
+                             <span class="o">-</span> <span class="n">bph_jm</span><span class="o">*</span><span class="n">uth_jm_c</span><span class="p">)</span><span class="o">*</span><span class="n">idth</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">irr</span><span class="p">)</span>
+               <span class="n">Aph_adrr</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">aph_ip</span><span class="o">*</span><span class="n">rr_ip</span> <span class="o">-</span> <span class="n">aph_im</span><span class="o">*</span><span class="n">rr_im</span><span class="p">)</span><span class="o">*</span><span class="n">idrr</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">urr_c</span><span class="o">*</span><span class="n">irr</span><span class="p">)</span>
+               <span class="n">Aph_adth</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">aph_jp</span><span class="o">*</span><span class="n">sth_jp</span> <span class="o">-</span> <span class="n">aph_jm</span><span class="o">*</span><span class="n">sth_jm</span><span class="p">)</span>
+                            <span class="o">*</span> <span class="n">idth</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">uth_c</span><span class="o">*</span><span class="n">isth</span><span class="o">*</span><span class="n">irr</span><span class="p">)</span>
+               <span class="n">div_b_rr</span> <span class="o">=</span> <span class="p">(</span><span class="n">rrm_ip2</span><span class="o">*</span><span class="p">((</span><span class="n">bph_ip</span> <span class="o">-</span> <span class="n">bph_c</span><span class="p">)</span><span class="o">*</span><span class="n">idrr</span><span class="p">)</span>
+                           <span class="o">-</span> <span class="n">rrm_i2</span><span class="o">*</span><span class="p">((</span><span class="n">bph_c</span> <span class="o">-</span> <span class="n">bph_im</span><span class="p">)</span><span class="o">*</span><span class="n">idrr</span><span class="p">))</span><span class="o">*</span><span class="n">idrr</span>
+               <span class="n">div_a_rr</span> <span class="o">=</span> <span class="p">(</span><span class="n">rrm_ip2</span><span class="o">*</span><span class="p">((</span><span class="n">aph_ip</span> <span class="o">-</span> <span class="n">aph_c</span><span class="p">)</span><span class="o">*</span><span class="n">idrr</span><span class="p">)</span>
+                           <span class="o">-</span> <span class="n">rrm_i2</span><span class="o">*</span><span class="p">((</span><span class="n">aph_c</span> <span class="o">-</span> <span class="n">aph_im</span><span class="p">)</span><span class="o">*</span><span class="n">idrr</span><span class="p">))</span><span class="o">*</span><span class="n">idrr</span>
+               <span class="n">div_b_th</span> <span class="o">=</span> <span class="p">(</span><span class="n">sthm_jp</span><span class="o">*</span><span class="p">((</span><span class="n">bph_jp</span> <span class="o">-</span> <span class="n">bph_c</span><span class="p">)</span><span class="o">*</span><span class="n">idth</span><span class="p">)</span>
+                           <span class="o">-</span> <span class="n">sthm_j</span><span class="o">*</span><span class="p">((</span><span class="n">bph_c</span> <span class="o">-</span> <span class="n">bph_jm</span><span class="p">)</span><span class="o">*</span><span class="n">idth</span><span class="p">))</span><span class="o">*</span><span class="n">idth</span>
+               <span class="n">div_a_th</span> <span class="o">=</span> <span class="p">(</span><span class="n">sthm_jp</span><span class="o">*</span><span class="p">((</span><span class="n">aph_jp</span> <span class="o">-</span> <span class="n">aph_c</span><span class="p">)</span><span class="o">*</span><span class="n">idth</span><span class="p">)</span>
+                           <span class="o">-</span> <span class="n">sthm_j</span><span class="o">*</span><span class="p">((</span><span class="n">aph_c</span> <span class="o">-</span> <span class="n">aph_jm</span><span class="p">)</span><span class="o">*</span><span class="n">idth</span><span class="p">))</span><span class="o">*</span><span class="n">idth</span>
+               <span class="n">Bph_dfrr</span> <span class="o">=</span> <span class="n">et_c</span><span class="o">*</span><span class="n">div_b_rr</span><span class="o">*</span><span class="n">irr2</span>
+               <span class="n">Bph_dfth</span> <span class="o">=</span> <span class="n">et_c</span><span class="o">*</span><span class="n">div_b_th</span><span class="o">*</span><span class="n">irr2</span><span class="o">*</span><span class="n">isth</span>
+               <span class="n">Bph_dfex</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">et_c</span><span class="o">*</span><span class="n">bph_c</span><span class="o">*</span><span class="n">irr2</span><span class="o">*</span><span class="n">isth2</span><span class="p">)</span>
+               <span class="n">Aph_dfrr</span> <span class="o">=</span> <span class="n">et_c</span><span class="o">*</span><span class="n">div_a_rr</span><span class="o">*</span><span class="n">irr2</span>
+               <span class="n">Aph_dfth</span> <span class="o">=</span> <span class="n">et_c</span><span class="o">*</span><span class="n">div_a_th</span><span class="o">*</span><span class="n">irr2</span><span class="o">*</span><span class="n">isth</span>
+               <span class="n">Aph_dfex</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">et_c</span><span class="o">*</span><span class="n">aph_c</span><span class="o">*</span><span class="n">irr2</span><span class="o">*</span><span class="n">isth2</span><span class="p">)</span>
+               <span class="n">Bph_dfrrg</span> <span class="o">=</span> <span class="n">etrr_c</span><span class="o">*</span><span class="p">((</span><span class="n">rr_ip</span><span class="o">*</span><span class="n">bph_ip</span>
+                                        <span class="o">-</span> <span class="n">rr_im</span><span class="o">*</span><span class="n">bph_im</span><span class="p">)</span><span class="o">*</span><span class="n">idrr</span><span class="o">*</span><span class="mf">0.5</span><span class="p">)</span><span class="o">*</span><span class="n">irr</span>
+               <span class="k">if</span> <span class="n">nonlocal_alpha</span><span class="p">:</span>
+                  <span class="c1"># 非局所 (BL/H10): b/(1+b^2) は j のみに依存 → 事前計算済み</span>
+                  <span class="n">Aph_sour</span> <span class="o">=</span> <span class="n">so_c</span><span class="o">*</span><span class="n">alpha_fac</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+               <span class="k">else</span><span class="p">:</span>
+                  <span class="c1"># 局所 ('normal'): セルごとの Bph に依存するため除算が残る</span>
+                  <span class="n">Aph_sour</span> <span class="o">=</span> <span class="n">so_c</span><span class="o">*</span><span class="n">bph_c</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">bph_c</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+               <span class="n">Brr</span> <span class="o">=</span> <span class="p">(</span><span class="n">sth_jp</span><span class="o">*</span><span class="n">aph_jp</span> <span class="o">-</span> <span class="n">sth_jm</span><span class="o">*</span><span class="n">aph_jm</span><span class="p">)</span><span class="o">/</span><span class="n">dth</span><span class="o">*</span><span class="mf">0.5</span><span class="o">/</span><span class="n">rr_i</span><span class="o">/</span><span class="n">sth_j</span>
+               <span class="n">Bth</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">rr_ip</span><span class="o">*</span><span class="n">aph_ip</span> <span class="o">-</span> <span class="n">rr_im</span><span class="o">*</span><span class="n">aph_im</span><span class="p">)</span><span class="o">/</span><span class="n">drr</span><span class="o">*</span><span class="mf">0.5</span><span class="o">/</span><span class="n">rr_i</span><span class="p">)</span>
+               <span class="n">Bph_adrr</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">bph_ip</span><span class="o">*</span><span class="n">urr</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">rr_ip</span>
+                             <span class="o">-</span> <span class="n">bph_im</span><span class="o">*</span><span class="n">urr</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">rr_im</span><span class="p">)</span><span class="o">/</span><span class="n">drr</span><span class="o">*</span><span class="mf">0.5</span><span class="o">/</span><span class="n">rr_i</span><span class="p">)</span>
+               <span class="n">Bph_adth</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">bph_jp</span><span class="o">*</span><span class="n">uth</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+                             <span class="o">-</span> <span class="n">bph_jm</span><span class="o">*</span><span class="n">uth</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="n">dth</span><span class="o">*</span><span class="mf">0.5</span><span class="o">/</span><span class="n">rr_i</span><span class="p">)</span>
+               <span class="n">Aph_adrr</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">aph_ip</span><span class="o">*</span><span class="n">rr_ip</span> <span class="o">-</span> <span class="n">aph_im</span><span class="o">*</span><span class="n">rr_im</span><span class="p">)</span><span class="o">/</span><span class="n">drr</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">urr_c</span><span class="o">/</span><span class="n">rr_i</span><span class="p">)</span>
+               <span class="n">Aph_adth</span> <span class="o">=</span> <span class="o">-</span><span class="p">((</span><span class="n">aph_jp</span><span class="o">*</span><span class="n">sth_jp</span> <span class="o">-</span> <span class="n">aph_jm</span><span class="o">*</span><span class="n">sth_jm</span><span class="p">)</span>
+                            <span class="o">/</span> <span class="n">dth</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="n">uth_c</span><span class="o">/</span><span class="n">sth_j</span><span class="o">/</span><span class="n">rr_i</span><span class="p">)</span>
+               <span class="n">div_b_rr</span> <span class="o">=</span> <span class="p">(</span><span class="n">rrm_ip2</span><span class="o">*</span><span class="p">((</span><span class="n">bph_ip</span> <span class="o">-</span> <span class="n">bph_c</span><span class="p">)</span><span class="o">/</span><span class="n">drr</span><span class="p">)</span>
+                           <span class="o">-</span> <span class="n">rrm_i2</span><span class="o">*</span><span class="p">((</span><span class="n">bph_c</span> <span class="o">-</span> <span class="n">bph_im</span><span class="p">)</span><span class="o">/</span><span class="n">drr</span><span class="p">))</span><span class="o">/</span><span class="n">drr</span>
+               <span class="n">div_a_rr</span> <span class="o">=</span> <span class="p">(</span><span class="n">rrm_ip2</span><span class="o">*</span><span class="p">((</span><span class="n">aph_ip</span> <span class="o">-</span> <span class="n">aph_c</span><span class="p">)</span><span class="o">/</span><span class="n">drr</span><span class="p">)</span>
+                           <span class="o">-</span> <span class="n">rrm_i2</span><span class="o">*</span><span class="p">((</span><span class="n">aph_c</span> <span class="o">-</span> <span class="n">aph_im</span><span class="p">)</span><span class="o">/</span><span class="n">drr</span><span class="p">))</span><span class="o">/</span><span class="n">drr</span>
+               <span class="n">div_b_th</span> <span class="o">=</span> <span class="p">(</span><span class="n">sthm_jp</span><span class="o">*</span><span class="p">((</span><span class="n">bph_jp</span> <span class="o">-</span> <span class="n">bph_c</span><span class="p">)</span><span class="o">/</span><span class="n">dth</span><span class="p">)</span>
+                           <span class="o">-</span> <span class="n">sthm_j</span><span class="o">*</span><span class="p">((</span><span class="n">bph_c</span> <span class="o">-</span> <span class="n">bph_jm</span><span class="p">)</span><span class="o">/</span><span class="n">dth</span><span class="p">))</span><span class="o">/</span><span class="n">dth</span>
+               <span class="n">div_a_th</span> <span class="o">=</span> <span class="p">(</span><span class="n">sthm_jp</span><span class="o">*</span><span class="p">((</span><span class="n">aph_jp</span> <span class="o">-</span> <span class="n">aph_c</span><span class="p">)</span><span class="o">/</span><span class="n">dth</span><span class="p">)</span>
+                           <span class="o">-</span> <span class="n">sthm_j</span><span class="o">*</span><span class="p">((</span><span class="n">aph_c</span> <span class="o">-</span> <span class="n">aph_jm</span><span class="p">)</span><span class="o">/</span><span class="n">dth</span><span class="p">))</span><span class="o">/</span><span class="n">dth</span>
+               <span class="n">Bph_dfrr</span> <span class="o">=</span> <span class="n">et_c</span><span class="o">*</span><span class="n">div_b_rr</span><span class="o">/</span><span class="n">rr2</span>
+               <span class="n">Bph_dfth</span> <span class="o">=</span> <span class="n">et_c</span><span class="o">*</span><span class="n">div_b_th</span><span class="o">/</span><span class="n">rr2</span><span class="o">/</span><span class="n">sth_j</span>
+               <span class="n">Bph_dfex</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">et_c</span><span class="o">*</span><span class="n">bph_c</span><span class="o">/</span><span class="n">rr2</span><span class="o">/</span><span class="n">sth_j</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+               <span class="n">Aph_dfrr</span> <span class="o">=</span> <span class="n">et_c</span><span class="o">*</span><span class="n">div_a_rr</span><span class="o">/</span><span class="n">rr2</span>
+               <span class="n">Aph_dfth</span> <span class="o">=</span> <span class="n">et_c</span><span class="o">*</span><span class="n">div_a_th</span><span class="o">/</span><span class="n">rr2</span><span class="o">/</span><span class="n">sth_j</span>
+               <span class="n">Aph_dfex</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">et_c</span><span class="o">*</span><span class="n">aph_c</span><span class="o">/</span><span class="n">rr2</span><span class="o">/</span><span class="n">sth_j</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+               <span class="n">Bph_dfrrg</span> <span class="o">=</span> <span class="n">etrr_c</span><span class="o">*</span><span class="p">((</span><span class="n">rr_ip</span><span class="o">*</span><span class="n">bph_ip</span>
+                                        <span class="o">-</span> <span class="n">rr_im</span><span class="o">*</span><span class="n">bph_im</span><span class="p">)</span><span class="o">/</span><span class="n">drr</span><span class="o">*</span><span class="mf">0.5</span><span class="p">)</span><span class="o">/</span><span class="n">rr_i</span>
+               <span class="k">if</span> <span class="n">nonlocal_alpha</span><span class="p">:</span>
+                  <span class="n">b_src</span> <span class="o">=</span> <span class="n">Bph</span><span class="p">[</span><span class="n">ibase</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+               <span class="k">else</span><span class="p">:</span>
+                  <span class="n">b_src</span> <span class="o">=</span> <span class="n">bph_c</span>
+               <span class="n">Aph_sour</span> <span class="o">=</span> <span class="n">so_c</span><span class="o">*</span><span class="n">b_src</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">b_src</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+            <span class="n">Bph_omrr</span> <span class="o">=</span> <span class="n">Brr</span><span class="o">*</span><span class="n">omrr</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">rr_i</span><span class="o">*</span><span class="n">sth_j</span>
+            <span class="n">Bph_omth</span> <span class="o">=</span> <span class="n">Bth</span><span class="o">*</span><span class="n">omth_c</span><span class="o">*</span><span class="n">rr_i</span><span class="o">*</span><span class="n">sth_j</span>
+
+            <span class="n">dBph</span> <span class="o">=</span> <span class="p">((</span><span class="n">Bph_adrr</span> <span class="o">+</span> <span class="n">Bph_adth</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="p">((</span><span class="n">Bph_dfrr</span> <span class="o">+</span> <span class="n">Bph_dfth</span> <span class="o">+</span> <span class="n">Bph_dfrrg</span><span class="p">)</span> <span class="o">+</span> <span class="n">Bph_dfex</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="p">(</span><span class="n">Bph_omrr</span> <span class="o">+</span> <span class="n">Bph_omth</span><span class="p">))</span>
+            <span class="n">dAph</span> <span class="o">=</span> <span class="p">((</span><span class="n">Aph_adrr</span> <span class="o">+</span> <span class="n">Aph_adth</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="p">((</span><span class="n">Aph_dfrr</span> <span class="o">+</span> <span class="n">Aph_dfth</span><span class="p">)</span> <span class="o">+</span> <span class="n">Aph_dfex</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="n">Aph_sour</span><span class="p">)</span>
+            <span class="n">Bphm</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">bph_c</span> <span class="o">+</span> <span class="n">dt</span><span class="o">*</span><span class="n">dBph</span>
+            <span class="n">Aphm</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">aph_c</span> <span class="o">+</span> <span class="n">dt</span><span class="o">*</span><span class="n">dAph</span>
+
+      <span class="c1"># --- 境界セル (全体の約3%): 参照実装のゼロ埋め規則を分岐で再現 ---</span>
+      <span class="n">n_edge</span> <span class="o">=</span> <span class="n">ixg</span><span class="o">*</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">jxg</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="mi">2</span>
+      <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_edge</span><span class="p">):</span>
+         <span class="k">if</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="n">ixg</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">idx</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
+         <span class="k">elif</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="o">*</span><span class="n">ixg</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">-</span> <span class="n">ixg</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">jxg</span> <span class="o">-</span> <span class="mi">1</span>
+         <span class="k">elif</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="o">*</span><span class="n">ixg</span> <span class="o">+</span> <span class="p">(</span><span class="n">jxg</span> <span class="o">-</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="n">ixg</span> <span class="o">+</span> <span class="mi">1</span>
+         <span class="k">else</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">ixg</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="n">ixg</span> <span class="o">-</span> <span class="p">(</span><span class="n">jxg</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+
+         <span class="n">has_im1</span> <span class="o">=</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+         <span class="n">has_ip1</span> <span class="o">=</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">ixg</span> <span class="o">-</span> <span class="mi">2</span>
+         <span class="n">has_jm1</span> <span class="o">=</span> <span class="n">j</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+         <span class="n">has_jp1</span> <span class="o">=</span> <span class="n">j</span> <span class="o">&lt;=</span> <span class="n">jxg</span> <span class="o">-</span> <span class="mi">2</span>
+         <span class="n">inner_i</span> <span class="o">=</span> <span class="n">has_im1</span> <span class="ow">and</span> <span class="n">has_ip1</span>
+         <span class="n">inner_j</span> <span class="o">=</span> <span class="n">has_jm1</span> <span class="ow">and</span> <span class="n">has_jp1</span>
+
+         <span class="n">rr_c</span> <span class="o">=</span> <span class="n">rr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+         <span class="n">sth_c</span> <span class="o">=</span> <span class="n">sth</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+         <span class="n">bph_c</span> <span class="o">=</span> <span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+         <span class="n">aph_c</span> <span class="o">=</span> <span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+         <span class="n">rr2</span> <span class="o">=</span> <span class="n">rr_c</span><span class="o">**</span><span class="mi">2</span>
+
+         <span class="k">if</span> <span class="n">inner_j</span><span class="p">:</span>
+            <span class="n">d_sth_aph</span> <span class="o">=</span> <span class="p">(</span><span class="n">sth</span><span class="p">[</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">sth</span><span class="p">[</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="n">dth</span><span class="o">*</span><span class="mf">0.5</span>
+            <span class="n">d_buth</span> <span class="o">=</span> <span class="p">(</span><span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">uth</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+                      <span class="o">-</span> <span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">uth</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="n">dth</span><span class="o">*</span><span class="mf">0.5</span>
+            <span class="n">d_asth</span> <span class="o">=</span> <span class="p">(</span><span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">sth</span><span class="p">[</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">sth</span><span class="p">[</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="n">dth</span><span class="o">*</span><span class="mf">0.5</span>
+         <span class="k">else</span><span class="p">:</span>
+            <span class="n">d_sth_aph</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">d_buth</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">d_asth</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+         <span class="k">if</span> <span class="n">inner_i</span><span class="p">:</span>
+            <span class="n">d_rr_aph</span> <span class="o">=</span> <span class="p">(</span><span class="n">rr</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">rr</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span><span class="o">/</span><span class="n">drr</span><span class="o">*</span><span class="mf">0.5</span>
+            <span class="n">d_bur</span> <span class="o">=</span> <span class="p">(</span><span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">urr</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">rr</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+                     <span class="o">-</span> <span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">urr</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">rr</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="n">drr</span><span class="o">*</span><span class="mf">0.5</span>
+            <span class="n">d_ar</span> <span class="o">=</span> <span class="p">(</span><span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">rr</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">rr</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="n">drr</span><span class="o">*</span><span class="mf">0.5</span>
+            <span class="n">d_rb</span> <span class="o">=</span> <span class="p">(</span><span class="n">rr</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">rr</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span><span class="o">/</span><span class="n">drr</span><span class="o">*</span><span class="mf">0.5</span>
+         <span class="k">else</span><span class="p">:</span>
+            <span class="n">d_rr_aph</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">d_bur</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">d_ar</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">d_rb</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+         <span class="n">Brr</span> <span class="o">=</span> <span class="n">d_sth_aph</span><span class="o">/</span><span class="n">rr_c</span><span class="o">/</span><span class="n">sth_c</span>
+         <span class="n">Bth</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">d_rr_aph</span><span class="o">/</span><span class="n">rr_c</span><span class="p">)</span>
+         <span class="n">Bph_adrr</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">d_bur</span><span class="o">/</span><span class="n">rr_c</span><span class="p">)</span>
+         <span class="n">Aph_adrr</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">d_ar</span><span class="o">*</span><span class="n">urr</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">/</span><span class="n">rr_c</span><span class="p">)</span>
+         <span class="n">Bph_adth</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">d_buth</span><span class="o">/</span><span class="n">rr_c</span><span class="p">)</span>
+         <span class="n">Aph_adth</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">d_asth</span><span class="o">*</span><span class="n">uth</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">/</span><span class="n">sth_c</span><span class="o">/</span><span class="n">rr_c</span><span class="p">)</span>
+
+         <span class="k">if</span> <span class="n">has_ip1</span><span class="p">:</span>
+            <span class="n">tb_ip</span> <span class="o">=</span> <span class="n">rrm</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="p">((</span><span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">bph_c</span><span class="p">)</span><span class="o">/</span><span class="n">drr</span><span class="p">)</span>
+            <span class="n">ta_ip</span> <span class="o">=</span> <span class="n">rrm</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="p">((</span><span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">aph_c</span><span class="p">)</span><span class="o">/</span><span class="n">drr</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">has_im1</span><span class="p">:</span>
+               <span class="n">tb_i</span> <span class="o">=</span> <span class="n">rrm</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="p">((</span><span class="n">bph_c</span> <span class="o">-</span> <span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span><span class="o">/</span><span class="n">drr</span><span class="p">)</span>
+               <span class="n">ta_i</span> <span class="o">=</span> <span class="n">rrm</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="p">((</span><span class="n">aph_c</span> <span class="o">-</span> <span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span><span class="o">/</span><span class="n">drr</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+               <span class="n">tb_i</span> <span class="o">=</span> <span class="n">rrm</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="mf">0.0</span>
+               <span class="n">ta_i</span> <span class="o">=</span> <span class="n">rrm</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="mf">0.0</span>
+            <span class="n">div_b_rr</span> <span class="o">=</span> <span class="p">(</span><span class="n">tb_ip</span> <span class="o">-</span> <span class="n">tb_i</span><span class="p">)</span><span class="o">/</span><span class="n">drr</span>
+            <span class="n">div_a_rr</span> <span class="o">=</span> <span class="p">(</span><span class="n">ta_ip</span> <span class="o">-</span> <span class="n">ta_i</span><span class="p">)</span><span class="o">/</span><span class="n">drr</span>
+         <span class="k">else</span><span class="p">:</span>
+            <span class="n">div_b_rr</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">div_a_rr</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+         <span class="k">if</span> <span class="n">has_jp1</span><span class="p">:</span>
+            <span class="n">tb_jp</span> <span class="o">=</span> <span class="n">sthm</span><span class="p">[</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="p">((</span><span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">bph_c</span><span class="p">)</span><span class="o">/</span><span class="n">dth</span><span class="p">)</span>
+            <span class="n">ta_jp</span> <span class="o">=</span> <span class="n">sthm</span><span class="p">[</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="p">((</span><span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">aph_c</span><span class="p">)</span><span class="o">/</span><span class="n">dth</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">has_jm1</span><span class="p">:</span>
+               <span class="n">tb_j</span> <span class="o">=</span> <span class="n">sthm</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="p">((</span><span class="n">bph_c</span> <span class="o">-</span> <span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="n">dth</span><span class="p">)</span>
+               <span class="n">ta_j</span> <span class="o">=</span> <span class="n">sthm</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="p">((</span><span class="n">aph_c</span> <span class="o">-</span> <span class="n">Aph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="n">dth</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+               <span class="n">tb_j</span> <span class="o">=</span> <span class="n">sthm</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="mf">0.0</span>
+               <span class="n">ta_j</span> <span class="o">=</span> <span class="n">sthm</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="mf">0.0</span>
+            <span class="n">div_b_th</span> <span class="o">=</span> <span class="p">(</span><span class="n">tb_jp</span> <span class="o">-</span> <span class="n">tb_j</span><span class="p">)</span><span class="o">/</span><span class="n">dth</span>
+            <span class="n">div_a_th</span> <span class="o">=</span> <span class="p">(</span><span class="n">ta_jp</span> <span class="o">-</span> <span class="n">ta_j</span><span class="p">)</span><span class="o">/</span><span class="n">dth</span>
+         <span class="k">else</span><span class="p">:</span>
+            <span class="n">div_b_th</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">div_a_th</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+         <span class="n">et_c</span> <span class="o">=</span> <span class="n">et</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+         <span class="n">Bph_dfrr</span> <span class="o">=</span> <span class="n">et_c</span><span class="o">*</span><span class="n">div_b_rr</span><span class="o">/</span><span class="n">rr2</span>
+         <span class="n">Bph_dfth</span> <span class="o">=</span> <span class="n">et_c</span><span class="o">*</span><span class="n">div_b_th</span><span class="o">/</span><span class="n">rr2</span><span class="o">/</span><span class="n">sth_c</span>
+         <span class="n">Bph_dfex</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">et_c</span><span class="o">*</span><span class="n">bph_c</span><span class="o">/</span><span class="n">rr2</span><span class="o">/</span><span class="n">sth_c</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+         <span class="n">Aph_dfrr</span> <span class="o">=</span> <span class="n">et_c</span><span class="o">*</span><span class="n">div_a_rr</span><span class="o">/</span><span class="n">rr2</span>
+         <span class="n">Aph_dfth</span> <span class="o">=</span> <span class="n">et_c</span><span class="o">*</span><span class="n">div_a_th</span><span class="o">/</span><span class="n">rr2</span><span class="o">/</span><span class="n">sth_c</span>
+         <span class="n">Aph_dfex</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">et_c</span><span class="o">*</span><span class="n">aph_c</span><span class="o">/</span><span class="n">rr2</span><span class="o">/</span><span class="n">sth_c</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+         <span class="n">Bph_dfrrg</span> <span class="o">=</span> <span class="n">etrr</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">d_rb</span><span class="o">/</span><span class="n">rr_c</span>
+         <span class="n">Bph_omrr</span> <span class="o">=</span> <span class="n">Brr</span><span class="o">*</span><span class="n">omrr</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">rr_c</span><span class="o">*</span><span class="n">sth_c</span>
+         <span class="n">Bph_omth</span> <span class="o">=</span> <span class="n">Bth</span><span class="o">*</span><span class="n">omth</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">rr_c</span><span class="o">*</span><span class="n">sth_c</span>
+
+         <span class="k">if</span> <span class="n">nonlocal_alpha</span><span class="p">:</span>
+            <span class="n">b_src</span> <span class="o">=</span> <span class="n">Bph</span><span class="p">[</span><span class="n">ibase</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+         <span class="k">else</span><span class="p">:</span>
+            <span class="n">b_src</span> <span class="o">=</span> <span class="n">bph_c</span>
+         <span class="n">Aph_sour</span> <span class="o">=</span> <span class="n">so</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">b_src</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">b_src</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+         <span class="n">dBph</span> <span class="o">=</span> <span class="p">((</span><span class="n">Bph_adrr</span> <span class="o">+</span> <span class="n">Bph_adth</span><span class="p">)</span>
+                 <span class="o">+</span> <span class="p">((</span><span class="n">Bph_dfrr</span> <span class="o">+</span> <span class="n">Bph_dfth</span> <span class="o">+</span> <span class="n">Bph_dfrrg</span><span class="p">)</span> <span class="o">+</span> <span class="n">Bph_dfex</span><span class="p">)</span>
+                 <span class="o">+</span> <span class="p">(</span><span class="n">Bph_omrr</span> <span class="o">+</span> <span class="n">Bph_omth</span><span class="p">))</span>
+         <span class="n">dAph</span> <span class="o">=</span> <span class="p">((</span><span class="n">Aph_adrr</span> <span class="o">+</span> <span class="n">Aph_adth</span><span class="p">)</span>
+                 <span class="o">+</span> <span class="p">((</span><span class="n">Aph_dfrr</span> <span class="o">+</span> <span class="n">Aph_dfth</span><span class="p">)</span> <span class="o">+</span> <span class="n">Aph_dfex</span><span class="p">)</span>
+                 <span class="o">+</span> <span class="n">Aph_sour</span><span class="p">)</span>
+         <span class="n">Bphm</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">bph_c</span> <span class="o">+</span> <span class="n">dt</span><span class="o">*</span><span class="n">dBph</span>
+         <span class="n">Aphm</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">aph_c</span> <span class="o">+</span> <span class="n">dt</span><span class="o">*</span><span class="n">dAph</span>
+
+      <span class="k">return</span> <span class="n">Bphm</span><span class="p">,</span> <span class="n">Aphm</span>
+
+   <span class="k">return</span> <span class="n">kernel</span>
+
+
+<span class="c1"># (fast, nonlocal_alpha) の 4 通りを事前に生成する</span>
+<span class="n">_TIME_MARCHING_KERNELS</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<div class="viewcode-block" id="get_time_marching_kernel">
+<a class="viewcode-back" href="../../../api/S2MFD.physics.get_time_marching_kernel.html#S2MFD.physics.get_time_marching_kernel">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_time_marching_kernel</span><span class="p">(</span><span class="n">fast</span><span class="p">,</span> <span class="n">nonlocal_alpha</span><span class="p">,</span> <span class="n">separable</span><span class="p">):</span>
+<span class="w">   </span><span class="sd">"""(fast, nonlocal_alpha, separable) に対応するカーネルを返す (遅延生成)。"""</span>
+   <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">fast</span><span class="p">),</span> <span class="nb">bool</span><span class="p">(</span><span class="n">nonlocal_alpha</span><span class="p">),</span> <span class="nb">bool</span><span class="p">(</span><span class="n">separable</span><span class="p">))</span>
+   <span class="n">fn</span> <span class="o">=</span> <span class="n">_TIME_MARCHING_KERNELS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+   <span class="k">if</span> <span class="n">fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">fn</span> <span class="o">=</span> <span class="n">_make_time_marching_kernel</span><span class="p">(</span><span class="o">*</span><span class="n">key</span><span class="p">)</span>
+      <span class="n">_TIME_MARCHING_KERNELS</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">fn</span>
+   <span class="k">return</span> <span class="n">fn</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rank1</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-13</span><span class="p">):</span>
+<span class="w">   </span><span class="sd">"""arr が rank-1 (外積 u(x)v) なら (u, v) を返す。できなければ None。</span>
+
+<span class="sd">   背景場 (子午面流・拡散・alpha など) の多くは f(r)*g(theta) の形なので、</span>
+<span class="sd">   130x130 の 2D 配列ではなく 1D 配列 2 本で表せる。</span>
+<span class="sd">   """</span>
+   <span class="n">i0</span><span class="p">,</span> <span class="n">j0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">arr</span><span class="p">)),</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+   <span class="n">piv</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="n">i0</span><span class="p">,</span> <span class="n">j0</span><span class="p">]</span>
+   <span class="k">if</span> <span class="n">piv</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">arr</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="k">return</span> <span class="kc">None</span>
+   <span class="n">u</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[:,</span> <span class="n">j0</span><span class="p">]</span><span class="o">/</span><span class="n">piv</span>
+   <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">i0</span><span class="p">,</span> <span class="p">:])</span>
+   <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> <span class="n">arr</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="n">rtol</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="nb">abs</span><span class="p">(</span><span class="n">piv</span><span class="p">)</span><span class="o">*</span><span class="n">rtol</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+   <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="n">_SEPARABLE_CACHE</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">_SEPARABLE_FIELDS</span> <span class="o">=</span> <span class="p">(</span><span class="s1">'urr'</span><span class="p">,</span> <span class="s1">'uth'</span><span class="p">,</span> <span class="s1">'et'</span><span class="p">,</span> <span class="s1">'etrr'</span><span class="p">,</span> <span class="s1">'omth'</span><span class="p">,</span> <span class="s1">'so'</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="separable_profiles">
+<a class="viewcode-back" href="../../../api/S2MFD.physics.separable_profiles.html#S2MFD.physics.separable_profiles">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">separable_profiles</span><span class="p">(</span><span class="n">setup</span><span class="p">):</span>
+<span class="w">   </span><span class="sd">"""背景場の rank-1 分解を返す。</span>
+
+<span class="sd">   Returns</span>
+<span class="sd">   -------</span>
+<span class="sd">   tuple</span>
+<span class="sd">      (separable, factors)。separable が True なら factors は</span>
+<span class="sd">      urr_u, urr_v, uth_u, uth_v, et_u, et_v, etrr_u, etrr_v,</span>
+<span class="sd">      omth_u, omth_v, so_u, so_v の 12 本の 1D 配列。</span>
+<span class="sd">      False ならダミーのゼロ配列が入る。</span>
+<span class="sd">   """</span>
+   <span class="c1"># 背景場は uu0/so0 の更新で変わるので、代表要素で変化を検出する</span>
+   <span class="n">fp</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">setup</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">flat</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+              <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">_SEPARABLE_FIELDS</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">3</span><span class="p">))</span>
+   <span class="n">cached</span> <span class="o">=</span> <span class="n">_SEPARABLE_CACHE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">setup</span><span class="p">))</span>
+   <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cached</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">fp</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">cached</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+   <span class="n">factors</span> <span class="o">=</span> <span class="p">[]</span>
+   <span class="n">separable</span> <span class="o">=</span> <span class="kc">True</span>
+   <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_SEPARABLE_FIELDS</span><span class="p">:</span>
+      <span class="n">dec</span> <span class="o">=</span> <span class="n">_rank1</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">setup</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+      <span class="k">if</span> <span class="n">dec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+         <span class="n">separable</span> <span class="o">=</span> <span class="kc">False</span>
+         <span class="k">break</span>
+      <span class="n">factors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">dec</span><span class="p">)</span>
+   <span class="k">if</span> <span class="ow">not</span> <span class="n">separable</span><span class="p">:</span>
+      <span class="n">n_i</span><span class="p">,</span> <span class="n">n_j</span> <span class="o">=</span> <span class="n">setup</span><span class="o">.</span><span class="n">urr</span><span class="o">.</span><span class="n">shape</span>
+      <span class="n">factors</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_i</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_j</span><span class="p">)]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">_SEPARABLE_FIELDS</span><span class="p">)</span>
+   <span class="n">value</span> <span class="o">=</span> <span class="p">(</span><span class="n">separable</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">factors</span><span class="p">))</span>
+   <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_SEPARABLE_CACHE</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">8</span><span class="p">:</span>
+      <span class="n">_SEPARABLE_CACHE</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+   <span class="n">_SEPARABLE_CACHE</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">setup</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+   <span class="k">return</span> <span class="n">value</span></div>
+
+
+
+<span class="n">_GRID_1D_CACHE</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_grid_1d</span><span class="p">(</span><span class="n">grid</span><span class="p">):</span>
+<span class="w">   </span><span class="sd">"""Grid の構造 (RR[i,j]=rr[i], sinTH[i,j]=sin(th[j])) から 1D 配列を作る。</span>
+
+<span class="sd">   毎ステップ 2D 配列 4 本を読む代わりに 1D 配列を渡すことで</span>
+<span class="sd">   メモリトラフィックを減らす。逆数も併せて返す。</span>
+<span class="sd">   格子は実行中変わらないので、格子形状をキーにキャッシュする。</span>
+<span class="sd">   """</span>
+   <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">dth</span><span class="p">),</span>
+          <span class="nb">float</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">th</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+   <span class="n">cached</span> <span class="o">=</span> <span class="n">_GRID_1D_CACHE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+   <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">cached</span>
+   <span class="n">rr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+   <span class="n">sth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">sinTH</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])</span>
+   <span class="n">rrm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">RRm</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+   <span class="n">sthm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">sinTHm</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])</span>
+   <span class="n">value</span> <span class="o">=</span> <span class="p">(</span><span class="n">rr</span><span class="p">,</span> <span class="n">sth</span><span class="p">,</span> <span class="n">rrm</span><span class="p">,</span> <span class="n">sthm</span><span class="p">,</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">rr</span><span class="p">,</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">rr</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">sth</span><span class="p">,</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">sth</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+   <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_GRID_1D_CACHE</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">8</span><span class="p">:</span>      <span class="c1"># 暴走防止 (実運用では格子は1-2種類)</span>
+      <span class="n">_GRID_1D_CACHE</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+   <span class="n">_GRID_1D_CACHE</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+   <span class="k">return</span> <span class="n">value</span>
+
+
+<div class="viewcode-block" id="rk_combine">
+<a class="viewcode-back" href="../../../api/S2MFD.physics.rk_combine.html#S2MFD.physics.rk_combine">[docs]</a>
+<span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">boundscheck</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">rk_combine</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+<span class="w">   </span><span class="sd">"""TVD Runge-Kutta の合成 0.5*a + 0.5*b を一時配列なしで行う。"""</span>
+   <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+   <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+      <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+         <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">b</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+   <span class="k">return</span> <span class="n">out</span></div>
+
+
 
 <div class="viewcode-block" id="time_marching">
 <a class="viewcode-back" href="../../../api/S2MFD.physics.time_marching.html#S2MFD.physics.time_marching">[docs]</a>
@@ -293,22 +694,72 @@
 
 <span class="sd">   Parameters</span>
 <span class="sd">   ----------</span>
-<span class="sd">   Bph : numpy.ndarray  </span>
+<span class="sd">   Bph : numpy.ndarray</span>
 <span class="sd">      Longitudinal magnetic field</span>
 <span class="sd">   Aph : numpy.ndarray</span>
 <span class="sd">      Longitudinal vector potential</span>
 <span class="sd">   dt : float</span>
 <span class="sd">      Time step</span>
+<span class="sd">   cfg : S2MFD.Cfg</span>
+<span class="sd">      Configuration object. ``cfg.exact_arithmetic = True`` を設定すると</span>
+<span class="sd">      参照実装とビット一致する低速版を使う (既定は高速版)。</span>
 <span class="sd">   grid : object</span>
 <span class="sd">      Object containing grid information</span>
 <span class="sd">   setup : object</span>
 <span class="sd">      Object containing setup information</span>
+
 <span class="sd">   Returns</span>
 <span class="sd">   -------</span>
-<span class="sd">   tuple of numpy</span>
+<span class="sd">   tuple of numpy.ndarray</span>
 <span class="sd">      - Bphm : Updated longitudinal magnetic field</span>
 <span class="sd">      - Aphm : Updated longitudinal vector potential</span>
-<span class="sd">   """</span>   
+
+<span class="sd">   Notes</span>
+<span class="sd">   -----</span>
+<span class="sd">   既定の高速版は除算を逆数の乗算に置き換え、numba の fastmath を有効にする。</span>
+<span class="sd">   参照実装との差は 1 substep あたり相対 ~2e-16 (倍精度 1 ULP 程度) で、</span>
+<span class="sd">   物理的な意味を持たない丸め誤差の範囲にある。ビット一致が必要な場合は</span>
+<span class="sd">   ``cfg.exact_arithmetic = True`` を指定するか</span>
+<span class="sd">   time_marching_reference() を直接呼ぶこと。</span>
+<span class="sd">   """</span>
+   <span class="n">alpha_code</span> <span class="o">=</span> <span class="n">ALPHA_CODE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">alpha_type</span><span class="p">)</span>
+   <span class="k">if</span> <span class="n">alpha_code</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown alpha_type: </span><span class="si">{</span><span class="n">cfg</span><span class="o">.</span><span class="n">alpha_type</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+
+   <span class="n">rr</span><span class="p">,</span> <span class="n">sth</span><span class="p">,</span> <span class="n">rrm</span><span class="p">,</span> <span class="n">sthm</span><span class="p">,</span> <span class="n">inv_rr</span><span class="p">,</span> <span class="n">inv_rr2</span><span class="p">,</span> <span class="n">inv_sth</span><span class="p">,</span> <span class="n">inv_sth2</span> <span class="o">=</span> <span class="n">_grid_1d</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span>
+
+   <span class="c1"># 非局所 alpha 効果の係数 b/(1+b^2) は j のみに依存するので事前計算する</span>
+   <span class="k">if</span> <span class="n">alpha_code</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">b_src</span> <span class="o">=</span> <span class="n">Bph</span><span class="p">[</span><span class="n">setup</span><span class="o">.</span><span class="n">ibase</span><span class="p">,</span> <span class="p">:]</span>
+   <span class="k">else</span><span class="p">:</span>
+      <span class="n">b_src</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">Bph</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+   <span class="n">alpha_fac</span> <span class="o">=</span> <span class="n">b_src</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">b_src</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+   <span class="n">fast</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'exact_arithmetic'</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+   <span class="c1"># exact_arithmetic では参照実装とのビット一致を保つため、</span>
+   <span class="c1"># 背景場は 2D 配列のまま使う (rank-1 再構成は丸めが変わる)</span>
+   <span class="n">sep</span><span class="p">,</span> <span class="n">factors</span> <span class="o">=</span> <span class="n">separable_profiles</span><span class="p">(</span><span class="n">setup</span><span class="p">)</span>
+   <span class="n">sep</span> <span class="o">=</span> <span class="n">sep</span> <span class="ow">and</span> <span class="n">fast</span>
+   <span class="n">kernel</span> <span class="o">=</span> <span class="n">get_time_marching_kernel</span><span class="p">(</span><span class="n">fast</span><span class="p">,</span> <span class="n">alpha_code</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">sep</span><span class="p">)</span>
+   <span class="k">return</span> <span class="n">kernel</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">rr</span><span class="p">,</span> <span class="n">sth</span><span class="p">,</span> <span class="n">rrm</span><span class="p">,</span> <span class="n">sthm</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">dth</span><span class="p">,</span>
+                 <span class="n">setup</span><span class="o">.</span><span class="n">urr</span><span class="p">,</span> <span class="n">setup</span><span class="o">.</span><span class="n">uth</span><span class="p">,</span> <span class="n">setup</span><span class="o">.</span><span class="n">et</span><span class="p">,</span> <span class="n">setup</span><span class="o">.</span><span class="n">etrr</span><span class="p">,</span>
+                 <span class="n">setup</span><span class="o">.</span><span class="n">omrr</span><span class="p">,</span> <span class="n">setup</span><span class="o">.</span><span class="n">omth</span><span class="p">,</span> <span class="n">setup</span><span class="o">.</span><span class="n">so</span><span class="p">,</span> <span class="n">setup</span><span class="o">.</span><span class="n">ibase</span><span class="p">,</span> <span class="n">alpha_code</span><span class="p">,</span>
+                 <span class="n">inv_rr</span><span class="p">,</span> <span class="n">inv_rr2</span><span class="p">,</span> <span class="n">inv_sth</span><span class="p">,</span> <span class="n">inv_sth2</span><span class="p">,</span> <span class="n">alpha_fac</span><span class="p">,</span>
+                 <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">Bph</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">Aph</span><span class="p">),</span> <span class="o">*</span><span class="n">factors</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="time_marching_reference">
+<a class="viewcode-back" href="../../../api/S2MFD.physics.time_marching_reference.html#S2MFD.physics.time_marching_reference">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">time_marching_reference</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">setup</span><span class="p">):</span>
+<span class="w">   </span><span class="sd">"""</span>
+<span class="sd">   Reference (unfused) implementation of one Euler substep.</span>
+
+<span class="sd">   各項を個別の配列として計算する読みやすい実装。低速だが、</span>
+<span class="sd">   融合実装 time_marching_fused() の正しさを検証する基準として残してある。</span>
+
+<span class="sd">   Parameters / Returns は time_marching() と同じ。</span>
+<span class="sd">   """</span>
    <span class="c1"># calculate poloidal magnetic field</span>
    <span class="n">Brr</span><span class="p">,</span> <span class="n">Bth</span> <span class="o">=</span> <span class="n">poloidal_mag</span><span class="p">(</span><span class="n">Aph</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">sinTH</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">dth</span><span class="p">)</span>
    

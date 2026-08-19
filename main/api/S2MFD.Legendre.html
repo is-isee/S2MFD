@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Legendre &mdash; S2MFD 0.2.1.dev91 documentation</title>
+  <title>Legendre &mdash; S2MFD 0.2.1.dev105 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../_static/documentation_options.js?v=7ef1bbd8"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
@@ -120,6 +120,33 @@
 </ul>
 </dd>
 </dl>
+<p class="rubric">Methods Summary</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Legendre.build_potential_operator" title="S2MFD.Legendre.build_potential_operator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_potential_operator</span></code></a>(grid)</p></td>
+<td><p>potential 境界条件の「表面値 → ゴースト値」線形作用素を作る。</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods Documentation</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Legendre.build_potential_operator">
+<span class="sig-name descname"><span class="pre">build_potential_operator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/legendre.html#Legendre.build_potential_operator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Legendre.build_potential_operator" title="Link to this definition"></a></dt>
+<dd><p>potential 境界条件の「表面値 → ゴースト値」線形作用素を作る。</p>
+<p>境界条件は Aφ について線形なので、ルジャンドル射影と外部ポテンシャル場
+による再構成をまとめて1つの行列で表せる:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Aph_ghost</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">j</span><span class="s1">'] = sum_j Aph_surface[j] * M[k][j, j'</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>ここで
+M[k][j,j’] = sin(th_j) dth * sum_n c_n (r_top/r_ghost_k)^(n+1)</p>
+<blockquote>
+<div><p>P1n(th_j) P1n(th_j’)</p>
+</div></blockquote>
+<p>毎ステップ生成していた (lmax-1, jx) の一時配列と冪計算が、
+1 回の行列ベクトル積 (jx x jx) に置き換わる。</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="S2MFD.Legendre.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/legendre.html#Legendre.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Legendre.__init__" title="Link to this definition"></a></dt>

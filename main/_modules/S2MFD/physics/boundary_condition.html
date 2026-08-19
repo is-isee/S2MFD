@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.physics.boundary_condition &mdash; S2MFD 0.2.1.dev91 documentation</title>
+  <title>S2MFD.physics.boundary_condition &mdash; S2MFD 0.2.1.dev105 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
@@ -13,7 +13,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../../../_static/documentation_options.js?v=7ef1bbd8"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -118,26 +118,19 @@
       
          
    <span class="k">elif</span> <span class="n">cfg</span><span class="o">.</span><span class="n">boundary_condition_type</span> <span class="o">==</span> <span class="s1">'potential'</span><span class="p">:</span>
-      <span class="c1"># 時間不変量 (sinth, n_values, coefficients, P1n_reduced) は</span>
-      <span class="c1"># Legendre.__init__ で事前計算済み</span>
-      <span class="c1"># 太陽表面 (最外物理セル) の Aφ を Legendre 陪多項式に射影する</span>
+      <span class="c1"># ルジャンドル射影と外部ポテンシャル場による再構成は Aφ について線形なので、</span>
+      <span class="c1"># Legendre.build_potential_operator() が両者をまとめた行列を用意している。</span>
+      <span class="c1"># ここでは行列ベクトル積 1 回で済む。</span>
       <span class="n">Aph_reduced</span> <span class="o">=</span> <span class="n">Aph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span> <span class="o">-</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
                         <span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span> <span class="o">-</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span>  <span class="c1"># (jx,)</span>
-      <span class="c1"># 0~πの積分 (中点則): itg_n = ∫ Aφ P^1_n sinθ dθ</span>
-      <span class="n">itg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Aph_reduced</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">legendre</span><span class="o">.</span><span class="n">P1n_reduced</span>
-                   <span class="o">*</span> <span class="n">legendre</span><span class="o">.</span><span class="n">sinth</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">grid</span><span class="o">.</span><span class="n">dth</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (lmax-1,)</span>
-      <span class="n">ant</span> <span class="o">=</span> <span class="n">legendre</span><span class="o">.</span><span class="n">coefficients</span> <span class="o">*</span> <span class="n">itg</span>  <span class="c1"># (lmax-1,)</span>
-      <span class="n">n_col</span> <span class="o">=</span> <span class="n">legendre</span><span class="o">.</span><span class="n">n_values</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>  <span class="c1"># (lmax-1, 1)</span>
 
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">):</span>
          <span class="c1"># top boundary condition</span>
          <span class="c1"># no electrical current</span>
          <span class="c1"># Bph = 0, smoothly match Aph with an exterior potential field solution</span>
          <span class="n">Bph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">Bph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="o">+</span><span class="n">i</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span>
-         <span class="n">Aph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
-            <span class="n">ant</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
-            <span class="o">*</span> <span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span> <span class="o">-</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="p">(</span><span class="n">n_col</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="o">*</span> <span class="n">legendre</span><span class="o">.</span><span class="n">P1n_reduced</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+         <span class="n">Aph</span><span class="p">[</span><span class="n">grid</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">:</span><span class="n">grid</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">]</span> <span class="o">=</span> \
+            <span class="n">Aph_reduced</span> <span class="o">@</span> <span class="n">legendre</span><span class="o">.</span><span class="n">potential_operator</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 
          <span class="c1"># bottom boundary condition</span>
          <span class="c1"># perfect conductor</span>

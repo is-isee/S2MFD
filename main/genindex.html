@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; S2MFD 0.2.1.dev91 documentation</title>
+  <title>Index &mdash; S2MFD 0.2.1.dev105 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
@@ -13,7 +13,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=9a923341"></script>
+      <script src="_static/documentation_options.js?v=7ef1bbd8"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -185,15 +185,17 @@
         <li><a href="api/S2MFD.inference.genetic.GAResult.html#S2MFD.inference.genetic.GAResult.best_params">(S2MFD.inference.genetic.GAResult attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/S2MFD.physics.boundary_condition.html#S2MFD.physics.boundary_condition">boundary_condition() (in module S2MFD.physics)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/S2MFD.Setup.html#S2MFD.Setup.build_alpha">build_alpha() (S2MFD.Setup method)</a>
 </li>
       <li><a href="api/S2MFD.Setup.html#S2MFD.Setup.build_diffusivity">build_diffusivity() (S2MFD.Setup method)</a>
 </li>
       <li><a href="api/S2MFD.Setup.html#S2MFD.Setup.build_flow">build_flow() (S2MFD.Setup method)</a>
+</li>
+      <li><a href="api/S2MFD.Legendre.html#S2MFD.Legendre.build_potential_operator">build_potential_operator() (S2MFD.Legendre method)</a>
 </li>
       <li><a href="api/S2MFD.Setup.html#S2MFD.Setup.build_rotation">build_rotation() (S2MFD.Setup method)</a>
 </li>
@@ -384,6 +386,8 @@
 </li>
       </ul></li>
       <li><a href="api/S2MFD.Data.html#S2MFD.Data.get_data_file_path">get_data_file_path() (S2MFD.Data method)</a>
+</li>
+      <li><a href="api/S2MFD.physics.get_time_marching_kernel.html#S2MFD.physics.get_time_marching_kernel">get_time_marching_kernel() (in module S2MFD.physics)</a>
 </li>
       <li><a href="api/S2MFD.Grid.html#S2MFD.Grid">Grid (class in S2MFD)</a>
 </li>
@@ -624,12 +628,18 @@
       </ul></li>
       <li><a href="api/S2MFD.inference.genetic.Chromosome.html#S2MFD.inference.genetic.Chromosome.params">params (S2MFD.inference.genetic.Chromosome attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/S2MFD.inference.period_mse.html#S2MFD.inference.period_mse">period_mse() (in module S2MFD.inference)</a>
 
       <ul>
         <li><a href="api/S2MFD.inference.metrics.period_mse.html#S2MFD.inference.metrics.period_mse">(in module S2MFD.inference.metrics)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/S2MFD.inference.GAConfig.html#S2MFD.inference.GAConfig.pin_cpus">pin_cpus (S2MFD.inference.GAConfig attribute)</a>
+
+      <ul>
+        <li><a href="api/S2MFD.inference.genetic.GAConfig.html#S2MFD.inference.genetic.GAConfig.pin_cpus">(S2MFD.inference.genetic.GAConfig attribute)</a>
 </li>
       </ul></li>
       <li><a href="api/S2MFD.physics.poloidal_mag.html#S2MFD.physics.poloidal_mag">poloidal_mag() (in module S2MFD.physics)</a>
@@ -648,16 +658,18 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/S2MFD.Cfg.html#S2MFD.Cfg.resolve">resolve() (S2MFD.Cfg method)</a>
 </li>
+      <li><a href="api/S2MFD.physics.rk_combine.html#S2MFD.physics.rk_combine">rk_combine() (in module S2MFD.physics)</a>
+</li>
       <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.RR">RR (S2MFD.Grid attribute)</a>
 </li>
       <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.rr">rr (S2MFD.Grid attribute)</a>
 </li>
       <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.RRm">RRm (S2MFD.Grid attribute)</a>
 </li>
-      <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.rrmax">rrmax (S2MFD.Grid attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.rrmax">rrmax (S2MFD.Grid attribute)</a>
+</li>
       <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.rrmin">rrmin (S2MFD.Grid attribute)</a>
 </li>
       <li><a href="api/S2MFD.inference.genetic.GeneticAlgorithm.html#S2MFD.inference.genetic.GeneticAlgorithm.run">run() (S2MFD.inference.genetic.GeneticAlgorithm method)</a>
@@ -738,20 +750,22 @@
         <li><a href="api/S2MFD.Simulation.html#S2MFD.Simulation.save">(S2MFD.Simulation method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/S2MFD.inference.Observations.html#S2MFD.inference.Observations.seconds">seconds (S2MFD.inference.Observations attribute)</a>
 
       <ul>
         <li><a href="api/S2MFD.inference.observations.Observations.html#S2MFD.inference.observations.Observations.seconds">(S2MFD.inference.observations.Observations attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/S2MFD.inference.GAConfig.html#S2MFD.inference.GAConfig.seed">seed (S2MFD.inference.GAConfig attribute)</a>
 
       <ul>
         <li><a href="api/S2MFD.inference.genetic.GAConfig.html#S2MFD.inference.genetic.GAConfig.seed">(S2MFD.inference.genetic.GAConfig attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/S2MFD.physics.separable_profiles.html#S2MFD.physics.separable_profiles">separable_profiles() (in module S2MFD.physics)</a>
+</li>
       <li><a href="api/S2MFD.Simulation.html#S2MFD.Simulation.set_field">set_field() (S2MFD.Simulation method)</a>
 </li>
       <li><a href="api/S2MFD.Setup.html#S2MFD.Setup">Setup (class in S2MFD)</a>
@@ -814,10 +828,12 @@
       </ul></li>
       <li><a href="api/S2MFD.physics.time_marching.html#S2MFD.physics.time_marching">time_marching() (in module S2MFD.physics)</a>
 </li>
-      <li><a href="api/S2MFD.inference.problem.TimeFunction.html#S2MFD.inference.problem.TimeFunction">TimeFunction (class in S2MFD.inference.problem)</a>
+      <li><a href="api/S2MFD.physics.time_marching_reference.html#S2MFD.physics.time_marching_reference">time_marching_reference() (in module S2MFD.physics)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/S2MFD.inference.problem.TimeFunction.html#S2MFD.inference.problem.TimeFunction">TimeFunction (class in S2MFD.inference.problem)</a>
+</li>
       <li><a href="api/S2MFD.inference.total_count_error.html#S2MFD.inference.total_count_error">total_count_error() (in module S2MFD.inference)</a>
 
       <ul>
@@ -865,6 +881,14 @@
 
 <h2 id="W">W</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/S2MFD.inference.DynamoProblem.html#S2MFD.inference.DynamoProblem.warmup">warmup() (S2MFD.inference.DynamoProblem method)</a>
+
+      <ul>
+        <li><a href="api/S2MFD.inference.problem.DynamoProblem.html#S2MFD.inference.problem.DynamoProblem.warmup">(S2MFD.inference.problem.DynamoProblem method)</a>
+</li>
+      </ul></li>
+  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/S2MFD.inference.DynamoProblem.html#S2MFD.inference.DynamoProblem.window_length">window_length (S2MFD.inference.DynamoProblem attribute)</a>
 

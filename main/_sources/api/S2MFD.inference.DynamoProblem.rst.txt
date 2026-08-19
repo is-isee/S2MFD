@@ -33,6 +33,7 @@ DynamoProblem
       ~DynamoProblem.__call__
       ~DynamoProblem.param_spec
       ~DynamoProblem.simulate
+      ~DynamoProblem.warmup
 
    .. rubric:: Attributes Documentation
 
@@ -57,3 +58,4 @@ DynamoProblem
    .. automethod:: __call__
    .. automethod:: param_spec
    .. automethod:: simulate
+   .. automethod:: warmup

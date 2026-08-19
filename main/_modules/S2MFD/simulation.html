@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.simulation &mdash; S2MFD 0.2.1.dev91 documentation</title>
+  <title>S2MFD.simulation &mdash; S2MFD 0.2.1.dev105 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
@@ -13,7 +13,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../../_static/documentation_options.js?v=7ef1bbd8"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -320,8 +320,8 @@
         <span class="n">Bphn</span><span class="p">,</span> <span class="n">Aphn</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">time_marching</span><span class="p">(</span><span class="n">Bphm</span><span class="p">,</span> <span class="n">Aphm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">setup</span><span class="p">)</span>
         <span class="n">Bphn</span><span class="p">,</span> <span class="n">Aphn</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">boundary_condition</span><span class="p">(</span><span class="n">Bphn</span><span class="p">,</span> <span class="n">Aphn</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">legendre</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">Bph</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">Bph</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">Bphn</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">Aph</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">Aph</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">Aphn</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Bph</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">rk_combine</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Bphn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Aph</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">rk_combine</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Aph</span><span class="p">,</span> <span class="n">Aphn</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Simulation.main_loop">
@@ -336,17 +336,8 @@
 <span class="sd">        保存される場は time ラベルと一致する (2026-08-19 修正。それ以前は</span>
 <span class="sd">        1ステップ前の場が保存されていた)。</span>
 <span class="sd">        """</span>
-        <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span>
-
-        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">&lt;</span> <span class="n">cfg</span><span class="o">.</span><span class="n">tend</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">tvd_runge_kutta</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="o">//</span><span class="n">cfg</span><span class="o">.</span><span class="n">dtout</span> <span class="o">!=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span><span class="o">//</span><span class="n">cfg</span><span class="o">.</span><span class="n">dtout</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">nd</span> <span class="o">+=</span> <span class="mi">1</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">update_time_dependent_parameters</span><span class="p">()</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">check_finite</span><span class="p">()</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
+        <span class="c1"># 実体は run_window (numba 側で出力時刻までまとめて積分する)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">run_window</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">tend</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Simulation.run_window">
@@ -376,10 +367,12 @@
 <span class="sd">        """</span>
         <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span>
         <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">&lt;</span> <span class="n">t_end</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">tvd_runge_kutta</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="o">//</span><span class="n">cfg</span><span class="o">.</span><span class="n">dtout</span> <span class="o">!=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span><span class="o">//</span><span class="n">cfg</span><span class="o">.</span><span class="n">dtout</span><span class="p">):</span>
+            <span class="c1"># 次の出力時刻までを numba 側でまとめて進める</span>
+            <span class="n">t_next</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">dtout</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span><span class="o">*</span><span class="n">cfg</span><span class="o">.</span><span class="n">dtout</span>
+            <span class="n">t_stop</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">t_next</span><span class="p">,</span> <span class="n">t_end</span><span class="p">)</span>
+            <span class="n">before</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span>
+            <span class="n">S2MFD</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">stepping</span><span class="o">.</span><span class="n">advance_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_stop</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="o">//</span><span class="n">cfg</span><span class="o">.</span><span class="n">dtout</span> <span class="o">!=</span> <span class="n">before</span><span class="o">//</span><span class="n">cfg</span><span class="o">.</span><span class="n">dtout</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">nd</span> <span class="o">+=</span> <span class="mi">1</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">update_time_dependent_parameters</span><span class="p">()</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">check_finite</span><span class="p">()</span>
@@ -433,45 +426,66 @@
 <span class="sd">        S2MFD.Simulation</span>
 <span class="sd">            self</span>
 <span class="sd">        """</span>
-        <span class="k">if</span> <span class="n">proxy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">proxy_is_default</span> <span class="o">=</span> <span class="n">proxy</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">proxy_is_default</span><span class="p">:</span>
             <span class="k">def</span><span class="w"> </span><span class="nf">proxy</span><span class="p">(</span><span class="n">sim</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">tools</span><span class="o">.</span><span class="n">sunspot_proxy</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">Bph</span><span class="p">,</span> <span class="n">sim</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">sim</span><span class="o">.</span><span class="n">cfg</span><span class="p">)</span>
 
         <span class="n">t_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span>
         <span class="n">sn_history</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">tvd_runge_kutta</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="n">sn_history</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">&lt;</span> <span class="n">t_start</span> <span class="o">+</span> <span class="n">duration</span><span class="p">:</span>
+        <span class="c1"># 履歴用の最後3ステップを残して、numba 側でまとめて進める</span>
+        <span class="c1"># (ステップ数は 1 ステップずつ回す実装と一致する)</span>
+        <span class="n">t_target</span> <span class="o">=</span> <span class="n">t_start</span> <span class="o">+</span> <span class="n">duration</span>
+        <span class="n">t_batch</span> <span class="o">=</span> <span class="n">t_target</span> <span class="o">-</span> <span class="mf">3.0</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+        <span class="k">if</span> <span class="n">t_batch</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">:</span>
+            <span class="n">S2MFD</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">stepping</span><span class="o">.</span><span class="n">advance_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_batch</span><span class="p">)</span>
+
+        <span class="n">recorded</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">&lt;</span> <span class="n">t_target</span> <span class="ow">or</span> <span class="n">recorded</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">tvd_runge_kutta</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
             <span class="n">sn_history</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
             <span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
             <span class="n">sn_history</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="n">recorded</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="k">if</span> <span class="n">until_minimum</span><span class="p">:</span>
             <span class="n">t_limit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+</span> <span class="n">max_extra</span>
-            <span class="k">while</span> <span class="ow">not</span> <span class="p">(</span><span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                       <span class="ow">and</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">&gt;</span> <span class="n">t_limit</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                        <span class="s2">"spin_up: no sunspot-number minimum detected within "</span>
-                        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">max_extra</span><span class="o">/</span><span class="mi">86400</span><span class="o">/</span><span class="mi">365</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> years of extra integration."</span>
-                    <span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">tvd_runge_kutta</span><span class="p">()</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
-                <span class="n">sn_history</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-                <span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-                <span class="n">sn_history</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="n">base</span><span class="p">,</span> <span class="n">loca</span><span class="p">,</span> <span class="n">gamma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_proxy_indices</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">proxy_is_default</span> <span class="ow">and</span> <span class="n">base</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># 極小検出まで numba 側で回す</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">ok</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">stepping</span><span class="o">.</span><span class="n">advance_until_minimum</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="p">,</span> <span class="n">t_limit</span><span class="p">,</span> <span class="n">sn_history</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">loca</span><span class="p">,</span> <span class="n">gamma</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ok</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">while</span> <span class="ow">not</span> <span class="p">(</span><span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                           <span class="ow">and</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">&gt;</span> <span class="n">t_limit</span><span class="p">:</span>
+                        <span class="n">ok</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="k">break</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">tvd_runge_kutta</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">sn_history</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">sn_history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">sn_history</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                    <span class="n">sn_history</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s2">"spin_up: no sunspot-number minimum detected within "</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">max_extra</span><span class="o">/</span><span class="mi">86400</span><span class="o">/</span><span class="mi">365</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> years of extra integration."</span>
+                <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">check_finite</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">self</span></div>
-</div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_proxy_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r_frac</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">theta_deg</span><span class="o">=</span><span class="mf">75.0</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">5.8653520852</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""既定の黒点数プロキシが参照する格子インデックスを返す。"""</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span> <span class="o">-</span> <span class="n">r_frac</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="p">)))</span>
+        <span class="n">loca</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">th</span> <span class="o">-</span> <span class="n">theta_deg</span><span class="o">/</span><span class="mi">180</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">base</span><span class="p">,</span> <span class="n">loca</span><span class="p">,</span> <span class="n">gamma</span></div>
 
 </pre></div>
 

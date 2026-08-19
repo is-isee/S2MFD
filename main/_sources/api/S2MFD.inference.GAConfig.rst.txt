@@ -20,6 +20,7 @@ GAConfig
       ~GAConfig.mutation_probability
       ~GAConfig.mutation_sigma_frac
       ~GAConfig.mutation_sigma_min
+      ~GAConfig.pin_cpus
       ~GAConfig.seed
       ~GAConfig.threshold
       ~GAConfig.tournament_high
@@ -38,6 +39,7 @@ GAConfig
    .. autoattribute:: mutation_probability
    .. autoattribute:: mutation_sigma_frac
    .. autoattribute:: mutation_sigma_min
+   .. autoattribute:: pin_cpus
    .. autoattribute:: seed
    .. autoattribute:: threshold
    .. autoattribute:: tournament_high

@@ -139,6 +139,27 @@ S2MFDでは、デフォルトのシミュレーションパラメタを用意し
     python ana/J08_test.py data/           # Jouve+2008 ベンチマーク比較
     python ana/check_profile.py parameters/hotta10.py  # 背景場プロファイル確認
 
+数値の厳密さと速度
+------------------
+
+時間積分カーネルは既定で高速経路を使う。除算を逆数の乗算に置き換え、
+numba の fastmath を有効にしているため、1 substep あたり倍精度 1 ULP 程度
+(相対 ~2e-16) の丸めの違いが参照実装との間に生じる。磁気拡散を含む散逸系
+なのでこの差は積分しても増幅せず、黒点数時系列の相関は 1.000000000000、
+適応度は小数 10 桁まで一致することを確認している。
+
+参照実装とビット一致させたい場合 (数値実験の再現性を厳密に確かめるとき等) は:
+
+.. code-block:: python
+
+    cfg = S2MFD.Cfg()
+    cfg.exact_arithmetic = True   # 約3倍遅いが参照実装とビット一致
+    S2MFD.run_simulation(cfg=cfg)
+
+参照実装そのものは :code:`S2MFD.physics.time_marching_reference()` として
+残してあり、テスト (:code:`tests/test_kernel_equivalence.py`) で
+両者の等価性を常時検証している。
+
 テスト
 ------
 

@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>time_marching &mdash; S2MFD 0.2.1.dev91 documentation</title>
+  <title>time_marching &mdash; S2MFD 0.2.1.dev105 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
@@ -14,13 +14,13 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../_static/documentation_options.js?v=7ef1bbd8"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="boundary_condition" href="S2MFD.physics.boundary_condition.html" />
+    <link rel="next" title="time_marching_reference" href="S2MFD.physics.time_marching_reference.html" />
     <link rel="prev" title="Simulation" href="S2MFD.Simulation.html" /> 
 </head>
 
@@ -54,6 +54,10 @@
 <li class="toctree-l2 current"><a class="reference internal" href="../api_reference.html#module-S2MFD.physics">S2MFD.physics Package</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="../api_reference.html#id1">Functions</a><ul class="current">
 <li class="toctree-l4 current"><a class="current reference internal" href="#">time_marching</a></li>
+<li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.time_marching_reference.html">time_marching_reference</a></li>
+<li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.get_time_marching_kernel.html">get_time_marching_kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.separable_profiles.html">separable_profiles</a></li>
+<li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.rk_combine.html">rk_combine</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.boundary_condition.html">boundary_condition</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.poloidal_mag.html">poloidal_mag</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.advection.html">advection</a></li>
@@ -111,6 +115,8 @@
 <li><p><strong>Bph</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Longitudinal magnetic field</p></li>
 <li><p><strong>Aph</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Longitudinal vector potential</p></li>
 <li><p><strong>dt</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Time step</p></li>
+<li><p><strong>cfg</strong> (<a class="reference internal" href="S2MFD.Cfg.html#S2MFD.Cfg" title="S2MFD.Cfg"><em>S2MFD.Cfg</em></a>) – Configuration object. <code class="docutils literal notranslate"><span class="pre">cfg.exact_arithmetic</span> <span class="pre">=</span> <span class="pre">True</span></code> を設定すると
+参照実装とビット一致する低速版を使う (既定は高速版)。</p></li>
 <li><p><strong>grid</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><em>object</em></a>) – Object containing grid information</p></li>
 <li><p><strong>setup</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><em>object</em></a>) – Object containing setup information</p></li>
 </ul>
@@ -123,9 +129,15 @@
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a> of numpy</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a> of <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)">numpy.ndarray</a></p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>既定の高速版は除算を逆数の乗算に置き換え、numba の fastmath を有効にする。
+参照実装との差は 1 substep あたり相対 ~2e-16 (倍精度 1 ULP 程度) で、
+物理的な意味を持たない丸め誤差の範囲にある。ビット一致が必要な場合は
+<code class="docutils literal notranslate"><span class="pre">cfg.exact_arithmetic</span> <span class="pre">=</span> <span class="pre">True</span></code> を指定するか
+time_marching_reference() を直接呼ぶこと。</p>
 </dd></dl>
 
 </section>
@@ -135,7 +147,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="S2MFD.Simulation.html" class="btn btn-neutral float-left" title="Simulation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="S2MFD.physics.boundary_condition.html" class="btn btn-neutral float-right" title="boundary_condition" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="S2MFD.physics.time_marching_reference.html" class="btn btn-neutral float-right" title="time_marching_reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

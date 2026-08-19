@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Usage &mdash; S2MFD 0.2.1.dev91 documentation</title>
+  <title>Usage &mdash; S2MFD 0.2.1.dev105 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
@@ -14,7 +14,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=9a923341"></script>
+      <script src="_static/documentation_options.js?v=7ef1bbd8"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -53,7 +53,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#id4">ランの継続 (リスタート)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id5">時間依存パラメタ</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id6">解析スクリプト</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id7">テスト</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id7">数値の厳密さと速度</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">テスト</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="inference.html">Parameter Inference (GA)</a></li>
@@ -219,7 +220,24 @@ python<span class="w"> </span>ana/check_profile.py<span class="w"> </span>parame
 </div>
 </section>
 <section id="id7">
-<h2>テスト<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<h2>数値の厳密さと速度<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<p>時間積分カーネルは既定で高速経路を使う。除算を逆数の乗算に置き換え、
+numba の fastmath を有効にしているため、1 substep あたり倍精度 1 ULP 程度
+(相対 ~2e-16) の丸めの違いが参照実装との間に生じる。磁気拡散を含む散逸系
+なのでこの差は積分しても増幅せず、黒点数時系列の相関は 1.000000000000、
+適応度は小数 10 桁まで一致することを確認している。</p>
+<p>参照実装とビット一致させたい場合 (数値実験の再現性を厳密に確かめるとき等) は:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Cfg</span><span class="p">()</span>
+<span class="n">cfg</span><span class="o">.</span><span class="n">exact_arithmetic</span> <span class="o">=</span> <span class="kc">True</span>   <span class="c1"># 約3倍遅いが参照実装とビット一致</span>
+<span class="n">S2MFD</span><span class="o">.</span><span class="n">run_simulation</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="n">cfg</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>参照実装そのものは <code class="code docutils literal notranslate"><span class="pre">S2MFD.physics.time_marching_reference()</span></code> として
+残してあり、テスト (<code class="code docutils literal notranslate"><span class="pre">tests/test_kernel_equivalence.py</span></code>) で
+両者の等価性を常時検証している。</p>
+</section>
+<section id="id8">
+<h2>テスト<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span>
 pytest<span class="w">              </span><span class="c1"># 通常テスト (数十秒)</span>
 pytest<span class="w"> </span>-m<span class="w"> </span>slow<span class="w">      </span><span class="c1"># 長時間ベンチマークテスト</span>

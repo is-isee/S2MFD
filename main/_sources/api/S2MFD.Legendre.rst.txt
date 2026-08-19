@@ -5,3 +5,13 @@ Legendre
 
 .. autoclass:: Legendre
    :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Legendre.build_potential_operator
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: build_potential_operator

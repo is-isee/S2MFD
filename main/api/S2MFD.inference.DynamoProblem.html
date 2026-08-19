@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DynamoProblem &mdash; S2MFD 0.2.1.dev91 documentation</title>
+  <title>DynamoProblem &mdash; S2MFD 0.2.1.dev105 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../_static/documentation_options.js?v=7ef1bbd8"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
@@ -183,6 +183,9 @@ seconds / ssn)</p></li>
 <tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.inference.DynamoProblem.simulate" title="S2MFD.inference.DynamoProblem.simulate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">simulate</span></code></a>(params[, save_dir])</p></td>
 <td><p>1個体分のシミュレーションを実行する。</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.inference.DynamoProblem.warmup" title="S2MFD.inference.DynamoProblem.warmup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">warmup</span></code></a>()</p></td>
+<td><p>numba カーネルを親プロセスでコンパイルしておく。</p></td>
+</tr>
 </tbody>
 </table>
 <p class="rubric">Attributes Documentation</p>
@@ -296,6 +299,15 @@ window_length)、対応する時刻 [s]、Simulation オブジェクト。</p>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a></p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.inference.DynamoProblem.warmup">
+<span class="sig-name descname"><span class="pre">warmup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/inference/problem.html#DynamoProblem.warmup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.inference.DynamoProblem.warmup" title="Link to this definition"></a></dt>
+<dd><p>numba カーネルを親プロセスでコンパイルしておく。</p>
+<p>GA は世代ごとに fork でワーカーを作るため、親が先にコンパイルして
+おけば子はコンパイル済みコードを継承でき、世代ごとの
+コンパイル待ち (数秒 x ワーカー数) を避けられる。</p>
 </dd></dl>
 
 <dl class="py method">

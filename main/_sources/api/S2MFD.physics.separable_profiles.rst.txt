@@ -1,0 +1,6 @@
+separable_profiles
+==================
+
+.. currentmodule:: S2MFD.physics
+
+.. autofunction:: separable_profiles

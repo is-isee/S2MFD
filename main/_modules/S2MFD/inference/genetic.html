@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.inference.genetic &mdash; S2MFD 0.2.1.dev91 documentation</title>
+  <title>S2MFD.inference.genetic &mdash; S2MFD 0.2.1.dev105 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
@@ -13,7 +13,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=9a923341"></script>
+      <script src="../../../_static/documentation_options.js?v=7ef1bbd8"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -97,6 +97,7 @@
 <span class="sd">  解消した (評価器側の設計)。</span>
 <span class="sd">"""</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessPoolExecutor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
@@ -129,7 +130,11 @@
     <span class="n">mutation_sigma_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># sigma の下限 (0付近での凍結回避)</span>
     <span class="c1"># --- 実行制御 ---</span>
     <span class="n">max_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>          <span class="c1"># None なら min(個体数, CPU数)</span>
-    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span></div>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># ワーカーを個別コアに固定する。空いた専用機では効果がほぼないが</span>
+    <span class="c1"># (実測 1.03 vs 1.04 秒)、コア数を超えて過負荷になる環境では有効。</span>
+    <span class="c1"># 共有機ではスケジューラの自由度を奪うため既定は無効。</span>
+    <span class="n">pin_cpus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></div>
 
 
 
@@ -159,6 +164,22 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_evaluate_one</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
     <span class="n">evaluator</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">args</span>
     <span class="k">return</span> <span class="n">evaluator</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_pin_worker</span><span class="p">(</span><span class="n">counter</span><span class="p">,</span> <span class="n">cores</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""ワーカープロセスを1コアに固定する (ProcessPoolExecutor の initializer)。</span>
+
+<span class="sd">    コア数を超えるプロセスが走る環境ではキャッシュと NUMA 局所性が保たれ</span>
+<span class="sd">    速くなることがある。空いた専用機では差はほぼない。</span>
+<span class="sd">    """</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+    <span class="k">with</span> <span class="n">counter</span><span class="o">.</span><span class="n">get_lock</span><span class="p">():</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">counter</span><span class="o">.</span><span class="n">value</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">sched_setaffinity</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">{</span><span class="n">cores</span><span class="p">[</span><span class="n">idx</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">cores</span><span class="p">)]})</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
+        <span class="k">pass</span>
 
 
 <div class="viewcode-block" id="GeneticAlgorithm">
@@ -220,7 +241,18 @@
         <span class="k">if</span> <span class="n">max_workers</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">_evaluate_one</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="n">max_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">pin_cpus</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="kn">import</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
+                    <span class="n">cores</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sched_getaffinity</span><span class="p">(</span><span class="mi">0</span><span class="p">))[:</span><span class="n">max_workers</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">cores</span><span class="p">:</span>
+                        <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                            <span class="n">initializer</span><span class="o">=</span><span class="n">_pin_worker</span><span class="p">,</span>
+                            <span class="n">initargs</span><span class="o">=</span><span class="p">(</span><span class="n">mp</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="s1">'i'</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">cores</span><span class="p">))</span>
+                <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
+                    <span class="k">pass</span>
+            <span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="n">max_workers</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
                 <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">executor</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">_evaluate_one</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">chrom</span><span class="p">,</span> <span class="n">fit</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">todo</span><span class="p">,</span> <span class="n">results</span><span class="p">):</span>
             <span class="n">chrom</span><span class="o">.</span><span class="n">fitness</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span>
@@ -354,6 +386,10 @@
         <span class="n">interrupted</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">gen</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">try</span><span class="p">:</span>
+            <span class="n">warm</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">evaluator</span><span class="p">,</span> <span class="s1">'warmup'</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">warm</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">'numba カーネルを事前コンパイル中...'</span><span class="p">)</span>
+                <span class="n">warm</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate_population</span><span class="p">()</span>
             <span class="n">best</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_best</span><span class="p">())</span>
             <span class="k">for</span> <span class="n">gen</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">max_generations</span><span class="p">):</span>

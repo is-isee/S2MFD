@@ -1,0 +1,6 @@
+get_time_marching_kernel
+========================
+
+.. currentmodule:: S2MFD.physics
+
+.. autofunction:: get_time_marching_kernel

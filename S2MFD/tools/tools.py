@@ -130,3 +130,34 @@ def dth2(qq,dth):
             dqq[i,j+1] = (qq[i,j+2] - qq[i,j])/dth*0.5
 
     return dqq
+
+def sunspot_proxy(Bph, grid, cfg, gamma=5.8653520852, r_frac=0.7, theta_deg=75.0):
+    '''
+    黒点数プロキシ SN = gamma * Bph(r = r_frac*RSUN, theta = theta_deg)^2
+
+    Shimizu & Hotta (2026) 式 (3.5) 相当。gamma は平均的な太陽極大期の
+    黒点数 166.5 に合うよう較正された値。
+
+    Parameters
+    ----------
+    Bph : numpy.ndarray
+        Longitudinal magnetic field (2D)
+    grid : S2MFD.Grid
+        Grid object
+    cfg : S2MFD.Cfg
+        Configuration object (RSUN を参照)
+    gamma : float
+        較正係数
+    r_frac : float
+        参照半径 (RSUN 単位)
+    theta_deg : float
+        参照余緯度 (度)
+
+    Returns
+    -------
+    float
+        黒点数プロキシ
+    '''
+    base = 1 + np.argmin(abs(grid.rr - r_frac*cfg.RSUN))
+    loca = np.argmin(abs(grid.th - theta_deg/180*np.pi))
+    return gamma * Bph[base, loca]**2

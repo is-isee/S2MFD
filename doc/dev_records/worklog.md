@@ -6,6 +6,19 @@
 
 ## 2026-08-19
 
+### Phase 3: Simulation への GA 拡張API追加(完了)
+
+IDPA の生きているコード(~250行)を汎用APIとして再設計して本体に追加(71 passed):
+
+1. **save() 拡張** — npz に `nd`, `dt`, `uu0`, `so0` を追加(プレーン float/int なので IDPA の `allow_pickle=True` は不要)。`cfg.verbose = False` で進捗 print を抑制可能に(並列GA用)。
+2. **時間依存パラメタの規約統一** — `cfg.uu0_of_time(t)` / `cfg.so0_of_time(t)`(t は絶対シミュレーション時刻 [s])という単一のコールバック規約を新設。`update_time_dependent_parameters()` が出力ステップ毎(main_loop / run_window / initial_condition)に評価する。IDPA の2重シグネチャ hasattr スニッフィング(`so0_time_dependent` の (time,ett,RSUN) 版と (as_s,...,inf_year,time) 版の衝突)を解消。
+3. **Setup のビルダー分割** — `build_rotation/build_diffusivity/build_alpha/build_flow` に分割し、`__init__` は4つを順に呼ぶだけに。時間依存更新では該当プロファイルのみ再構築(IDPA は毎回 Setup 全再構築+erf 群再計算をしていた)。数値は同一(式は移動しただけ)。
+4. **`run_window(t_end, on_output=None, save_output=True)`** — 観測窓ループ(旧 defunction_main_loop の一般化)。コールバックで黒点数時系列を記録、`save_output=False` でディスク出力なしの個体評価が可能。`run_window(tend)` は main_loop とビット同一の結果(テストで確認)。
+5. **`spin_up(duration, until_minimum=True, proxy=None)`** — 助走計算(旧 initial_for_OBS/LAST の統合)。3点履歴による黒点数極小検出、`max_extra` の打ち切り付き(旧実装は発振しない解で無限ループ)。`set_field()` で初期場を投入する設計にし、`initial_data/*.npy` のハードコードパスを排除。
+6. **`tools.sunspot_proxy(Bph, grid, cfg, gamma=5.8653520852)`** — 黒点数プロキシを1定義に(IDPA では7箇所にコピペ)。
+
+**IDPAとの意図的な差異**: 時間依存パラメタの更新タイミングが1ステップ分ずれる(Phase 2 のループ順序修正の帰結。40日出力間隔に対し dt≈1.6日)。twin experiment(Phase 5)で論文水準の再現を確認する。judge1〜5 は Phase 4 で metrics.py の純関数として移植する(Simulation には持ち込まない)。bisection 系 ~900行は持ち込まない。
+
 ### Phase 2: S2MFD 本体の重要バグ修正(完了)
 
 実施した修正(すべて test-first、60 passed / slow 2 passed):

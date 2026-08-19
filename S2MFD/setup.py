@@ -43,6 +43,17 @@ class Setup(NpzIO):
       grid : S2MFD.Grid
          Grid object.
       """
+      self.build_rotation(cfg, grid)
+      self.build_diffusivity(cfg, grid)
+
+      #タコクラインのindex
+      self.ibase = np.argmin(abs(grid.rr - cfg.rrc))
+
+      self.build_alpha(cfg, grid)
+      self.build_flow(cfg, grid)
+
+   def build_rotation(self, cfg, grid):
+      """差動回転プロファイル (om, omrr, omth) を構築する。"""
       # differential rotation
       if cfg.differential_type == 'J08':
          self.om = cfg.omc + 0.5*(1 + erf((grid.RR-cfg.rrc)/cfg.d))*(cfg.ome - cfg.omc - cfg.c2*grid.cosTH**2)
@@ -52,7 +63,9 @@ class Setup(NpzIO):
          raise ValueError(f"unknown differential_type: {cfg.differential_type!r}")
       self.omrr = drr2(self.om, grid.drr)
       self.omth = dth2(self.om, grid.dth)/grid.RR
-   
+
+   def build_diffusivity(self, cfg, grid):
+      """磁気拡散プロファイル (et, etrr) を構築する。"""
       # diffusivity
       if cfg.diffusive_type == 'J08':
          self.et = cfg.etc + 0.5*(cfg.ett - cfg.etc)*(1 + erf((grid.RR-cfg.rrc)/cfg.d))
@@ -62,9 +75,12 @@ class Setup(NpzIO):
          raise ValueError(f"unknown diffusive_type: {cfg.diffusive_type!r}")
       self.etrr = drr2(self.et, grid.drr)
 
-      #タコクラインのindex
-      self.ibase = np.argmin(abs(grid.rr - cfg.rrc))
+   def build_alpha(self, cfg, grid):
+      """α効果 (ポロイダル場ソース) プロファイル so を構築する。
 
+      cfg.so0 を変更した後にこのメソッドを呼ぶと so だけを更新できる
+      (時間依存パラメタの差分更新用)。
+      """
       # alpha effect
       if cfg.alpha_type == 'BL':
          self.so = cfg.so0*0.5 \
@@ -81,7 +97,12 @@ class Setup(NpzIO):
       else:
          raise ValueError(f"unknown alpha_type: {cfg.alpha_type!r}")
 
+   def build_flow(self, cfg, grid):
+      """子午面流プロファイル (urr, uth) を構築する。
 
+      cfg.uu0 を変更した後にこのメソッドを呼ぶと urr/uth だけを更新できる
+      (時間依存パラメタの差分更新用)。
+      """
       # Meridional flow
       # Meridional flow (Jouve+2008 Model)
       if cfg.meridional_circulation_type == 'J08':

@@ -135,11 +135,19 @@ class Simulation(S2MFD.Data):
     def save(self):
         """
         Saves data to file
+
+        Notes
+        -----
+        nd, dt に加えて、その時点の uu0 (子午面流振幅), so0 (α効果振幅) も
+        保存する。時間依存パラメタのランを事後解析で復元するため。
         """
-        print(f"{self.time/86400:7.1f} [day]; n={self.n:06d}; nd={self.nd:04d}")
+        if getattr(self.cfg, 'verbose', True):
+            print(f"{self.time/86400:7.1f} [day]; n={self.n:06d}; nd={self.nd:04d}")
         filename = self.get_data_file_path(self.nd)
         np.savez(file=filename,
-                 Bph=self.Bph, Aph=self.Aph, time=self.time, n=self.n)
+                 Bph=self.Bph, Aph=self.Aph, time=self.time, n=self.n,
+                 nd=self.nd, dt=self.dt,
+                 uu0=float(self.cfg.uu0), so0=float(self.cfg.so0))
 
     def initial_condition(self):
         """
@@ -160,7 +168,28 @@ class Simulation(S2MFD.Data):
             self.Bph = np.zeros((grid.ixg, grid.jxg))
             self.Aph = grid.sinTH/(grid.RR/cfg.RSUN)**2*cfg.RSUN/100
             self.Aph[0:setup.ibase, :] = 0
+            self.update_time_dependent_parameters()
             self.save()
+
+    def update_time_dependent_parameters(self):
+        """時間依存パラメタのフックを評価し、背景場を差分更新する。
+
+        規約: cfg に呼び出し可能な属性 ``uu0_of_time(t)`` / ``so0_of_time(t)``
+        (t はシミュレーション時刻 [s]、返り値は振幅) が定義されていれば、
+        現在時刻で評価して cfg.uu0 / cfg.so0 を更新し、Setup の該当
+        プロファイルのみ再構築する。流れが変わった場合は CFL も再計算する。
+        """
+        cfg = self.cfg
+        flow_updated = False
+        if callable(getattr(cfg, 'so0_of_time', None)):
+            cfg.so0 = float(cfg.so0_of_time(self.time))
+            self.setup.build_alpha(cfg, self.grid)
+        if callable(getattr(cfg, 'uu0_of_time', None)):
+            cfg.uu0 = float(cfg.uu0_of_time(self.time))
+            self.setup.build_flow(cfg, self.grid)
+            flow_updated = True
+        if flow_updated and self.dt is not None:
+            self.cfl_condition()
 
     def check_finite(self):
         """
@@ -211,5 +240,120 @@ class Simulation(S2MFD.Data):
             self.n += 1
             if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
                 self.nd += 1
+                self.update_time_dependent_parameters()
                 self.check_finite()
                 self.save()
+
+    def run_window(self, t_end, on_output=None, save_output=True):
+        """指定時刻まで積分する (パラメタ推定用の観測窓ループ)。
+
+        main_loop と同じ構造だが、終了時刻を引数で受け、出力ステップ毎に
+        コールバックを呼べる。時間依存パラメタのフック
+        (cfg.uu0_of_time / cfg.so0_of_time) も出力ステップ毎に評価される。
+
+        Parameters
+        ----------
+        t_end : float
+            終了時刻 [s]
+        on_output : callable, optional
+            出力ステップ毎に on_output(self) の形で呼ばれる。
+            黒点数時系列の記録などに使う。
+        save_output : bool
+            False にするとスナップショットを書かない (GA の個体評価など
+            ディスク出力が不要な場合)。
+
+        Returns
+        -------
+        S2MFD.Simulation
+            self
+        """
+        cfg = self.cfg
+        while self.time < t_end:
+            self.tvd_runge_kutta()
+            self.time += self.dt
+            self.n += 1
+            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+                self.nd += 1
+                self.update_time_dependent_parameters()
+                self.check_finite()
+                if save_output:
+                    self.save()
+                if on_output is not None:
+                    on_output(self)
+        return self
+
+    def set_field(self, Bph, Aph, time=0.0, n=0, nd=0):
+        """磁場の状態を直接設定する (スピンアップ初期場の投入などに使う)。"""
+        self.Bph = np.array(Bph, dtype=np.float64, copy=True)
+        self.Aph = np.array(Aph, dtype=np.float64, copy=True)
+        self.time = float(time)
+        self.n = int(n)
+        self.nd = int(nd)
+
+    def spin_up(self, duration, until_minimum=True, proxy=None,
+                max_extra=100 * 365 * 86400):
+        """現在の状態から助走計算を行う (パラメタ推定の初期条件生成)。
+
+        Shimizu & Hotta (2026) の手順:
+        1. duration (既定は呼び出し側で 80 年を指定) だけ積分する
+        2. until_minimum=True なら、黒点数プロキシが極小 (連続3点の中央が
+           最小) になるまで積分を続ける
+
+        スナップショットは出力しない。終了時の self.Bph/Aph が推定の
+        初期状態になる。時刻・ステップ数のラベル合わせは呼び出し側で行う
+        (set_field や time/nd への代入)。
+
+        Parameters
+        ----------
+        duration : float
+            最低限積分する時間 [s]
+        until_minimum : bool
+            True なら黒点数プロキシの極小まで継続する
+        proxy : callable, optional
+            proxy(sim) -> float。既定は tools.sunspot_proxy。
+        max_extra : float
+            極小検出の打ち切り時間 [s] (発振しない解での無限ループ防止)
+
+        Returns
+        -------
+        S2MFD.Simulation
+            self
+        """
+        if proxy is None:
+            def proxy(sim):
+                return S2MFD.tools.sunspot_proxy(sim.Bph, sim.grid, sim.cfg)
+
+        t_start = self.time
+        sn_history = np.zeros(3)
+        for i in range(3):
+            self.tvd_runge_kutta()
+            self.time += self.dt
+            self.n += 1
+            sn_history[i] = proxy(self)
+
+        while self.time < t_start + duration:
+            self.tvd_runge_kutta()
+            self.time += self.dt
+            self.n += 1
+            sn_history[0] = sn_history[1]
+            sn_history[1] = sn_history[2]
+            sn_history[2] = proxy(self)
+
+        if until_minimum:
+            t_limit = self.time + max_extra
+            while not (sn_history[1] < sn_history[0]
+                       and sn_history[1] < sn_history[2]):
+                if self.time > t_limit:
+                    raise RuntimeError(
+                        "spin_up: no sunspot-number minimum detected within "
+                        f"{max_extra/86400/365:.0f} years of extra integration."
+                    )
+                self.tvd_runge_kutta()
+                self.time += self.dt
+                self.n += 1
+                sn_history[0] = sn_history[1]
+                sn_history[1] = sn_history[2]
+                sn_history[2] = proxy(self)
+
+        self.check_finite()
+        return self

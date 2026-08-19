@@ -89,16 +89,14 @@ d_bc = 0.0125*RSUN
 nu_floor_frac = 0.02
 kappa_floor_frac = 0.002
 
-# 数値安定性のための増幅係数 (論文からの逸脱。既定は 1.0 = 論文どおり)。
-# 本実装は SSP-RK2 + 中心差分で数値散逸を持たないのに対し、Rempel の
-# MacCormack は音波に対して物理粘性の 15 倍の散逸を暗黙に持つ。
-# 対流層が中立成層 (delta_conv = 0) だと復元力がないため、論文の値では
-# 6-8 セル程度の解像されたモードが準中立になって成長する。
-# 実測: kappa を 3 倍にすると 64x64 で 1.5 年安定 (詳細は
-# doc/dev_records/2026-08-20_rempel2006_worklog.md §5)。
-# Lambda 効果用の粘性には掛けない (駆動の強さを変えないため)。
+# 数値安定性のための増幅係数 (論文からの逸脱を明示するための係数)。
+#
+# 当初、論文どおりの値では 0.4 年程度で発散したため kappa を 3 倍にしていたが、
+# 原因は散逸加熱を「Omega * dq」で局所評価していたことだった。正しい局所形
+# 「-F . grad(Omega)」に直したところ、論文値 (1.0) のまま安定になった。
+# 詳細は doc/dev_records/2026-08-20_rempel2006_worklog.md §4.4。
 nu_numerical_factor = 1.0
-kappa_numerical_factor = 3.0
+kappa_numerical_factor = 1.0
 
 # --- 角運動量輸送 (Lambda 効果, Rempel 2005 式 31-33) ---------------------
 # Rempel 2006 参照モデル: n = 3, Lambda0 = 1, lambda = 15 度

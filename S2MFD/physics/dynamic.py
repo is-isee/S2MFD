@@ -263,6 +263,9 @@ class DynamicSolver:
         ds_mr = np.zeros(self.shape)
         ds_mt = np.zeros(self.shape)
         ds_om = np.zeros(self.shape)
+        # 角運動量の散逸だけは「局所的な変換率 -F.grad(Omega1)」として
+        # 別に積む (Omega*dq_om だと Omega0/Omega1 倍の偽の加熱になる)
+        heat = np.zeros(self.shape)
 
         # --- 質量 --------------------------------------------------------
         hydro.mass_rhs(dq_ro, self.vrr, self.vth, s.JV, s.JVY, self.izeta2,
@@ -286,7 +289,7 @@ class DynamicSolver:
             st.nu_dif, st.nu_dif_m, st.nu_lam, st.nu_lam_m,
             grid.drr, grid.dth, m, self.magnetic,
             self.consistent_advection, self.om1_bottom_dirichlet,
-            ds_om, self._bflux, w.ffr, w.ffth, w.cen)
+            ds_om, heat, self._bflux, w.ffr, w.ffth, w.cen)
 
         # --- 子午面の粘性 (散逸項として分離) -----------------------------
         hydro.viscous_meridional_rhs(ds_mr, ds_mt, self.vrr, self.vth,
@@ -297,10 +300,11 @@ class DynamicSolver:
         # --- 人工拡散 (これも散逸項) -------------------------------------
         if self.use_artdif:
             self._update_characteristic_speed()
-            artdif.sld_diffuse(ds_om, self.om1, self.jacL_r, self.jacL_th,
-                               self.csp_r, self.csp_th, self.sld_coef,
-                               self.sld_floor,
-                               grid.drr, grid.dth, m, w.ffr, w.ffth)
+            artdif.sld_diffuse_work(ds_om, heat, self.om1,
+                                    self.jacL_r, self.jacL_th,
+                                    self.csp_r, self.csp_th, self.sld_coef,
+                                    self.sld_floor,
+                                    grid.drr, grid.dth, m, w.ffr, w.ffth)
             artdif.sld_diffuse(ds_mr, self.vrr, self.jacV_r, self.jacV_th,
                                self.csp_r, self.csp_th, self.sld_coef,
                                self.sld_floor,
@@ -332,8 +336,8 @@ class DynamicSolver:
                           s.JM, s.iJM, grid.rr, grid.sinTH, grid.sinTHm,
                           s.gamma, grid.drr, grid.dth, m, w.ffr, w.ffth)
         # 散逸したエネルギーをエントロピーに戻す (係数はちょうど 1)
-        hydro.add_dissipative_heating(dse1, ds_mr, ds_mt, ds_om,
-                                      self.vrr, self.vth, self.om1, cfg.om0,
+        hydro.add_dissipative_heating(dse1, heat, ds_mr, ds_mt,
+                                      self.vrr, self.vth,
                                       s.pr0, s.iJM, s.gamma, m)
         if self.magnetic:
             hydro.add_ohmic_heating(dse1, self.brr, self.bth, self.bph,

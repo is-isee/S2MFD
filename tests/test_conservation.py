@@ -181,8 +181,8 @@ def _angmom_step(q_om, om1, vrr, vth, bb, grid, strat, setup, cfg, dt, work,
             strat.ro0, strat.ro0m, setup.lam_rp, setup.lam_tp, cfg.om0,
             setup.nu_dif, setup.nu_dif_m, setup.nu_lam, setup.nu_lam_m,
             grid.drr, grid.dth, m, magnetic,
-            consistent, False, np.zeros_like(q), np.zeros(grid.jxg),
-            work.ffr, work.ffth, work.cen)
+            consistent, False, np.zeros_like(q), np.zeros_like(q),
+            np.zeros(grid.jxg), work.ffr, work.ffth, work.cen)
         return dq
 
     q1 = q_om + dt*rhs(q_om)
@@ -304,7 +304,8 @@ def test_perturbation_form_beats_total_form(setup_dynamic):
                 setup.nu_dif, setup.nu_dif_m, setup.nu_lam, setup.nu_lam_m,
                 grid.drr, grid.dth, m, False,
                 False, False, np.zeros((grid.ixg, grid.jxg)),
-                np.zeros(grid.jxg), work.ffr, work.ffth, work.cen)
+                np.zeros((grid.ixg, grid.jxg)), np.zeros(grid.jxg),
+                work.ffr, work.ffth, work.cen)
             return dq
 
         for _ in range(1500):
@@ -797,7 +798,8 @@ def test_reynolds_stress_is_not_double_counted():
         setup.lam_rp, setup.lam_tp, cfg.om0,
         setup.nu_dif, setup.nu_dif_m, setup.nu_lam, setup.nu_lam_m,
         grid.drr, grid.dth, m, False, False, False,
-        dq_stress, np.zeros(grid.jxg), work.ffr, work.ffth, work.cen)
+        dq_stress, np.zeros(shape), np.zeros(grid.jxg),
+        work.ffr, work.ffth, work.cen)
 
     sl = (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
     # 速度ゼロなので移流も Maxwell もない -> dq_om はゼロのままのはず

@@ -67,6 +67,7 @@ __all__ = [
     'face_average_r', 'face_average_th',
     'zero_boundary_faces_r', 'zero_boundary_faces_th',
     'flux_divergence', 'add_flux_divergence', 'add_flux_divergence_scaled',
+    'add_flux_work',
     'cell_integral',
 ]
 
@@ -200,6 +201,57 @@ def flux_divergence(ffr, ffth, drr, dth, margin):
     dqq = np.zeros_like(ffr)
     add_flux_divergence(dqq, ffr, ffth, drr, dth, margin)
     return dqq
+
+
+@njit(fastmath=False)
+def add_flux_work(heat, ffr, ffth, uu, drr, dth, margin):
+    """局所的なエネルギー変換率 :math:`-F\\cdot\\nabla u` を ``heat`` に加算する.
+
+    保存量の更新が :math:`\\partial q/\\partial t = -\\nabla\\cdot F` の形の
+    とき, 対応するエネルギーの変化率は
+
+    .. math::
+       u\\frac{\\partial q}{\\partial t}
+         = -\\nabla\\cdot(uF) + F\\cdot\\nabla u
+
+    と分解できる. 第 1 項は輸送 (体積積分すると境界だけに残る), 第 2 項が
+    **局所的な**変換である. したがって散逸加熱は :math:`-F\\cdot\\nabla u`.
+
+    なぜ :math:`u\\,\\partial q/\\partial t` をそのまま使ってはいけないか
+    -----------------------------------------------------------------------
+    体積積分すれば両者は一致するが, **局所的には発散の分だけずれる**.
+    角運動量の場合 :math:`u=\\Omega_0+\\Omega_1` で
+    :math:`\\Omega_0\\gg\\Omega_1` なので, このずれは正しい値の
+    :math:`\\Omega_0/\\Omega_1` 倍 (20-100 倍) にもなる. しかも符号が
+    空間的に振動するため, エントロピー方程式に偽の双極子を作り, 浮力を
+    通じて計算を不安定にする. 実際にこれが原因で発散していた
+    (``doc/dev_records/2026-08-20_rempel2006_worklog.md``).
+
+    この形なら :math:`\\Omega_0` は微分で消えるので現れない.
+
+    離散化と正値性
+    --------------
+    面フラックスと面での勾配を組にして, セル中心へ平均する:
+
+    .. math::
+       Q_{ij} = -\\tfrac12\\left[
+         F^r_i\\frac{u_i-u_{i-1}}{\\Delta r}
+       + F^r_{i+1}\\frac{u_{i+1}-u_i}{\\Delta r}\\right] - (\\theta 方向)
+
+    拡散フラックス :math:`F=-\\kappa J\\Delta u/\\Delta r` に対しては
+    各項が :math:`+\\kappa J(\\Delta u/\\Delta r)^2\\ge0` になるので,
+    **散逸の正値性が離散レベルで保証される**.
+    """
+    ixg, jxg = heat.shape
+    idrr = 1.0/drr
+    idth = 1.0/dth
+    for i in range(margin, ixg - margin):
+        for j in range(margin, jxg - margin):
+            heat[i, j] -= 0.5*(
+                ffr[i, j]*(uu[i, j] - uu[i - 1, j])*idrr
+                + ffr[i + 1, j]*(uu[i + 1, j] - uu[i, j])*idrr
+                + ffth[i, j]*(uu[i, j] - uu[i, j - 1])*idth
+                + ffth[i, j + 1]*(uu[i, j + 1] - uu[i, j])*idth)
 
 
 @njit(fastmath=False)

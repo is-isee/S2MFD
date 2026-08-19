@@ -49,7 +49,7 @@ from numba import njit
 from S2MFD.physics.conservative import (
     face_average_r, face_average_th,
     zero_boundary_faces_r, zero_boundary_faces_th,
-    add_flux_divergence,
+    add_flux_divergence, add_flux_work,
 )
 
 __all__ = [
@@ -223,7 +223,7 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
                          ro0, ro0m, lam_rp, lam_tp, om0,
                          nu_dif, nu_dif_m, nu_lam, nu_lam_m, drr, dth, margin,
                          magnetic, consistent_advection, open_bottom,
-                         dq_stress, bflux, ffr, ffth, cen):
+                         dq_stress, heat, bflux, ffr, ffth, cen):
     """角運動量方程式の右辺を ``dq_om`` に加算する.
 
     すべての項を発散形
@@ -430,6 +430,9 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
     # 行う (dq_stress はエントロピーの加熱項にも使うため分けている)。
     # ここで dq_om にも足すと二重計上になり、粘性と Lambda 効果が 2 倍になる。
     add_flux_divergence(dq_stress, ffr, ffth, drr, dth, margin)
+    # 局所的なエネルギー変換率 -F.grad(Omega1) をエントロピーの加熱項へ。
+    # Omega0 は微分で消えるので、Omega0/Omega1 倍の偽の加熱が生じない。
+    add_flux_work(heat, ffr, ffth, om1, drr, dth, margin)
 
 
 # ---------------------------------------------------------------------------
@@ -749,50 +752,43 @@ def entropy_rhs(dse1, se1, vrr, vth, ro0, tm0, pr0, hp, delta, kappa, kappa_m,
 
 
 @njit(fastmath=False)
-def add_dissipative_heating(dse1, dq_mr, dq_mt, dq_om, vrr, vth, om1, om0,
+def add_dissipative_heating(dse1, heat, dq_mr, dq_mt, vrr, vth,
                             pr0, iJM, gamma, margin):
-    """散逸で失われた運動エネルギーをエントロピーに戻す.
+    """散逸で失われたエネルギーをエントロピーに戻す.
 
-    ``dq_mr``, ``dq_mt``, ``dq_om`` には**散逸項だけ**の寄与を渡すこと
-    (移流や圧力勾配を含めてはいけない). 単位体積・単位時間あたりの
-    運動エネルギー変化率は
+    ``heat`` には**局所的な**エネルギー変換率 :math:`-F\\cdot\\nabla u` を
+    :func:`S2MFD.physics.conservative.add_flux_work` で積んでおくこと.
+    :math:`u\\,\\partial q/\\partial t` をそのまま使うと, 体積積分は
+    合っていても局所的には発散の分だけずれ, 角運動量の場合は
+    :math:`\\Omega_0/\\Omega_1` 倍 (20-100 倍) の偽の加熱・冷却になる.
 
-    .. math::
-       \\frac{\\partial}{\\partial t}
-       \\left(\\tfrac12\\rho_0 v^2 + \\tfrac12\\rho_0\\varpi^2\\Omega^2\\right)
-       = \\frac{1}{r^2\\sin\\theta}\\left[
-          v_r\\dot q_{m,r} + v_\\theta\\dot q_{m,\\theta}
-          + (\\Omega_0+\\Omega_1)\\dot q_L\\right]
+    子午面運動量については源項 (幾何因子由来) も仕事をするので,
+    フラックス由来の分と合わせて ``dq_mr``, ``dq_mt`` から
+    :math:`v\\cdot\\dot q_m` として評価する. こちらは :math:`v^2` の
+    オーダーで大きな定数を含まないため, 発散分のずれも同じオーダーに
+    留まる.
 
-    であり, これを符号反転したものが加熱率 :math:`Q` になる.
     無次元エントロピー (:math:`c_v` で規格化) では
     :math:`\\rho_0T_0c_v = p_0/(\\gamma-1)` なので
 
     .. math:: \\frac{\\partial s_1}{\\partial t} \\mathrel{+}=
               \\frac{\\gamma-1}{p_0}\\,Q
 
-    となる (Rempel 2006 式 5 の第 4 項と同じ係数).
+    となる (Rempel 2006 式 5 の第 4 項と同じ係数). 係数はちょうど 1 で,
+    「運動量方程式が奪った分をそのまま渡す」ことになる — ユーザー要求
+    「人工粘性によって散逸した運動エネルギー・磁場エネルギーをエントロピーの
+    式に足す」を離散レベルで満たす形である.
 
-    なぜ応力から直接 :math:`Q` を組み立てないのか
-    ----------------------------------------------
-    粘性散逸を :math:`\\tau_{ij}E_{ij}/2` の形で別途離散化すると, 運動量
-    方程式で実際に失われた量と一致する保証がない. 「運動量方程式が奪った分を
-    そのまま渡す」ようにすれば, **離散化がどうであれエネルギー移送が厳密**に
-    なり, 係数もちょうど 1 になる. ユーザー要求「人工粘性によって散逸した
-    運動エネルギー・磁場エネルギーをエントロピーの式に足す」を離散レベルで
-    満たすにはこの形が確実である.
-
-    正値性は保証されない (これは仕様). 散逸項が本当に散逸的なら符号は
-    自動的に正になり, もし負が出ればそれは応力の実装が壊れている合図なので,
-    握りつぶさずテストで検出する (``test_viscosity_always_dissipates_kinetic_energy``).
+    Λ 効果の寄与は**負の加熱 (冷却)** になる. 差動回転にエネルギーを渡す側
+    だからで, Rempel 2005 の記述「Q は粘性散逸による加熱項と Λ 効果による
+    冷却項を含み, 後者が一般に支配的」がそのまま再現される.
     """
     ixg, jxg = dse1.shape
     for i in range(margin, ixg - margin):
         c = (gamma - 1.0)/pr0[i]
         for j in range(margin, jxg - margin):
-            dke = (vrr[i, j]*dq_mr[i, j] + vth[i, j]*dq_mt[i, j]
-                   + (om0 + om1[i, j])*dq_om[i, j])
-            dse1[i, j] -= c*dke*iJM[i, j]
+            q = heat[i, j] - (vrr[i, j]*dq_mr[i, j] + vth[i, j]*dq_mt[i, j])
+            dse1[i, j] += c*q*iJM[i, j]
 
 
 @njit(fastmath=False)

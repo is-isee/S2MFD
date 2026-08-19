@@ -78,11 +78,11 @@ from numba import njit
 
 from S2MFD.physics.conservative import (
     zero_boundary_faces_r, zero_boundary_faces_th,
-    add_flux_divergence, add_flux_divergence_scaled,
+    add_flux_divergence, add_flux_divergence_scaled, add_flux_work,
 )
 
-__all__ = ['sld_flux_r', 'sld_flux_th', 'sld_diffuse', 'sld_diffuse_scaled',
-           'sld_diffuse_primitive', 'sld_diffusivity_max']
+__all__ = ['sld_flux_r', 'sld_flux_th', 'sld_diffuse', 'sld_diffuse_work',
+           'sld_diffuse_scaled', 'sld_diffuse_primitive', 'sld_diffusivity_max']
 
 
 @njit(inline='always')
@@ -268,3 +268,22 @@ def sld_diffusivity_max(csp_r, csp_th, coefficient, floor, drr, dth, rr, margin)
             if k > kmax:
                 kmax = k
     return kmax
+
+
+@njit(fastmath=False)
+def sld_diffuse_work(dqq, heat, uu, jac_r, jac_th, csp_r, csp_th, coefficient,
+                     floor, drr, dth, margin, ffr, ffth):
+    """:func:`sld_diffuse` に加えて, 局所的な散逸率を ``heat`` に積む.
+
+    角運動量に人工拡散を掛けるときはこちらを使う.
+    :math:`\\Omega=\\Omega_0+\\Omega_1` の :math:`\\Omega_0` は
+    :math:`-F\\cdot\\nabla\\Omega` の微分で消えるので, 局所的な加熱が
+    :math:`\\Omega_0/\\Omega_1` 倍に化ける問題を避けられる
+    (:func:`S2MFD.physics.conservative.add_flux_work` の説明を参照).
+    """
+    sld_flux_r(uu, jac_r, csp_r, coefficient, floor, margin, ffr)
+    zero_boundary_faces_r(ffr, margin)
+    sld_flux_th(uu, jac_th, csp_th, coefficient, floor, margin, ffth)
+    zero_boundary_faces_th(ffth, margin)
+    add_flux_divergence(dqq, ffr, ffth, drr, dth, margin)
+    add_flux_work(heat, ffr, ffth, uu, drr, dth, margin)

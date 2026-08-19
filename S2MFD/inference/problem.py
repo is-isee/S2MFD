@@ -247,6 +247,25 @@ class DynamoProblem:
         return sn, ts, sim
 
     # ------------------------------------------------------------------ #
+    def warmup(self):
+        """numba カーネルを親プロセスでコンパイルしておく。
+
+        GA は世代ごとに fork でワーカーを作るため、親が先にコンパイルして
+        おけば子はコンパイル済みコードを継承でき、世代ごとの
+        コンパイル待ち (数秒 x ワーカー数) を避けられる。
+        """
+        params = {k: 0.5*(lo + hi) for k, (lo, hi) in self.param_spec().items()}
+        saved = (self.spinup_years, self.until_minimum,
+                 self.index_end)
+        self.spinup_years = 0.02
+        self.until_minimum = False
+        self.index_end = min(self.index_start + 2, len(self.obs_ssn) - 1)
+        try:
+            self.simulate(params)
+        finally:
+            (self.spinup_years, self.until_minimum,
+             self.index_end) = saved
+
     def __call__(self, params):
         """適応度を返す。
 

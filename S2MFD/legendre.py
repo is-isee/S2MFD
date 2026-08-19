@@ -42,3 +42,29 @@ class Legendre(NpzIO):
         self.n_values = np.arange(1, self.lmax)
         self.coefficients = (2 * self.n_values + 1) / (2 * self.n_values * (self.n_values + 1))
         self.P1n_reduced = self.P1n[1:, :]
+        self.build_potential_operator(grid)
+
+    def build_potential_operator(self, grid):
+        """potential 境界条件の「表面値 → ゴースト値」線形作用素を作る。
+
+        境界条件は Aφ について線形なので、ルジャンドル射影と外部ポテンシャル場
+        による再構成をまとめて1つの行列で表せる::
+
+            Aph_ghost[k][j'] = sum_j Aph_surface[j] * M[k][j, j']
+
+        ここで
+        M[k][j,j'] = sin(th_j) dth * sum_n c_n (r_top/r_ghost_k)^(n+1)
+                                          P1n(th_j) P1n(th_j')
+
+        毎ステップ生成していた (lmax-1, jx) の一時配列と冪計算が、
+        1 回の行列ベクトル積 (jx x jx) に置き換わる。
+        """
+        margin = grid.margin
+        r_top = grid.rr[grid.ixg - margin - 1]
+        L = self.P1n_reduced                       # (lmax-1, jx)
+        row_w = self.sinth * grid.dth              # (jx,)
+        self.potential_operator = np.empty((margin, grid.jx, grid.jx))
+        for k in range(margin):
+            r_ghost = grid.rr[grid.ixg - k - 1]
+            scale = self.coefficients * (r_top / r_ghost)**(self.n_values + 1)
+            self.potential_operator[k] = row_w[:, None] * (L.T @ (scale[:, None] * L))

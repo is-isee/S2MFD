@@ -219,8 +219,8 @@ class Simulation(S2MFD.Data):
         Bphn, Aphn = S2MFD.physics.time_marching(Bphm, Aphm, self.dt, cfg, grid, setup)
         Bphn, Aphn = S2MFD.physics.boundary_condition(Bphn, Aphn, cfg, grid, legendre)
 
-        self.Bph = 0.5*self.Bph + 0.5*Bphn
-        self.Aph = 0.5*self.Aph + 0.5*Aphn
+        self.Bph = S2MFD.physics.rk_combine(self.Bph, Bphn)
+        self.Aph = S2MFD.physics.rk_combine(self.Aph, Aphn)
 
     def main_loop(self):
         """
@@ -269,10 +269,12 @@ class Simulation(S2MFD.Data):
         """
         cfg = self.cfg
         while self.time < t_end:
-            self.tvd_runge_kutta()
-            self.time += self.dt
-            self.n += 1
-            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
+            # 次の出力時刻までを numba 側でまとめて進める
+            t_next = (np.floor(self.time/cfg.dtout) + 1.0)*cfg.dtout
+            t_stop = min(t_next, t_end)
+            before = self.time
+            S2MFD.physics.stepping.advance_to(self, t_stop)
+            if self.time//cfg.dtout != before//cfg.dtout:
                 self.nd += 1
                 self.update_time_dependent_parameters()
                 self.check_finite()
@@ -320,41 +322,62 @@ class Simulation(S2MFD.Data):
         S2MFD.Simulation
             self
         """
-        if proxy is None:
+        proxy_is_default = proxy is None
+        if proxy_is_default:
             def proxy(sim):
                 return S2MFD.tools.sunspot_proxy(sim.Bph, sim.grid, sim.cfg)
 
         t_start = self.time
         sn_history = np.zeros(3)
-        for i in range(3):
-            self.tvd_runge_kutta()
-            self.time += self.dt
-            self.n += 1
-            sn_history[i] = proxy(self)
 
-        while self.time < t_start + duration:
+        # 履歴用の最後3ステップを残して、numba 側でまとめて進める
+        # (ステップ数は 1 ステップずつ回す実装と一致する)
+        t_target = t_start + duration
+        t_batch = t_target - 3.0*self.dt
+        if t_batch > self.time:
+            S2MFD.physics.stepping.advance_to(self, t_batch)
+
+        recorded = 0
+        while self.time < t_target or recorded < 3:
             self.tvd_runge_kutta()
             self.time += self.dt
             self.n += 1
             sn_history[0] = sn_history[1]
             sn_history[1] = sn_history[2]
             sn_history[2] = proxy(self)
+            recorded += 1
 
         if until_minimum:
             t_limit = self.time + max_extra
-            while not (sn_history[1] < sn_history[0]
-                       and sn_history[1] < sn_history[2]):
-                if self.time > t_limit:
-                    raise RuntimeError(
-                        "spin_up: no sunspot-number minimum detected within "
-                        f"{max_extra/86400/365:.0f} years of extra integration."
-                    )
-                self.tvd_runge_kutta()
-                self.time += self.dt
-                self.n += 1
-                sn_history[0] = sn_history[1]
-                sn_history[1] = sn_history[2]
-                sn_history[2] = proxy(self)
+            base, loca, gamma = self._proxy_indices()
+            if proxy_is_default and base >= 0:
+                # 極小検出まで numba 側で回す
+                _, ok = S2MFD.physics.stepping.advance_until_minimum(
+                    self, t_limit, sn_history, base, loca, gamma)
+            else:
+                ok = True
+                while not (sn_history[1] < sn_history[0]
+                           and sn_history[1] < sn_history[2]):
+                    if self.time > t_limit:
+                        ok = False
+                        break
+                    self.tvd_runge_kutta()
+                    self.time += self.dt
+                    self.n += 1
+                    sn_history[0] = sn_history[1]
+                    sn_history[1] = sn_history[2]
+                    sn_history[2] = proxy(self)
+            if not ok:
+                raise RuntimeError(
+                    "spin_up: no sunspot-number minimum detected within "
+                    f"{max_extra/86400/365:.0f} years of extra integration."
+                )
 
         self.check_finite()
         return self
+
+    def _proxy_indices(self, r_frac=0.7, theta_deg=75.0, gamma=5.8653520852):
+        """既定の黒点数プロキシが参照する格子インデックスを返す。"""
+        base = 1 + int(np.argmin(abs(self.grid.rr - r_frac*self.cfg.RSUN)))
+        loca = int(np.argmin(abs(self.grid.th - theta_deg/180*np.pi)))
+        return base, loca, gamma

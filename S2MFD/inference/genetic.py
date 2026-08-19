@@ -21,6 +21,7 @@
   解消した (評価器側の設計)。
 """
 import logging
+import os
 from concurrent.futures import ProcessPoolExecutor
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -52,6 +53,7 @@ class GAConfig:
     # --- 実行制御 ---
     max_workers: int = None          # None なら min(個体数, CPU数)
     seed: int = None
+    pin_cpus: bool = True            # ワーカーを個別コアに固定 (NUMA局所性)
 
 
 @dataclass
@@ -74,6 +76,22 @@ class GAResult:
 def _evaluate_one(args):
     evaluator, params = args
     return evaluator(params)
+
+
+def _pin_worker(counter, cores):
+    """ワーカープロセスを1コアに固定する (ProcessPoolExecutor の initializer)。
+
+    個体評価はメモリ帯域律速なので、プロセスがコア間を移動すると
+    キャッシュと NUMA 局所性が失われて 4 割ほど遅くなる。
+    """
+    import os
+    with counter.get_lock():
+        idx = counter.value
+        counter.value += 1
+    try:
+        os.sched_setaffinity(0, {cores[idx % len(cores)]})
+    except (OSError, AttributeError):
+        pass
 
 
 class GeneticAlgorithm:
@@ -130,7 +148,18 @@ class GeneticAlgorithm:
         if max_workers <= 1:
             results = [_evaluate_one(a) for a in args]
         else:
-            with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            kwargs = {}
+            if self.config.pin_cpus:
+                try:
+                    import multiprocessing as mp
+                    cores = sorted(os.sched_getaffinity(0))[:max_workers]
+                    if cores:
+                        kwargs = dict(
+                            initializer=_pin_worker,
+                            initargs=(mp.Value('i', 0), cores))
+                except (AttributeError, OSError):
+                    pass
+            with ProcessPoolExecutor(max_workers=max_workers, **kwargs) as executor:
                 results = list(executor.map(_evaluate_one, args))
         for chrom, fit in zip(todo, results):
             chrom.fitness = float(fit)
@@ -259,6 +288,10 @@ class GeneticAlgorithm:
         interrupted = False
         gen = 0
         try:
+            warm = getattr(self.evaluator, 'warmup', None)
+            if callable(warm):
+                logger.info('numba カーネルを事前コンパイル中...')
+                warm()
             self._evaluate_population()
             best = deepcopy(self._best())
             for gen in range(cfg.max_generations):

@@ -6,6 +6,22 @@
 
 ## 2026-08-19
 
+### Phase 1: テスト基盤の先行整備(完了)
+
+- 開発環境: リポジトリ直下に `.venv` を作成(numpy 2.5.2 / numba 0.67.0 / scipy 1.18.0 / pytest 9.1.1)。requirements.txt のピン(numpy==1.24.3 等)は Python 3.12 と非互換のため現行版を使用 — Phase 2 の pyproject 集約で依存宣言を更新する。
+- `tests/` を新設(pytest、`pytest.ini` は Phase 2 で pyproject に統合予定):
+  - `test_tools.py` — 微分演算子。**docstring の up/dw が実装と逆であることをテストで文書化**(実装挙動を正とする)。保存形ペア('up'→'dw' 合成 = 2階中心差分)も検証。
+  - `test_grid.py` — セル中心座標・ゴースト・面中心座標・save/load。スカラーの0次元 ndarray 化は xfail で記録。
+  - `test_cfg.py` — defaults/派生量/上書き/JSONラウンドトリップ。既知の制限3件(派生量の固定化、numpy型の黙殺、絶対パス不可)を xfail/characterization で記録。
+  - `test_setup_profiles.py` — J08 のプロファイル性質 + defaults/alpha_omega/hotta10 のゴールデン配列比較。
+  - `test_physics_core.py` — 双極子場の poloidal_mag、一様場・一様流の移流(厳密解)、αクエンチング、BL非局所性。
+  - `test_boundary_condition.py` — vertical/potential のゴースト関係・線形性・n=1モードの外挿一致。
+  - `test_simulation.py` — CFL式のcharacterization、32×32小規模ラン(alpha_omega, 200日)のゴールデン比較、**タイムスタンプずれの xfail テスト**(修正後にパスする形で記述)、リスタート回帰テスト、`run_simulation` API。
+  - `test_slow_benchmark.py` — `-m slow` でのみ実行(αΩダイナモ成長、potential BC 安定性)。
+  - ゴールデンデータは `tests/golden/generate_golden.py` で生成(再生成時は本ログに記録すること)。
+- 結果: **46 passed / 6 xfailed / slow 2 passed**。
+- **発見**: リスタート経路は「0次元配列問題で壊れている可能性が高い」と調査段階で推定していたが、**現行の numpy/numba では正常動作する**ことをテストで確認(`test_restart_continues_run` は通常のパステストに変更)。型の汚れ自体は残っており Phase 2 で健全化する(レビュー報告書 §1.2 の深刻度は「実行可否」ではなく「型健全性・将来の互換性」に読み替え)。
+
 ### 調査・計画(Phase 0 まで)
 
 - **調査**: S2MFD 全ソース精読、IDPA 全ソース精読+upstream との diff、修論 PDF(reference/)全55ページの要約を実施。結果は以下に整理:

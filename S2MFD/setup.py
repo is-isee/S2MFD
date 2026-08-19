@@ -52,6 +52,54 @@ class Setup(NpzIO):
       self.build_alpha(cfg, grid)
       self.build_flow(cfg, grid)
 
+      if getattr(cfg, 'dynamics', 'kinematic') != 'kinematic':
+         self.build_lambda(cfg, grid)
+
+   def build_lambda(self, cfg, grid):
+      """Λ効果 (非等方レイノルズ応力) のプロファイルを構築する。
+
+      Rempel (2005) 式 (14)-(16)。角運動量フラックスを回転軸方向から
+      角度 ``cfg.lambda_tilt_deg`` だけ傾けた向きに与える:
+
+      .. math::
+         \\Lambda_{r\\varphi} = L\\cos(\\theta+\\varepsilon), \\quad
+         \\Lambda_{\\theta\\varphi} = -L\\sin(\\theta+\\varepsilon)
+
+      振幅は :math:`L \\propto \\sin^n\\theta\\cos\\theta
+      \\tanh((r_{\\max}-r)/d)` で、対流層上端で滑らかにゼロになる。
+
+      全球格子での赤道対称性
+      ----------------------
+      齋藤 (2024) のコードは北半球 :math:`[0,\\pi/2]` のみを解くので傾き
+      :math:`\\varepsilon` の符号を考える必要がない。S2MFD は全球
+      :math:`[0,\\pi]` を解くため、そのまま使うと赤道対称性が壊れる。
+
+      :math:`q_L` が偶関数であるためには :math:`F^r` が偶、
+      :math:`F^\\theta` が奇でなければならず、幾何因子 :math:`\\sin^2\\theta`
+      が偶であることから :math:`\\Lambda_{r\\varphi}` は偶、
+      :math:`\\Lambda_{\\theta\\varphi}` は奇である必要がある。振幅 L は
+      :math:`\\cos\\theta` に比例して奇なので、傾き角を
+      :math:`\\varepsilon\\,\\mathrm{sgn}(\\cos\\theta)` として南半球で符号を
+      反転させるとこの条件を満たす (物理的にも、傾きは両半球で鏡像になる)。
+      """
+      n = getattr(cfg, 'lambda_n', 2.0)
+      dl = getattr(cfg, 'lambda_d', 0.025*cfg.RSUN)
+      lam0 = getattr(cfg, 'lambda0', 0.8)
+      eps = np.deg2rad(getattr(cfg, 'lambda_tilt_deg', 15.0))
+
+      ff = grid.sinTH**n*grid.cosTH*np.tanh((grid.rrmax - grid.RR)/dl)
+      # 規格化は物理セルの最大値で取る (ゴーストセルは外挿なので除く)
+      i0, i1 = grid.margin, grid.ixg - grid.margin
+      j0, j1 = grid.margin, grid.jxg - grid.margin
+      amp = ff[i0:i1, j0:j1].max()
+      L = lam0*cfg.om0*ff/amp
+
+      # 傾きの符号を半球ごとに反転させる (赤道対称性の保持)
+      sgn = np.sign(grid.cosTH)
+      ce, se = np.cos(eps), np.sin(eps)
+      self.lam_rp = L*(grid.cosTH*ce - sgn*grid.sinTH*se)
+      self.lam_tp = -L*(grid.sinTH*ce + sgn*grid.cosTH*se)
+
    def build_rotation(self, cfg, grid):
       """差動回転プロファイル (om, omrr, omth) を構築する。"""
       # differential rotation

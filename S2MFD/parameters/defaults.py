@@ -56,6 +56,13 @@ rey = 700
 uu0 = rey*ett/RSUN
 rrb = 0.65*RSUN # base of the meridional flow
 
+# Dynamics mode
+#   'kinematic' : 流れ場を与えて誘導方程式だけを解く (既定。従来の S2MFD)
+#   'dynamic'   : 流体の運動方程式とエントロピー方程式も解く (Rempel 2006)
+#   'hydro'     : 磁場を解かず流体だけを解く (差動回転の緩和用)
+# 'kinematic' 以外では以下の熱力学パラメタが必要になる。
+dynamics = 'kinematic'
+
 # Flag for continuation
 cont_flag = True
 

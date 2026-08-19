@@ -232,17 +232,8 @@ class Simulation(S2MFD.Data):
         保存される場は time ラベルと一致する (2026-08-19 修正。それ以前は
         1ステップ前の場が保存されていた)。
         """
-        cfg = self.cfg
-
-        while self.time < cfg.tend:
-            self.tvd_runge_kutta()
-            self.time += self.dt
-            self.n += 1
-            if(self.time//cfg.dtout != (self.time - self.dt)//cfg.dtout):
-                self.nd += 1
-                self.update_time_dependent_parameters()
-                self.check_finite()
-                self.save()
+        # 実体は run_window (numba 側で出力時刻までまとめて積分する)
+        self.run_window(self.cfg.tend)
 
     def run_window(self, t_end, on_output=None, save_output=True):
         """指定時刻まで積分する (パラメタ推定用の観測窓ループ)。

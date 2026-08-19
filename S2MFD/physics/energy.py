@@ -100,6 +100,32 @@ class EnergyBudget:
         e_b = self._integrate(bph**2/EIGHT_PI)
         return e_om, e_m, e_b
 
+    def thermal_energy(self, se1):
+        """エントロピー摂動に伴う内部エネルギー :math:`\\int\\rho_0T_0c_v s_1\\,dV`.
+
+        :math:`s_1` は :math:`c_v` で規格化された無次元エントロピーなので,
+        物理エントロピー摂動は :math:`c_v s_1`, 内部エネルギー摂動は
+        :math:`\\rho_0T_0 c_v s_1` (密度一定での 1 次).
+        """
+        s = self.strat
+        return self._integrate(s.ro0[:, None]*s.tm0[:, None]*s.cv*se1)
+
+    def total_perturbation_energy(self, om1, vrr, vth, bph, se1):
+        """摂動のエネルギーの総和 (剛体回転分と背景の内部エネルギーは除く).
+
+        .. math::
+           E_{\\rm tot} = E_{\\Omega_1} + E_M + E_B + E_{\\rm th}
+
+        全エネルギーは保存しない (Λ 効果が対流エネルギー流束から注入し,
+        粘性・熱伝導・人工拡散が散逸させ, 音速抑制法もエネルギー方程式と
+        整合しない). したがって「保存しているか」ではなく
+        **単調な増減 (secular drift) がないか**を見るための量である.
+        """
+        return (self.differential_rotation_energy(om1)
+                + self._integrate(0.5*self.strat.ro0[:, None]*(vrr**2 + vth**2))
+                + self._integrate(bph**2/EIGHT_PI)
+                + self.thermal_energy(se1))
+
     def differential_rotation_energy(self, om1):
         """剛体回転を除いた差動回転のエネルギー.
 

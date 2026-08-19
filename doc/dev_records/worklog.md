@@ -6,6 +6,20 @@
 
 ## 2026-08-19
 
+### Phase 4: `S2MFD/inference/` サブパッケージ新設(完了)
+
+IDPA の GA 層を新サブパッケージとして移植(92 passed):
+
+- `observations.py` — SILSO 年平均(原本 `data/SN_Yearly.csv` を同梱)の読み込み・40日内挿(旧 make_time_series の関数化)・極小期検出(旧 detect_minimum)。派生物だった `SN_Yearly_interp.csv` はコミットせずコードで生成。初期磁場 `data/{A,B}pht_saved.npy` も同梱し importlib.resources で解決。
+- `metrics.py` — 旧 judge1〜5 を純関数化(correlation/nmse/total_count_error/period_mse/mape/fitness)。**judge3 の obs/sim 逆転バグを修正**(コード内 TODO で自認されていたもの)。MAPE のゼロ割を eps ガード。
+- `genetic.py` — GA_for_u0/GA_for_s0(98%重複)を param_spec 引数の1実装に統合。**シード指定で再現可能**(numpy Generator 統一)。**個体数<10 のクラッシュを解消**(トーナメントサイズは論文どおり 3/7/5 固定 + ガード。個体数30では旧実装の len//10 等と同値)。エリートは固定スロット3ではなくランダム置換。クリップ変異・σ下限はオプション(既定は論文どおり非有界)。KeyboardInterrupt は初世代中でも安全に途中結果を返す。print → logging。
+- `problem.py` — DynamoProblem(評価器)。**個体評価は完全ディスクレス**(save_dir=None)にして並列出力競合を根絶。発散個体は例外でなく fitness=-inf。時間変化関数 linear_plus_sines(論文式2.10)と picklable な TimeFunction。fitness_kind='period'(ダルトンミニマム用、式4.2)も選択可。
+- `compare.py` — 旧 OBS_compare の関数化(パス注入、Agg固定)。GA履歴プロットも。
+- `cli.py` — 旧 IDPA.py の argparse 版。`--interactive` で対話モード互換、`--seed`、`--list-minima`、`--stage both|u0|s0`。**Stage1→Stage2 の受け渡しは stage_result.json**(ソースコード書き換えを廃止。旧実装で捨てられていた a0_s も保存)。既存結果があればスキップ(旧互換のレジューム)。旧互換の parameters.txt も出力。
+- `parameters/inference.py` — 推定用設定(defaults + potential 境界)。
+
+検証: 全92テスト(metrics・TimeFunction 端点性質・GA収束/再現性/少数個体/並列・観測データ・128×128 実格子での1個体評価スモーク)。CLI --list-minima の極小年は論文の区間境界(1944, 1996 等)と一致。
+
 ### Phase 3: Simulation への GA 拡張API追加(完了)
 
 IDPA の生きているコード(~250行)を汎用APIとして再設計して本体に追加(71 passed):

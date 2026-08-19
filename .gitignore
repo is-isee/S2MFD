@@ -168,3 +168,6 @@ S2MFD/_version.py
 
 # Reference papers (PDFs etc.) — kept locally, not in the repository
 reference/
+
+# Parameter-inference outputs
+results/

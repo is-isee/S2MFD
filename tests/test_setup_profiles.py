@@ -84,10 +84,8 @@ class TestSetupSaveLoad:
         assert np.allclose(loaded.om, setup.om)
         assert np.allclose(loaded.so, setup.so)
 
-    @pytest.mark.xfail(
-        reason='既知バグ: ibase が0次元 ndarray として復元される (Phase 2 で修正予定)',
-        strict=True)
     def test_ibase_keeps_python_type(self, tmp_path):
+        # Phase 2 で修正済み: NpzIO.load が0次元配列を .item() で復元する
         cfg, grid, setup = _setup_for('parameters/defaults.py')
         path = str(tmp_path / 'setup.npz')
         setup.save(path)

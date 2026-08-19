@@ -1,8 +1,40 @@
 [build-system]
-requires = ["setuptools>=42", "setuptools_scm[toml]>=6.0"]
+requires = ["setuptools>=64", "setuptools_scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "S2MFD"
+description = "Solar/Stellar Mean Field Dynamo code"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dynamic = ["version"]
+dependencies = [
+    "numpy",
+    "scipy",
+    "numba",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+include = ["S2MFD*"]
+
+[tool.setuptools.package-data]
+"S2MFD.inference" = ["data/*"]
 
 [tool.setuptools_scm]
 version_scheme = "guess-next-dev"
 local_scheme = "dirty-tag"
 write_to = 'S2MFD/_version.py'
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not slow'"
+markers = [
+    "slow: 長時間テスト (pytest -m slow で明示的に実行)",
+]

@@ -1,13 +1,11 @@
-import sys
 import numpy as np
-from numba import njit, float64
-from numba.types import Array, Tuple, unicode_type
+from numba import njit
 
 @njit
 def drr1(qq,drr,dir):
     '''
     To calculate 1st order accuracy derivative in r direction
-   
+
     Parameters
     ----------
     qq : numpy.ndarray, float
@@ -16,34 +14,31 @@ def drr1(qq,drr,dir):
         Grid spacing in r direction
     dir: string
         'up' or 'dw'
-        
-        'up': qq[i] = qq[i+1] - qq[i]
-        'dw': qq[i] = qq[i] - qq[i-1]
+
+        'up': dqq[i] = (qq[i] - qq[i-1])/drr  (後退差分、i=1..N-1 に格納)
+        'dw': dqq[i] = (qq[i+1] - qq[i])/drr  (前進差分、i=0..N-2 に格納)
+
+        セル境界 i-1/2 の勾配を 'up' で作り、'dw' で発散を取ると
+        保存形の2階差分になる (diffusion() での用法)。
     Returns
     -------
     dqq: numpy.ndarray, float
         Differentiated quantity (2D)
     '''
-   
+
     if dir == 'up':
         i0, i1 = 1, qq.shape[0]
     elif dir == 'dw':
         i0, i1 = 0, qq.shape[0]-1
     else:
-        print('Error: dir must be up or dw')
+        raise ValueError('dir must be up or dw')
 
-    # vectorization
-    # dqq = np.zeros_like(qq)
-    # dqq[i0:i1,:] = (qq[1:,:] - qq[:-1,:])/drr
-
-    # for loop
-    inum = qq.shape[0]
     jnum = qq.shape[1]
     dqq = np.zeros_like(qq)
     for i in range(i1-i0):
         for j in range(jnum):
             dqq[i+i0,j] = (qq[i+1,j] - qq[i,j])/drr
-   
+
     return dqq
 
 @njit
@@ -61,13 +56,8 @@ def drr2(qq,drr):
     -------
         dqq: numpy.ndarray, float
             Differentiated quantity (2D)
-    '''   
+    '''
 
-    # vectorization
-    # dqq = np.zeros_like(qq)
-    # dqq[1:-1,:] = (qq[2:qq.shape[0],:] - qq[0:-2,:])/drr*0.5
-
-    # for loop
     inum = qq.shape[0]
     jnum = qq.shape[1]
     dqq = np.zeros_like(qq)
@@ -86,31 +76,27 @@ def dth1(qq,dth,dir):
     ----------
         qq: numpy.ndarray, float
             Quantity to be differentiated (2D)
-        drr: float
+        dth: float
             Grid spacing in theta direction
         dir: string
             'up' or 'dw'
-            'up': qq[j] = qq[j+1] - qq[j]
-            'dw': qq[j] = qq[j] - qq[j-1]
-    
+
+            'up': dqq[j] = (qq[j] - qq[j-1])/dth  (後退差分、j=1..N-1 に格納)
+            'dw': dqq[j] = (qq[j+1] - qq[j])/dth  (前進差分、j=0..N-2 に格納)
+
     Returns
     -------
         dqq: numpy.ndarray
             Differentiated quantity (2D)
     '''
-   
+
     if dir == 'up':
         j0, j1= 1,qq.shape[1]
     elif dir == 'dw':
         j0, j1 = 0, qq.shape[1]-1
     else:
-        print('Error: dir must be up or dw')
-   
-    # vectorization
-    # dqq = np.zeros_like(qq)
-    # dqq[:,j0:j1] = (qq[:,1:] - qq[:,:-1])/dth
+        raise ValueError('dir must be up or dw')
 
-    # for loop
     inum = qq.shape[0]
     dqq = np.zeros_like(qq)
     for i in range(inum):
@@ -128,19 +114,14 @@ def dth2(qq,dth):
     ----------
         qq: numpy.ndarray
             Quantity to be differentiated (2D)
-        drr: float
+        dth: float
             Grid spacing in theta direction
-    
+
     Returns
     -------
         dqq: differentiated quantity (2D)
     '''
-    
-    # vectorization
-    # dqq = np.zeros_like(qq)
-    # dqq[:,1:-1] = (qq[:,2:qq.shape[1]] - qq[:,0:-2])/dth*0.5
 
-    # for loop
     inum = qq.shape[0]
     jnum = qq.shape[1]
     dqq = np.zeros_like(qq)

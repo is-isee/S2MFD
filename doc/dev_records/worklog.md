@@ -6,6 +6,25 @@
 
 ## 2026-08-19
 
+### Phase 2: S2MFD 本体の重要バグ修正(完了)
+
+実施した修正(すべて test-first、60 passed / slow 2 passed):
+
+1. **出力タイムスタンプずれ修正** — `main_loop` を「積分 → 時刻更新 → 出力」の順に変更。スナップショットのラベルと場が一致するようになった。**ラン終端の最終状態は旧実装とビット同等**(検証: 旧ゴールデンとの最大相対差 1.4e-14、これは grid の linspace 化による丸め差のみ)。差が出るのは各スナップショットの中身(旧: 1ステップ前の場)だけ。
+2. **CFL条件** — 式は現状維持(ユーザーと議論済み)。前提コメント(Δr ≪ rΔθ)を追加し、純Python二重ループを numpy にベクトル化(値は同一、`test_matches_vectorized_formula` で確認)。
+3. **0次元配列問題** — `S2MFD/npz_io.py` の `NpzIO` mixin を新設し Grid/Setup/Legendre の save/load 3重複を集約。load 時に `.item()` でスカラー型を復元。`data_load` も float()/int() で復元。`allow_pickle=True` は廃止(プレーン配列のみなので不要)。
+4. **cont_flag 再開安全化** — デフォルト True は維持(意図した仕様)。再開時に「Resuming existing run…」を明示表示し、既存 config.json との整合性チェックを追加(tend/dtout 等の「再開時に変えてよいキー」以外の不一致は RuntimeError)。再開時の Legendre は npz からではなく grid から再構築(grid の純関数のため。旧フォーマット npz との互換問題も回避)。
+5. **パッケージング修復** — `pyproject.toml` の `[project]` に集約(dependencies 宣言、packages.find でサブパッケージ包含)、ルート `setup.py` 削除、`pytest.ini` を `[tool.pytest.ini_options]` に統合。wheel にサブパッケージが全て入ることを確認。requirements.txt は `-e .[dev]` の1行に。
+6. **Cfg 改善** — `resolve()` 新設(派生量の再計算。パラメタファイルが導出式と異なる値を明示した名前と、ユーザーが直接代入した名前は pin して上書きしない)。Simulation 生成時に自動呼出。パラメタファイルの絶対パス/パッケージ外パス受け入れ。save() で numpy スカラーをネイティブ型に変換。パス結合を os.path.join に統一。
+7. **NaN 早期検知** — `check_finite()` を出力ステップ毎に呼び、非有限値で RuntimeError。
+8. **run_simulation が Simulation オブジェクトを返す**ように変更。
+9. **デッドコード削除** — `scipy_test.py`(426行)、`simulation.py` の誤った `__all__`・save() 内の未使用 poloidal_mag 計算・main_loop の未使用 matplotlib import とコメントアウトされた描画コード、各所の未使用 import。`__init__.py` の未使用 `paramdir`。setup.py の @dataclass 誤用を除去し docstring に `so` を追記。*_type 文字列スイッチ全てに else: raise ValueError を追加。tools.py の docstring を実装に一致させ(up/dw)、エラー分岐も raise に変更。
+10. **性能改善** — alpha_effect の np.repeat → ブロードキャスト、potential BC の時間不変量(sinth, n_values, coefficients, P1n_reduced)を Legendre.__init__ に事前計算、grid 座標を linspace 相当に(逐次加算の丸め蓄積を解消)。
+11. **ana/ 最小限自立化** — 共通ローダ `ana/ana_common.py` を新設(datadir をコマンドライン引数で指定可)。全スクリプトが単体実行可能に。`npz_edit.py` は破壊的上書きをやめ `*_edited.npz` に保存。`sunspots_number.py` の時間軸を実スナップショット時刻に修正。`check_profile.py` のハードコードインデックス(so[:,43] 等)を角度・半径からの計算に変更。動作確認済み(小規模ラン + ヘッドレス実行)。
+12. **doc/source/usage.rst の誤記修正** — 位置引数の誤用例(クラッシュする)、default.py → defaults.py、resolve() の説明を追加。
+
+ゴールデンデータは Phase 2 完了時点の挙動で再生成した(旧版との差は上記1のとおり)。
+
 ### Phase 1: テスト基盤の先行整備(完了)
 
 - 開発環境: リポジトリ直下に `.venv` を作成(numpy 2.5.2 / numba 0.67.0 / scipy 1.18.0 / pytest 9.1.1)。requirements.txt のピン(numpy==1.24.3 等)は Python 3.12 と非互換のため現行版を使用 — Phase 2 の pyproject 集約で依存宣言を更新する。

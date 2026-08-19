@@ -14,23 +14,23 @@ S2MFDでは、デフォルトのシミュレーションパラメタを用意し
 
 1. パラメタファイルを用意する。
 
-   :code:`S2MFD.run_simulation()` の引数にパラメタファイルのパスを指定する。 :code:`S2MFD/parameters/` 以下にパラメタファイルを設置し、そのパスを指定する。
+   :code:`S2MFD.run_simulation()` の :code:`parameter_file` 引数にパラメタファイルのパスを指定する。パスが存在すればそのまま(絶対パス・カレント相対)、存在しなければ :code:`S2MFD/` パッケージディレクトリ相対として解決される。
 
     .. code-block:: python
 
 
        import S2MFD
-       S2MFD.run_simulation('parameters/your_parameter_file.py')
+       S2MFD.run_simulation(parameter_file='parameters/your_parameter_file.py')
 
     パラメタファイルは以下のように記述する。
 
     .. code-block:: python
 
-        from S2MFD.parameters.default import *
+        from S2MFD.parameters.defaults import *
         m = 0
 
-    
-    :code:`S2MFD/parameters/default.py` にはデフォルトのパラメタが記述されている。これを継承して、必要なパラメタを変更する。
+
+    :code:`S2MFD/parameters/defaults.py` にはデフォルトのパラメタが記述されている。これを継承して、必要なパラメタを変更する。
 
 2. パラメタを直接指定する。
 
@@ -40,6 +40,14 @@ S2MFDでは、デフォルトのシミュレーションパラメタを用意し
 
         import S2MFD
         cfg = S2MFD.Cfg()
-        cfg.m = 0
+        cfg.rey = 1400       # 基本量の変更
+        cfg.resolve()        # 派生量 (uu0 = rey*ett/RSUN など) を再計算
         S2MFD.run_simulation(cfg=cfg)
-    
+
+    .. note::
+
+        :code:`uu0` や :code:`so0` のような派生量は、基本量 (:code:`rey`,
+        :code:`cso`, :code:`ett` など) の変更後に :code:`cfg.resolve()` を
+        呼ぶことで再計算される (:code:`S2MFD.Simulation` の生成時にも自動で
+        呼ばれる)。派生量を直接代入した場合は、その値が優先され resolve()
+        では上書きされない。

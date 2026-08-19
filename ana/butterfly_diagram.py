@@ -1,3 +1,18 @@
+"""蝶形図 (butterfly diagram) を描くスクリプト。
+
+使い方:
+    python butterfly_diagram.py [datadir]   # 既定は ../data/
+"""
+import matplotlib.pyplot as plt
+import numpy as np
+
+from ana_common import get_datadir, load_run
+
+datadir = get_datadir()
+run = load_run(datadir)
+cfg, grid, timet, tau_diff = run.cfg, run.grid, run.timet, run.tau_diff
+Bpht, Brrt = run.Bpht, run.Brrt
+
 Bpht_c = Bpht[1+np.argmin(abs(grid.rr-0.7*cfg.RSUN)),:,:]
 Brrt_s = Brrt[-2,:,:]
 
@@ -13,7 +28,6 @@ ne = np.where(Bpht0_sign_diff == +2)[0][-1]
 
 timeu = (timet[ns:ne]-timet[ns])/tau_diff
 time_year = (timet[ns:ne]-timet[ns])/86400/365
-B_range = 3
 plt.clf()
 plt.close('all')
 fig = plt.figure('Butterfly Diagram',figsize=(10,10))
@@ -21,10 +35,10 @@ ax1 = fig.add_subplot(2,1,1)
 ax2 = fig.add_subplot(2,1,2)
 
 # butterfly diagram
+# B_0: 磁場の規格化 (クエンチング B/(1+B^2) の単位磁場) [G]
 B_0 = 4.e4
 c1 = ax1.pcolormesh(time_year, grid.th/np.pi*180, B_0*Bpht_c[:,ns:ne], cmap='bwr', shading='auto')
 c2 = ax2.pcolormesh(time_year, grid.th/np.pi*180, B_0*Brrt_s[:,ns:ne], cmap='bwr', shading='auto')
-# c2 = ax2.pcolormesh(timeu,grid.th/np.pi*180,Brrt_s[:,ns:ne],vmax=B_range*1e-2,vmin=-B_range*1e-2,cmap='bwr',shading='auto')
 
 # カラーバーを追加
 fig.colorbar(c1, ax=ax1, orientation='vertical').set_label(r'$B_\phi$ (G)')
@@ -43,3 +57,4 @@ ax2.set_ylabel(r'$B_r$: $r=R_\odot$')
 ax2.set_xlabel('t(year)')
 
 fig.tight_layout()
+plt.show()

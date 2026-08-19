@@ -1,4 +1,4 @@
-matplotlib==3.9.2
-numba==0.60.0
-numpy==1.24.3
-scipy==1.14.1
+# 依存関係は pyproject.toml で宣言している。
+# 開発環境の構築は:
+#   pip install -e ".[dev]"
+-e .[dev]

@@ -54,11 +54,8 @@ class TestGridSaveLoad:
         assert np.allclose(loaded.RR, g.RR)
         assert np.allclose(loaded.sinTH, g.sinTH)
 
-    @pytest.mark.xfail(
-        reason='既知バグ: np.savez 経由でスカラーが0次元 ndarray になり、'
-               'njit カーネルに渡すと型エラーになる (Phase 2 で修正予定)',
-        strict=True)
     def test_scalars_keep_python_types(self, tmp_path):
+        # Phase 2 で修正済み: NpzIO.load が0次元配列を .item() で復元する
         g = _grid()
         path = str(tmp_path / 'grid.npz')
         g.save(path)

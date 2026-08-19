@@ -8,8 +8,6 @@ Example
 
 """
 
-paramdir = 'parameters/'
-
 from .main_functions import run_simulation
 from .cfg import Cfg
 from .grid import Grid

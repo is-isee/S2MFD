@@ -66,11 +66,8 @@ class TestShortRun:
 
 
 class TestSnapshotTimestamp:
-    @pytest.mark.xfail(
-        reason='既知バグ: main_loop が積分前に save するため、スナップショットの'
-               'time ラベルは実際の場より 1 ステップ先を指す (Phase 2 で修正予定)',
-        strict=True)
     def test_snapshot_label_matches_state(self, small_cfg, tmp_path):
+        # Phase 2 で修正済み: 「積分 → 時刻更新 → 出力」の順に変更
         sim = run_short_simulation(small_cfg)
         snap = np.load(sim.get_data_file_path(1))
 
@@ -121,15 +118,53 @@ class TestRestart:
         assert float(sim2.time) >= cfg2.tend
         assert np.all(np.isfinite(sim2.Bph))
 
-    @pytest.mark.xfail(
-        reason='既知バグ: data_load が time/n を0次元 ndarray として復元する'
-               ' (Phase 2 で修正予定)',
-        strict=True)
     def test_data_load_returns_python_scalars(self, small_cfg):
+        # Phase 2 で修正済み: data_load が float()/int() で復元する
         sim = run_short_simulation(small_cfg)
         sim.data_load(0)
         assert not isinstance(sim.time, np.ndarray)
         assert not isinstance(sim.n, np.ndarray)
+
+
+class TestResumeConsistency:
+    def test_mismatched_config_raises(self, small_cfg, tmp_path):
+        """物理パラメタを変えて既存 datadir を再利用すると明示エラーになる。"""
+        run_short_simulation(small_cfg)
+        cfg2 = make_cfg(
+            'parameters/alpha_omega.py',
+            datadir=small_cfg.datadir,
+            ix=small_cfg.ix, jx=small_cfg.jx,
+            tend=small_cfg.tend, dtout=small_cfg.dtout,
+            cso=99.0,  # 物理パラメタを変更
+        )
+        assert cfg2.cont_flag is True
+        sim2 = S2MFD.Simulation(cfg2)
+        with pytest.raises(RuntimeError, match='cso'):
+            sim2.initialize_simulation()
+
+    def test_tend_change_is_allowed(self, small_cfg):
+        """tend/dtout の変更 (ランの延長) は再開として許容される。"""
+        run_short_simulation(small_cfg)
+        cfg2 = make_cfg(
+            'parameters/alpha_omega.py',
+            datadir=small_cfg.datadir,
+            ix=small_cfg.ix, jx=small_cfg.jx,
+            tend=small_cfg.tend + 40 * 86400,
+            dtout=small_cfg.dtout,
+        )
+        sim2 = S2MFD.Simulation(cfg2)
+        sim2.initialize_simulation()  # エラーにならない
+
+
+class TestCheckFinite:
+    def test_nan_raises(self, small_cfg):
+        sim = S2MFD.Simulation(small_cfg)
+        sim.initialize_simulation()
+        sim.cfl_condition()
+        sim.initial_condition()
+        sim.Bph[5, 5] = np.nan
+        with pytest.raises(RuntimeError, match='[Nn]on-finite'):
+            sim.check_finite()
 
 
 class TestRunSimulationApi:
@@ -143,6 +178,6 @@ class TestRunSimulationApi:
         )
         result = S2MFD.run_simulation(cfg)
         assert os.path.exists(cfg.datadir + 'config.json')
-        # NOTE: 現状は None を返す。Phase 2 で sim を返すよう変更したら
-        # このアサーションを更新する。
-        assert result is None
+        # Phase 2 で修正済み: Simulation オブジェクトを返す
+        assert isinstance(result, S2MFD.Simulation)
+        assert np.all(np.isfinite(result.Bph))

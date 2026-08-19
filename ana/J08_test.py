@@ -1,42 +1,18 @@
+"""Jouve et al. (2008) ベンチマーク比較用の時系列プロット。
+
+使い方:
+    python J08_test.py [datadir]   # 既定は ../data/
+"""
 import matplotlib.pyplot as plt
 import numpy as np
-import os, sys
-sys.path.append('../')
-import S2MFD
 
-datadir = '../data/'
-data = S2MFD.Data.initial_load(datadir)
+from ana_common import get_datadir, load_run
 
-cfg = data.cfg
-grid = data.grid
-setup = data.setup
+datadir = get_datadir()
+run = load_run(datadir)
+cfg, grid, timet, tau_diff = run.cfg, run.grid, run.timet, run.tau_diff
+Bpht, Brrt = run.Bpht, run.Brrt
 
-n1 = 0
-if os.path.isdir(datadir):
-    # dataディレクトリ内の最も大きな番号を探る
-    # 特定のステップから始めたい場合は、そのステップを手で指定する
-    files = os.listdir(datadir)
-    for file in files:
-        filel = file.split('.')
-        if filel[0] == 'data':
-            n1 = max(n1, int(filel[1]))
-            
-n0 = 0
-tau_diff = data.cfg.RSUN**2/data.cfg.ett
-timet = np.zeros(n1-n0)
-Brrt = np.zeros((grid.ixg,grid.jxg,n1-n0))
-Btht = np.zeros((grid.ixg,grid.jxg,n1-n0))
-Bpht = np.zeros((grid.ixg,grid.jxg,n1-n0))
-for n  in range(n0,n1):
-    print(n)
-    data.data_load(n)
-    Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
-    d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')
-    timet[n-n0] = d['time']
-    Brrt[:,:,n-n0] = Brr
-    Btht[:,:,n-n0] = Bth
-    Bpht[:,:,n-n0] = d['Bph']
-    
 Bpht0 = Bpht[1+np.argmin(abs(grid.rr-0.7*cfg.RSUN)),np.argmin(abs(grid.th-30/180*np.pi)),:]
 Brrt0 = Brrt[-2,np.argmin(abs(grid.th-60/180*np.pi)),:]
 
@@ -78,6 +54,4 @@ print('Cycle time = ',timeu[-1])
 print('Cycle time = ',timeur[-1])
 print('Period(year) = ',timeu[-1]*tau_diff/86400/365,'year')
 print('Max(Bph) =',np.max(Bpht0u))
-
-    
-    
+plt.show()

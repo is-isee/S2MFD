@@ -6,6 +6,16 @@
 
 ## 2026-08-19
 
+### 追加作業: チュートリアル + CI + ドキュメント公開(ユーザー追加要望)
+
+- `doc/source/tutorial_inference.rst` を新設 — フルスケール推定の実務チュートリアル(推定窓の決め方、nohup での流し方、ログの読み方、中断・再開、出力ファイル全種の解釈と良し悪しの目安、自前データ、twin experiment の手順、トラブルシューティング)。index の toctree と inference.rst から連結。
+- `.github/workflows/test.yml` — push(main, feature/**)/PR で pytest(Python 3.10 / 3.12 マトリクス)。main では slow テストも実行。setuptools_scm のため fetch-depth: 0。
+- `.github/workflows/docs.yml` — main への push で Sphinx ビルド → gh-pages の `main/` に、タグ `v*` の push で `vX.Y.Z/` にデプロイ(peaceiris/actions-gh-pages、既存の他バージョンのディレクトリは保持)。ルートに `main/` へのリダイレクト index.html と .nojekyll を配置。
+- **sphinx-multiversion は廃止**: Sphinx 8 と非互換(2020年から未保守、`Config.read()` の TypeError)のため。conf.py から拡張と smv_* 設定を除去し、バージョン別公開はワークフローのデプロイ先切替(destination_dir)で同等機能を実現。既存の gh-pages 構成(main/, v0.1.0/, v0.2.0/)とURL は不変。
+- pyproject に `[project.optional-dependencies] docs` を追加(sphinx, sphinx-automodapi, sphinx_rtd_theme)。README の Sphinx 節を現行手順に更新、CI 節を追加。
+- 検証: Sphinx ビルド警告ゼロ、workflow YAML パース確認、pytest 92 passed。
+- 注意: workflow は main へのマージ後に有効化される(GitHub Actions はデフォルトブランチ外の新規 workflow でも push イベントで動くが、docs は main への push がトリガーなのでマージ後に初回実行)。**Pages の設定が「Deploy from a branch: gh-pages」になっていることを要確認**(既存運用のままなら変更不要)。
+
 ### Phase 5: 統合検証
 
 **パイプライン健全性(twin experiment の sanity check)**

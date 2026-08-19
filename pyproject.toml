@@ -20,6 +20,11 @@ dependencies = [
 dev = [
     "pytest",
 ]
+docs = [
+    "sphinx",
+    "sphinx-automodapi",
+    "sphinx_rtd_theme",
+]
 
 [tool.setuptools.packages.find]
 include = ["S2MFD*"]

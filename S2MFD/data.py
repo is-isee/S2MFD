@@ -1,3 +1,5 @@
+import os
+
 import S2MFD
 import numpy as np
 
@@ -69,11 +71,11 @@ class Data:
         S2MFD.S2MFD_data
             An instance of the S2MFD_data class.
         """        
-        cfg = S2MFD.Cfg.load(datadir+'config.json')
+        cfg = S2MFD.Cfg.load(os.path.join(datadir, 'config.json'))
         cfg.datadir = datadir
-        grid = S2MFD.Grid.load(datadir+cfg.gridfile)
-        setup = S2MFD.Setup.load(datadir+cfg.setupfile)
-        legendre = S2MFD.Legendre.load(datadir+cfg.legendrefile)
+        grid = S2MFD.Grid.load(os.path.join(datadir, cfg.gridfile))
+        setup = S2MFD.Setup.load(os.path.join(datadir, cfg.setupfile))
+        legendre = S2MFD.Legendre.load(os.path.join(datadir, cfg.legendrefile))
         
         return cls(cfg,grid,setup,legendre)
     
@@ -91,11 +93,12 @@ class Data:
         str
             File path for the specified data step.
         """        
-        return self.cfg.datadir+'data.'+str(nd).zfill(6)+'.npz'
+        return os.path.join(self.cfg.datadir, 'data.'+str(nd).zfill(6)+'.npz')
     
     def data_load(self,nd):
         """
-        Load data for `Bph`, `Aph`, `time`, `n` and `nd`, from a file for a specific step.
+        Load `Bph`, `Aph`, `time` and `n` from the file for step `nd`,
+        and set `self.nd = nd`.
 
         Parameters
         ----------
@@ -106,6 +109,7 @@ class Data:
         d = np.load(file=filename)
         self.Bph = d['Bph']
         self.Aph = d['Aph']
-        self.time = d['time']
-        self.n = d['n']
+        # np.savez はスカラーを0次元配列にするため Python ネイティブ型へ戻す
+        self.time = float(d['time'])
+        self.n = int(d['n'])
         self.nd = nd

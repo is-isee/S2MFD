@@ -174,19 +174,24 @@ def alpha_effect(Bph, Aph, rr, ibase, so, alpha_type):
       Radial coordinate
    ibase : int
       Radial index for the base of the convection zone
-   so : float
-      Source term coefficient
+   so : numpy.ndarray
+      Source term amplitude profile (2D)
+   alpha_type : str
+      'BL', 'H10' (non-local) or 'normal' (local)
    Returns
    -------
    Aph_sour : numpy.ndarray
       Source term due to alpha effect
    """
    if alpha_type == 'BL' or alpha_type == 'H10':
-      Bphso = np.repeat(Bph[ibase, :][np.newaxis, :], len(rr), axis=0)
+      # 非局所 (Babcock-Leighton): タコクラインの Bph を全動径に放送
+      Bphso = Bph[ibase, :][np.newaxis, :]
       Aph_sour = so*Bphso/(1 + (Bphso)**2)
    elif alpha_type == 'normal':
       Aph_sour = so*Bph/(1 + (Bph)**2)
-      
+   else:
+      raise ValueError(f"unknown alpha_type: {alpha_type!r}")
+
    return Aph_sour
 
 def time_marching(Bph, Aph, dt, cfg, grid, setup):

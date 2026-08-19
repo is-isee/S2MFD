@@ -1,12 +1,10 @@
-from dataclasses import dataclass, field
 from S2MFD.tools import drr2, dth2
-import S2MFD.cfg as Cfg
+from S2MFD.npz_io import NpzIO
 import numpy as np
-import pickle
 from scipy.special import erf
 
-@dataclass
-class Setup:
+
+class Setup(NpzIO):
    """
    Class to configure and initialize physical properties used in simulations.
 
@@ -26,19 +24,13 @@ class Setup:
       Magnetic diffusivity profile.
    etrr : numpy.ndarray
       Radial derivative of the magnetic diffusivity.
+   so : numpy.ndarray
+      Alpha effect (poloidal source) amplitude profile.
    ibase : int
       Index corresponding to the tachocline region in the radial direction.
 
    """
-   urr: np.ndarray = field(init=False)
-   uth: np.ndarray = field(init=False)   
-   om: np.ndarray = field(init=False)   
-   omrr: np.ndarray = field(init=False)
-   omth: np.ndarray = field(init=False)
-   et: np.ndarray = field(init=False)
-   etrr: np.ndarray = field(init=False)
-   ibase: int = field(init=False)
-   
+
    def __init__(self,cfg,grid):
       """
       Initialize the setup object.
@@ -51,24 +43,44 @@ class Setup:
       grid : S2MFD.Grid
          Grid object.
       """
+      self.build_rotation(cfg, grid)
+      self.build_diffusivity(cfg, grid)
+
+      #タコクラインのindex
+      self.ibase = np.argmin(abs(grid.rr - cfg.rrc))
+
+      self.build_alpha(cfg, grid)
+      self.build_flow(cfg, grid)
+
+   def build_rotation(self, cfg, grid):
+      """差動回転プロファイル (om, omrr, omth) を構築する。"""
       # differential rotation
       if cfg.differential_type == 'J08':
          self.om = cfg.omc + 0.5*(1 + erf((grid.RR-cfg.rrc)/cfg.d))*(cfg.ome - cfg.omc - cfg.c2*grid.cosTH**2)
       elif cfg.differential_type == 'H10':
          self.om = cfg.omc + 0.5*(1 + erf(2*(grid.RR-cfg.rrc)/cfg.dh1))*(cfg.ome + cfg.a2*grid.cosTH**2 + cfg.a4*grid.cosTH**4 - cfg.omc)
+      else:
+         raise ValueError(f"unknown differential_type: {cfg.differential_type!r}")
       self.omrr = drr2(self.om, grid.drr)
       self.omth = dth2(self.om, grid.dth)/grid.RR
-   
+
+   def build_diffusivity(self, cfg, grid):
+      """磁気拡散プロファイル (et, etrr) を構築する。"""
       # diffusivity
       if cfg.diffusive_type == 'J08':
          self.et = cfg.etc + 0.5*(cfg.ett - cfg.etc)*(1 + erf((grid.RR-cfg.rrc)/cfg.d))
-      if cfg.diffusive_type == 'H10':
+      elif cfg.diffusive_type == 'H10':
          self.et = cfg.etc + 0.5*cfg.ett*(1 + erf((grid.RR-cfg.rrc)/cfg.dh1)) + 0.5*cfg.ets*(1 + erf((grid.RR-cfg.r1)/cfg.dh2))
+      else:
+         raise ValueError(f"unknown diffusive_type: {cfg.diffusive_type!r}")
       self.etrr = drr2(self.et, grid.drr)
 
-      #タコクラインのindex
-      self.ibase = np.argmin(abs(grid.rr - cfg.rrc))
+   def build_alpha(self, cfg, grid):
+      """α効果 (ポロイダル場ソース) プロファイル so を構築する。
 
+      cfg.so0 を変更した後にこのメソッドを呼ぶと so だけを更新できる
+      (時間依存パラメタの差分更新用)。
+      """
       # alpha effect
       if cfg.alpha_type == 'BL':
          self.so = cfg.so0*0.5 \
@@ -82,7 +94,15 @@ class Setup:
          self.so = cfg.so1*0.25 \
             *(1+erf((grid.RR-cfg.r4)/cfg.dh4))*(1-erf((grid.RR-cfg.r5)/cfg.dh5)) \
                *grid.cosTH*grid.sinTH*(1/(1+np.e**(-cfg.gam*(grid.TH[1,:]-np.pi*0.25)))+1/(1+np.e**(-cfg.gam*(-grid.TH[1,:]+np.pi*0.75)))-1)
-            
+      else:
+         raise ValueError(f"unknown alpha_type: {cfg.alpha_type!r}")
+
+   def build_flow(self, cfg, grid):
+      """子午面流プロファイル (urr, uth) を構築する。
+
+      cfg.uu0 を変更した後にこのメソッドを呼ぶと urr/uth だけを更新できる
+      (時間依存パラメタの差分更新用)。
+      """
       # Meridional flow
       # Meridional flow (Jouve+2008 Model)
       if cfg.meridional_circulation_type == 'J08':
@@ -120,43 +140,20 @@ class Setup:
          self.uth = (cfg.uu0/cfg.f)*((cfg.RSUN/grid.RR)**3) \
             *(-1+cfg.c1d*xi**cfg.m - cfg.c2d*xi**(cfg.m+cfg.p)) \
             *grid.sinTH**(cfg.q+1)*grid.cosTH
-            
+      else:
+         raise ValueError(
+            f"unknown meridional_circulation_type: {cfg.meridional_circulation_type!r}")
+
+
       self.urr[grid.RR < cfg.rrb] = 0
       self.uth[grid.RR < cfg.rrb] = 0
-      #θ＝０(回転軸)(対称性)
-      # 境界の外で子午面流の設定
+      # 境界の外(ゴーストセル)で子午面流の設定
+      # 動径境界: urr 反対称 (境界で urr=0)
       for i in range(0,grid.margin):
-         self.urr[i           ,:] = - self.urr[2*grid.margin-i-1       ,:] # upper
-         self.urr[grid.ixg-i-1,:] = - self.urr[grid.ixg-2*grid.margin+i,:] # lower
+         self.urr[i           ,:] = - self.urr[2*grid.margin-i-1       ,:] # bottom
+         self.urr[grid.ixg-i-1,:] = - self.urr[grid.ixg-2*grid.margin+i,:] # top
 
-      # latitudinal boundary
+      # 緯度境界 (θ=0, π 回転軸): uth 反対称
       for j in range(0,grid.margin):
          self.uth[:,j           ] = - self.uth[:,2*grid.margin - j - 1     ] # north pole
          self.uth[:,grid.jxg-j-1] = - self.uth[:,grid.jxg-2*grid.margin + j] # south pole
-
-
-   def save(self, filename):
-      """
-      Save the setup data to a file.
-      
-      Parameters
-      ----------
-      filename : str
-         File path to save the setup data.
-      """
-      np.savez(filename, **self.__dict__)
-   
-   @classmethod
-   def load(cls, filename):
-      """
-      Load the setup data from a file.
-      
-      Parameters
-      ----------
-      filename : str
-         File path to load the setup data.
-      """
-      data = np.load(filename,allow_pickle=True)
-      obj = cls.__new__(cls)
-      obj.__dict__.update({key: data[key] for key in data.files})
-      return obj

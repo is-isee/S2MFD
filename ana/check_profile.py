@@ -1,8 +1,18 @@
-sys.path.append('../')
+"""背景場プロファイル (差動回転・子午面流・拡散・α効果) の確認スクリプト。
+
+使い方:
+    python check_profile.py [parameter_file]   # 既定は parameters/hotta10.py
+"""
+import sys
+
+import matplotlib.pyplot as plt
+import numpy as np
+
 import S2MFD
 
-# 確認したいパターンを自分で指定
-cfg = S2MFD.Cfg('parameters/hotta10.py')
+# 確認したいパターンを指定 (コマンドライン第1引数でも指定可)
+parameter_file = sys.argv[1] if len(sys.argv) > 1 else 'parameters/hotta10.py'
+cfg = S2MFD.Cfg(parameter_file)
 grid = S2MFD.Grid(ix=cfg.ix, jx=cfg.jx, margin=cfg.margin, rrmin=cfg.rrmin, rrmax=cfg.rrmax, thmin=cfg.thmin, thmax=cfg.thmax)
 setup = S2MFD.Setup(cfg,grid)
 
@@ -22,7 +32,6 @@ U_x = setup.urr * grid.cosTH - setup.uth * grid.sinTH
 U_y = setup.urr * grid.sinTH + setup.uth * grid.cosTH
 fig, ax = plt.subplots()
 plt.quiver(grid.Y, grid.X, U_y, U_x)
-# plt.streamplot(grid.RR, grid.RR, U_y, U_x)
 plt.title('The Flow Fields')
 ax.set_aspect('equal')
 plt.xlabel('length(cm)')
@@ -35,33 +44,32 @@ plt.show()
 # Diffusivity
 plt.figure(figsize=(6, 6))  # 描画領域を正方形にする
 plt.xlabel('$r/R$')
-plt.ylabel('$\eta{(cm^2s^{-1})}$')
+plt.ylabel(r'$\eta{(cm^2s^{-1})}$')
 plt.ylim(1e8,1e13)
 plt.xlim(np.min(grid.RR)/cfg.RSUN,np.max(grid.RR)/cfg.RSUN)
 plt.plot(grid.RR[:,1]/cfg.RSUN,setup.et[:,1])
-ax.set_aspect('equal')
 plt.yscale('log')
 plt.title("Diffusivity")
-ax.set_box_aspect(1)  # 縦横比を1:1に設定 (Matplotlib v3.3+)
 plt.show()
 
-# alpha (θ＝60)
-plt.figure(figsize=(6, 6))  # 描画領域を正方形にする
-plt.plot(grid.RR/cfg.RSUN,setup.so[:,43])
-ax.set_aspect('equal')
-ax.set_box_aspect(1)  # 縦横比を1:1に設定 (Matplotlib v3.3+)
+# 格子数に依存しないよう θ=60°, r=0.975R のインデックスを計算で求める
+jth60 = np.argmin(abs(grid.th - 60/180*np.pi))
+ir0975 = np.argmin(abs(grid.rr - 0.975*cfg.RSUN))
+
+# alpha (θ=60°)
+plt.figure(figsize=(6, 6))
+plt.plot(grid.RR[:, jth60]/cfg.RSUN, setup.so[:, jth60])
 plt.xlabel('$r/R$')
 plt.ylabel(r'$\alpha{(cm s^{-1})}$')
 plt.xlim(np.min(grid.RR)/cfg.RSUN,np.max(grid.RR)/cfg.RSUN)
-plt.title("alpha effect(θ=60)")
+plt.title(r"alpha effect ($\theta=60^\circ$)")
 plt.show()
+
 # alpha (r=0.975R)
-plt.figure(figsize=(6, 6))  # 描画領域を正方形にする
-plt.plot(grid.th*180/np.pi,setup.so[127,:])
-ax.set_aspect('equal')
-ax.set_box_aspect(1)  # 縦横比を1:1に設定 (Matplotlib v3.3+)
+plt.figure(figsize=(6, 6))
+plt.plot(grid.th*180/np.pi, setup.so[ir0975, :])
 plt.xlabel(r'$\theta$')
 plt.ylabel(r'$\alpha{(cm s^{-1})}$')
 plt.xlim(0,np.max(grid.th*180/np.pi))
-plt.title("alpha effect(r=0.975R)")
+plt.title("alpha effect (r=0.975R)")
 plt.show()

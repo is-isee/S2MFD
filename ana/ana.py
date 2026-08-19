@@ -1,43 +1,29 @@
+"""ラン一式を読み込んで対話解析の名前空間を用意するスクリプト。
+
+使い方:
+    python ana.py [datadir]         # 既定は ../data/
+または IPython で:
+    %run ana.py ../data_xxx/
+"""
 import matplotlib.pyplot as plt
 import numpy as np
-import os, sys
-sys.path.append('../')
-import S2MFD
 
-datadir = '../data/'
-data = S2MFD.Data.initial_load(datadir)
+from ana_common import get_datadir, load_run
 
-cfg = data.cfg
-grid = data.grid
-setup = data.setup
+datadir = get_datadir()
+run = load_run(datadir)
 
-fig = plt.figure('dynamo',figsize=(10,10))
+# 対話利用のために変数を展開しておく (従来のスクリプト互換)
+data = run.data
+cfg = run.cfg
+grid = run.grid
+setup = run.setup
+timet = run.timet
+Bpht = run.Bpht
+Apht = run.Apht
+Brrt = run.Brrt
+Btht = run.Btht
+tau_diff = run.tau_diff
+n0, n1 = run.n0, run.n1
 
-n1 = 0
-if os.path.isdir(datadir):
-    # dataディレクトリ内の最も大きな番号を探る
-    # 特定のステップから始めたい場合は、そのステップを手で指定する
-    files = os.listdir(datadir)
-    for file in files:
-        filel = file.split('.')
-        if filel[0] == 'data':
-            n1 = max(n1, int(filel[1]))
-
-n0 = 0
-tau_diff = data.cfg.RSUN**2/data.cfg.ett
-timet = np.zeros(n1-n0)
-Brrt = np.zeros((grid.ixg,grid.jxg,n1-n0))
-Btht = np.zeros((grid.ixg,grid.jxg,n1-n0))
-Bpht = np.zeros((grid.ixg,grid.jxg,n1-n0))
-Apht = np.zeros((grid.ixg,grid.jxg,n1-n0))
-
-for n  in range(n0,n1):
-    print(n)
-    data.data_load(n)
-    Brr, Bth = S2MFD.physics.poloidal_mag(data.Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
-    d = np.load(file=datadir+'data.'+str(n).zfill(6)+'.npz')
-    timet[n-n0] = d['time']
-    Brrt[:,:,n-n0] = Brr
-    Btht[:,:,n-n0] = Bth
-    Bpht[:,:,n-n0] = d['Bph']
-    Apht[:,:,n-n0] = d['Aph']
+print(f'loaded {datadir}: n={n0}..{n1}')

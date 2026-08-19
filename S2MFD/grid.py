@@ -1,9 +1,11 @@
 from dataclasses import dataclass, field
 import numpy as np
-import pickle
+
+from S2MFD.npz_io import NpzIO
+
 
 @dataclass
-class Grid:
+class Grid(NpzIO):
    """
    Class for managing the grid data.
 
@@ -33,7 +35,7 @@ class Grid:
       Colatitudinal grid spacing.
    rr : numpy.ndarray
       Array of radial grid points.
-   th : numpyp.ndarray
+   th : numpy.ndarray
       Array of colatitudinal grid points.
    RR : numpy.ndarray: 
       Radial coordinate np.meshgrid array.
@@ -47,6 +49,8 @@ class Grid:
       numpy.sin(TH)
    cosTH : numpy.ndarray
       numpy.cos(TH)
+   sinTHm : numpy.ndarray
+      numpy.sin(THm) (face-centered)
    X : numpy.ndarray
       Cartesian x-coordinates based on radial and colatitudinal grids.
    Y : numpy.ndarray
@@ -71,7 +75,8 @@ class Grid:
    RRm: np.ndarray = field(init=False) 
    THm: np.ndarray = field(init=False)
    sinTH: np.ndarray = field(init=False)
-   cosTH: np.ndarray = field(init=False)   
+   cosTH: np.ndarray = field(init=False)
+   sinTHm: np.ndarray = field(init=False)
    X: np.ndarray = field(init=False)
    Y: np.ndarray = field(init=False)
    
@@ -82,19 +87,13 @@ class Grid:
       self.drr = (self.rrmax - self.rrmin)/self.ix
       self.dth = (self.thmax - self.thmin)/self.jx
 
-      #座標rrの設定
-      self.rr = np.zeros(self.ixg)
-      self.rr[0] = self.rrmin + self.drr*(0.5 - self.margin)
+      #座標rrの設定 (セル中心、ゴーストセル込み)
+      rr0 = self.rrmin + self.drr*(0.5 - self.margin)
+      self.rr = rr0 + self.drr*np.arange(self.ixg)
 
-      for i in range(1, self.ixg):
-         self.rr[i] = self.rr[i - 1] + self.drr
-   
-      #座標thの設定    
-      self.th    = np.zeros(self.jxg)
-      self.th[0] = self.thmin + self.dth*(0.5 - self.margin)
-
-      for j in range(1,self.jxg):
-         self.th[j] = self.th[j - 1] + self.dth
+      #座標thの設定
+      th0 = self.thmin + self.dth*(0.5 - self.margin)
+      self.th = th0 + self.dth*np.arange(self.jxg)
          
       self.RR ,self.TH  = np.meshgrid(self.rr, self.th,indexing='ij')
       self.RRm = np.zeros_like(self.RR)
@@ -108,30 +107,3 @@ class Grid:
       self.sinTHm = np.sin(self.THm)
       
       self.X, self.Y = self.RR * np.cos(self.TH), self.RR * np.sin(self.TH)
-   
-      
-   def save(self, filename):
-      """
-      Save the grid data to a file.
-      
-      Parameters
-      ----------
-      filename : str
-         File name to save the grid data.
-      """
-      np.savez(filename, **self.__dict__)
-   
-   @classmethod
-   def load(cls, filename):
-      """
-      Load the grid data from a file.
-      
-      Parameters
-      ----------
-      filename : str
-         File name to load the grid data.
-      """
-      data = np.load(filename,allow_pickle=True)
-      obj = cls.__new__(cls)
-      obj.__dict__.update({key: data[key] for key in data.files})
-      return obj

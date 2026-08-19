@@ -29,7 +29,6 @@ extensions = [
     'sphinx.ext.intersphinx',  # 他のドキュメントへのリンク
     'sphinx.ext.autosummary',
     'sphinx_automodapi.automodapi',
-    'sphinx_multiversion',
 ]
 
 intersphinx_mapping = {
@@ -67,7 +66,9 @@ html_context = {
         ("main", "/main/"),
     ],
 }
-smv_tag_whitelist = r'^v.*$'  # タグ "v1.0" などを対象
+# NOTE: 以前は sphinx-multiversion を使っていたが、Sphinx 8 と非互換のため廃止。
+# バージョン別の公開 (gh-pages の main/, vX.Y.Z/) は GitHub Actions
+# (.github/workflows/docs.yml) がデプロイ先ディレクトリを切り替えて実現している。
 
 napoleon_include_init_with_doc = True
 napoleon_use_ivar = True

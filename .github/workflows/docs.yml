@@ -1,0 +1,68 @@
+name: Docs
+
+# main への push は https://is-isee.github.io/S2MFD/main/ に、
+# タグ vX.Y.Z の push は .../S2MFD/vX.Y.Z/ に公開する。
+# 他のバージョンのディレクトリは keep されるので上書きされない。
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write  # gh-pages ブランチへの push に必要
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # setuptools_scm がバージョンをタグから決定するため
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[docs]"
+
+      - name: Determine deploy directory (main or tag name)
+        id: target
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "dir=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          else
+            echo "dir=main" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build documentation
+        run: sphinx-build -b html doc/source build/html
+
+      - name: Prepare site root files (redirect + .nojekyll)
+        run: |
+          mkdir -p build/root
+          cat > build/root/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html>
+            <head><meta http-equiv="refresh" content="0; url=./main/" /></head>
+            <body><a href="./main/">S2MFD documentation</a></body>
+          </html>
+          EOF
+          touch build/root/.nojekyll
+
+      - name: Deploy version directory to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/html
+          destination_dir: ${{ steps.target.outputs.dir }}
+
+      - name: Deploy site root files to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/root
+          keep_files: true

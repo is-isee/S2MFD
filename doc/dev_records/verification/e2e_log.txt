@@ -1,0 +1,19 @@
+2026-08-19 13:57:28,518 S2MFD.inference INFO: === Stage u0: GA開始 (個体数6, 最大2世代) ===
+2026-08-19 13:57:46,604 S2MFD.inference.genetic INFO: generation 0: best fitness=0.530203 diversity=0.3653
+2026-08-19 13:57:46,604 S2MFD.inference.genetic INFO: best params: {'as_u': 884.6628774655147, 'ae_u': 789.9159763094135, 'a1_u': 12.368056664230267, 'a2_u': -66.93263878638875, 'a4_u': -101.80439736746195, 'a0_s': 64.24813533040331}
+2026-08-19 13:58:03,645 S2MFD.inference.genetic INFO: generation 1: best fitness=0.618113 diversity=0.3470
+2026-08-19 13:58:03,646 S2MFD.inference.genetic INFO: best params: {'as_u': 929.8844092073734, 'ae_u': 798.7513022772699, 'a1_u': 12.749952565999813, 'a2_u': -93.64036993965638, 'a4_u': -101.80439736746195, 'a0_s': 65.3713802956231}
+2026-08-19 13:58:03,646 S2MFD.inference INFO: Stage u0 終了: fitness=0.618113 (2世代)
+2026-08-19 13:58:03,646 S2MFD.inference INFO: 最良個体で再シミュレーションを実行します
+2026-08-19 13:58:21,307 S2MFD.inference.compare INFO: comparison saved to results_e2e/datas_1944_1954/data_u0_1944_1954 (cc=0.7811 NMSE=0.8484 EVA=0.6181)
+2026-08-19 13:58:21,881 S2MFD.inference INFO: 結果を保存しました: results_e2e/datas_1944_1954/data_u0_1944_1954/stage_result.json
+2026-08-19 13:58:21,882 S2MFD.inference INFO: === Stage s0: GA開始 (個体数6, 最大2世代) ===
+2026-08-19 13:58:31,685 S2MFD.inference.genetic INFO: generation 0: best fitness=0.784545 diversity=0.3776
+2026-08-19 13:58:31,685 S2MFD.inference.genetic INFO: best params: {'as_s': 50.583161224314395, 'ae_s': 60.69256484551104, 'a1_s': -2.724025908925162, 'a2_s': 1.4878106301917846, 'a4_s': -14.173226602707949}
+2026-08-19 13:58:41,437 S2MFD.inference.genetic INFO: generation 1: best fitness=0.786307 diversity=0.4103
+2026-08-19 13:58:41,437 S2MFD.inference.genetic INFO: best params: {'as_s': 50.48319833713448, 'ae_s': 66.2427008480097, 'a1_s': -2.709017675749406, 'a2_s': 0.06706984427926055, 'a4_s': -13.208365964938759}
+2026-08-19 13:58:41,437 S2MFD.inference INFO: Stage s0 終了: fitness=0.786307 (2世代)
+2026-08-19 13:58:41,438 S2MFD.inference INFO: 最良個体で再シミュレーションを実行します
+2026-08-19 13:58:52,285 S2MFD.inference.compare INFO: comparison saved to results_e2e/datas_1944_1954/data_s0_1944_1954 (cc=0.8818 NMSE=0.0731 EVA=0.7863)
+2026-08-19 13:58:52,861 S2MFD.inference INFO: 結果を保存しました: results_e2e/datas_1944_1954/data_s0_1944_1954/stage_result.json
+2026-08-19 13:58:52,861 S2MFD.inference INFO: 完了。結果: results_e2e/datas_1944_1954

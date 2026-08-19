@@ -1,0 +1,40 @@
+{
+  "mode": "u0",
+  "params": {
+    "as_u": 804.4558807961412,
+    "ae_u": 833.4406103175681,
+    "a1_u": -111.56591019733624,
+    "a2_u": -14.884218631329873,
+    "a4_u": -38.760592730225625,
+    "a0_s": 63.16912472121504
+  },
+  "fitness": 0.8014999280770344,
+  "rerun_scores": {
+    "cc": 0.906559354841762,
+    "nmse": 0.14403491280551428,
+    "eva": 0.8014999280770344
+  },
+  "generations_run": 3,
+  "interrupted": false,
+  "fitness_history": [
+    0.7984261296006374,
+    0.7984261296006374,
+    0.8014999280770344
+  ],
+  "diversity_history": [
+    0.30321213469845004,
+    0.2913924098531535,
+    0.30341804328006516
+  ],
+  "config": {
+    "population": 30,
+    "max_generations": 50,
+    "target_fitness": 0.8,
+    "seed": 42,
+    "alpha": 0.9,
+    "spinup_years": 80.0,
+    "fitness_kind": "standard",
+    "data": "OBS",
+    "parameter_file": "parameters/inference.py"
+  }
+}

@@ -40,26 +40,19 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
       
          
    elif cfg.boundary_condition_type == 'potential':
-      # 時間不変量 (sinth, n_values, coefficients, P1n_reduced) は
-      # Legendre.__init__ で事前計算済み
-      # 太陽表面 (最外物理セル) の Aφ を Legendre 陪多項式に射影する
+      # ルジャンドル射影と外部ポテンシャル場による再構成は Aφ について線形なので、
+      # Legendre.build_potential_operator() が両者をまとめた行列を用意している。
+      # ここでは行列ベクトル積 1 回で済む。
       Aph_reduced = Aph[grid.ixg - grid.margin - 1,
                         grid.margin:grid.jxg - grid.margin]  # (jx,)
-      # 0~πの積分 (中点則): itg_n = ∫ Aφ P^1_n sinθ dθ
-      itg = np.sum(Aph_reduced[None, :] * legendre.P1n_reduced
-                   * legendre.sinth[None, :] * grid.dth, axis=1)  # (lmax-1,)
-      ant = legendre.coefficients * itg  # (lmax-1,)
-      n_col = legendre.n_values[:, None]  # (lmax-1, 1)
 
       for i in range(0, grid.margin):
          # top boundary condition
          # no electrical current
          # Bph = 0, smoothly match Aph with an exterior potential field solution
          Bph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = -Bph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin]
-         Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = np.sum(
-            ant[:, None]
-            * (grid.rr[grid.ixg - grid.margin - 1]/grid.rr[grid.ixg-i-1])**(n_col + 1)
-            * legendre.P1n_reduced, axis=0)
+         Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = \
+            Aph_reduced @ legendre.potential_operator[i]
 
          # bottom boundary condition
          # perfect conductor

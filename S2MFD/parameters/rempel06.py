@@ -137,23 +137,15 @@ angmom_bottom_bc = 'uniform_rotation'
 # 持たないため、Hotta (2017) の slope-limited diffusion を保存形で入れる。
 # 散逸した運動エネルギー・磁場エネルギーはエントロピー方程式に戻す。
 artificial_diffusion = True
-sld_coefficient = 1.0
-# 部分的な風上化の下限。Rempel の MacCormack が持つ暗黙の数値散逸に相当する量を
-# 明示的に入れるための係数。0 なら純粋な SLD、1 なら完全な Rusanov (1次風上)。
-#
-# 値の選び方: この係数は実効的な拡散係数 (1/2)*floor*c_eff*dx を生む。
-# 64x64 では floor=0.1 で 4.3e12 となり物理粘性 nu_t=3e12 を超えてしまい、
-# 差動回転を有意に削る。実測 (64x64, 6年):
-#     floor=0.1  -> DR=+0.0244 (人工拡散 4.3e12)
-#     floor=0.03 -> DR=+0.0344 (人工拡散 1.3e12)
-#     floor=0.01 -> DR=+0.0366 (人工拡散 4.3e11)
-# 0.01 で頭打ちになるので既定値とする。
-sld_floor = 0.01
-# 特性速度 c = |v| + sld_cs_factor * c_s,eff + v_A の、抑制音速に掛ける係数。
-# 0.1-0.3 が標準。抑制後とはいえ音速は流れより 2 桁速いので、そのまま使うと
-# 人工拡散がモデルの依存する低拡散領域 (オーバーシュート層の kappa_t、
-# 放射層の nu_dif) を潰してしまう。
-sld_cs_factor = 0.2
+# Rempel (2014, ApJ 789, 132) §2.1 の slope-limited diffusion。
+# 実装は R2D2 の src/include/artdif_func.F95 に合わせてある。
+sld_fh = 2.0        # 論文の h。h>1 で比 r < 1-1/h の領域は拡散を完全に切る
+sld_ep = 2.0        # 一般化 minmod の epsilon。2 で MC リミタ
+# 特性速度 c = |v| + v_A + sld_cs_factor * c_s,eff の音速係数 (R2D2 は 0.3)。
+# 抑制後とはいえ音速は流れより 2 桁速いので、そのまま使うとモデルの依存する
+# 低拡散領域 (オーバーシュート層の kappa_t、放射層の nu_dif) を潰してしまう。
+# CFL には抑制なしの |v| + v_A + c_s,eff を使う。
+sld_cs_factor = 0.3
 
 # --- CFL ------------------------------------------------------------------
 cfl_safety = 0.2

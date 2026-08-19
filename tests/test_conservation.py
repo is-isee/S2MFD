@@ -465,7 +465,7 @@ def test_sld_conserves_exactly(setup_dynamic):
     ffr = np.zeros_like(om1)
     ffth = np.zeros_like(om1)
     dq = np.zeros_like(om1)
-    artdif.sld_diffuse(dq, om1, jac_r, jac_th, csp, csp, 1.0, 0.0,
+    artdif.sld_diffuse(dq, om1, jac_r, jac_th, csp, csp, 2.0, 2.0,
                        grid.drr, grid.dth, m, ffr, ffth)
 
     total = cons.cell_integral(dq, grid.drr, grid.dth, m)
@@ -490,12 +490,46 @@ def test_sld_always_dissipates(setup_dynamic, seed):
     ffr = np.zeros_like(om1)
     ffth = np.zeros_like(om1)
     dq = np.zeros_like(om1)
-    artdif.sld_diffuse(dq, om1, jac_r, jac_th, csp, csp, 1.0, 0.0,
+    artdif.sld_diffuse(dq, om1, jac_r, jac_th, csp, csp, 2.0, 2.0,
                        grid.drr, grid.dth, m, ffr, ffth)
 
     sl = (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
     dke = ((cfg.om0 + om1[sl])*dq[sl]).sum()*grid.drr*grid.dth
     assert dke < 0.0, f'人工拡散がエネルギーを注入している: {dke:.3e}'
+
+
+def test_sld_vanishes_exactly_for_linear_fields(setup_dynamic):
+    """線形な場では人工拡散のフラックスが厳密にゼロになること。
+
+    Rempel (2014) 式 (6)(7) の再構成は、局所的に線形な場では左右からの
+    外挿が面上で一致するので :math:`u_r-u_l=0` となり、フラックスが
+    **厳密に**消える。これが「解像された場には効かない」の中身であり、
+    モデルが依存する低拡散領域 (オーバーシュート層の κ_t、放射層の ν_dif)
+    を潰さないための必須条件。
+    """
+    cfg, grid, strat, setup = setup_dynamic
+    m = grid.margin
+    shape = (grid.ixg, grid.jxg)
+    csp = np.full(shape, 1.0e5)
+    jac = np.ones(shape)
+    out = np.zeros(shape)
+
+    # r 方向に完全に線形な場
+    lin = np.ascontiguousarray(np.arange(grid.ixg, dtype=float)[:, None]
+                               * np.ones((1, grid.jxg)))
+    artdif.sld_flux_r(lin, jac, csp, 2.0, 2.0, m, out)
+    assert np.abs(out[m + 1:grid.ixg - m, :]).max() == 0.0, (
+        '線形場でフラックスが立っている')
+
+    # 1 セルおきに符号が変わる格子スケールの振動 -> 最大拡散 (Phi_h = 1)
+    ii = np.arange(grid.ixg)[:, None]
+    zig = np.ascontiguousarray(((-1.0)**ii)*np.ones((1, grid.jxg)))
+    out[:] = 0.0
+    artdif.sld_flux_r(zig, jac, csp, 2.0, 2.0, m, out)
+    i = grid.ixg//2
+    expected = -0.5*1.0e5*(zig[i, 0] - zig[i - 1, 0])
+    assert abs(out[i, 0] - expected) < 1e-8*abs(expected), (
+        f'格子スケール振動で最大拡散になっていない: {out[i,0]:.4e} vs {expected:.4e}')
 
 
 def test_sld_is_negligible_for_resolved_fields(setup_dynamic):
@@ -511,7 +545,7 @@ def test_sld_is_negligible_for_resolved_fields(setup_dynamic):
     def response(field):
         dq = np.zeros((grid.ixg, grid.jxg))
         artdif.sld_diffuse(dq, np.ascontiguousarray(field), jac_r, jac_th,
-                           csp, csp, 1.0, 0.0, grid.drr, grid.dth, m, ffr, ffth)
+                           csp, csp, 2.0, 2.0, grid.drr, grid.dth, m, ffr, ffth)
         return cons.cell_integral(np.abs(dq), grid.drr, grid.dth, m)
 
     smooth = -0.05*cfg.om0*grid.cosTH**2*np.sin(

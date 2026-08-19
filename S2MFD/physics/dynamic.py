@@ -152,11 +152,11 @@ class DynamicSolver:
             getattr(cfg, 'angmom_bottom_bc', 'uniform_rotation')
             == 'uniform_rotation')
         self.use_artdif = getattr(cfg, 'artificial_diffusion', True)
-        self.sld_coef = getattr(cfg, 'sld_coefficient', 1.0)
-        self.sld_floor = getattr(cfg, 'sld_floor', 0.01)
-        # 特性速度 |v| + cs_factor*c_s,eff + v_A の、音速に掛ける係数。
-        # 0.1-0.3 程度が標準 (_update_characteristic_speed の説明を参照)。
-        self.cs_factor = getattr(cfg, 'sld_cs_factor', 0.2)
+        # Rempel (2014) の SLD パラメタ (R2D2 と同じ既定値)
+        self.sld_fh = getattr(cfg, 'sld_fh', 2.0)   # 論文の h
+        self.sld_ep = getattr(cfg, 'sld_ep', 2.0)   # 一般化 minmod の epsilon
+        # 特性速度 |v| + v_A + cs_factor*c_s,eff の音速係数 (R2D2 は 0.3)
+        self.cs_factor = getattr(cfg, 'sld_cs_factor', 0.3)
         self.consistent_advection = getattr(cfg, 'consistent_advection', False)
 
         # プリミティブ変数
@@ -342,22 +342,22 @@ class DynamicSolver:
             heat_before = heat.copy()
             artdif.sld_diffuse_work(ds_om, heat, self.om1,
                                     self.jacL_r, self.jacL_th,
-                                    self.csp_r, self.csp_th, self.sld_coef,
-                                    self.sld_floor,
+                                    self.csp_r, self.csp_th,
+                               self.sld_fh, self.sld_ep,
                                     grid.drr, grid.dth, m, w.ffr, w.ffth)
             artdif.sld_diffuse(ds_mr, self.vrr, self.jacV_r, self.jacV_th,
-                               self.csp_r, self.csp_th, self.sld_coef,
-                               self.sld_floor,
+                               self.csp_r, self.csp_th,
+                               self.sld_fh, self.sld_ep,
                                grid.drr, grid.dth, m, w.ffr, w.ffth)
             artdif.sld_diffuse(ds_mt, self.vth, self.jacV_r, self.jacV_th,
-                               self.csp_r, self.csp_th, self.sld_coef,
-                               self.sld_floor,
+                               self.csp_r, self.csp_th,
+                               self.sld_fh, self.sld_ep,
                                grid.drr, grid.dth, m, w.ffr, w.ffth)
             # 密度にも掛ける (音波の格子スケール振動を抑える)。保存量は
             # ∫ζ²ρ1 dV なので、連続の式と同じく発散に 1/ζ² を掛ける
             artdif.sld_diffuse_scaled(dq_ro, self.ro1, self.jacM_r,
                                       self.jacM_th, self.csp_r, self.csp_th,
-                                      self.sld_coef, self.sld_floor,
+                                      self.sld_fh, self.sld_ep,
                                       grid.drr, grid.dth, m,
                                       self.izeta2, w.ffr, w.ffth)
 
@@ -376,7 +376,7 @@ class DynamicSolver:
             artdif.sld_diffuse_primitive(dse1, self.se1, self.jacM_r,
                                          self.jacM_th, self.iJM,
                                          self.csp_r, self.csp_th,
-                                         self.sld_coef, self.sld_floor,
+                                         self.sld_fh, self.sld_ep,
                                          grid.drr, grid.dth, m, w.ffr, w.ffth)
 
         # --- エントロピー -------------------------------------------------
@@ -465,7 +465,7 @@ class DynamicSolver:
             # 人工拡散も陽解法なので安定条件に入れる
             self._update_characteristic_speed()
             kappa_max = max(kappa_max, artdif.sld_diffusivity_max(
-                self.csp_r, self.csp_th, self.sld_coef, self.sld_floor,
+                self.csp_r, self.csp_th,
                 self.grid.drr, self.grid.dth, self.grid.rr, self.m))
         return hydro.cfl_dt(self.vrr, self.vth, self.brr, self.bth, self.bph,
                             s.ro0, self.ro1, s.cs_eff, self.grid.rr,

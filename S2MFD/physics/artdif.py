@@ -8,9 +8,45 @@ S2MFD は SSP-RK2 + 中心差分で**数値散逸をまったく持たない**�
 人工拡散が必要になる. これは論文からの逸脱ではなく, 異なる時間積分法を
 使うことの必然的な帰結である.
 
-方式は Hotta, Iijima & Kusano (2017) の slope-limited diffusion (SLD).
-勾配が格子で解像されている領域では実質ゼロになり, 格子スケールの
-振動だけを選択的に潰す.
+方式は Rempel (2014, ApJ 789, 132) §2.1 の slope-limited diffusion (SLD).
+実装は R2D2 (Hotta) の ``src/include/artdif_func.F95`` に合わせてある.
+
+.. math::
+   u_l &= u_i + \\tfrac12\\Delta u_i, \\qquad
+   u_r = u_{i+1} - \\tfrac12\\Delta u_{i+1} \\\\
+   \\Delta u_i &= {\\rm minmod}_\\epsilon\\!\\left[
+      \\tfrac12(u_{i+1}-u_{i-1}),\\,
+      \\epsilon(u_{i+1}-u_i),\\,
+      \\epsilon(u_i-u_{i-1})\\right] \\\\
+   f_{i+1/2} &= -\\tfrac12 c_{i+1/2}\\,\\Phi_h\\,(u_r-u_l) \\\\
+   \\Phi_h &= \\max\\!\\left[0,\\,
+      1 + h\\left(\\min(1, r) - 1\\right)\\right],\\quad
+      r = \\frac{u_r-u_l}{u_{i+1}-u_i}
+
+:math:`r \\le 0` (反拡散になる向き) では :math:`\\Phi_h=0`.
+
+なぜ「解像された場では効かない」のか
+------------------------------------
+滑らかで局所的に線形な場では, 左右からの再構成が面上で一致するので
+:math:`u_r-u_l=0` となりフラックスが厳密に消える. 逆に格子スケールの
+振動ではリミタが傾きをゼロにするので :math:`u_r-u_l=u_{i+1}-u_i`,
+:math:`r=1`, :math:`\\Phi_h=1` となり最大拡散
+:math:`\\tfrac12 c\\Delta x` が効く.
+
+:math:`h>1` にすると :math:`r<1-1/h` の領域でフラックスが**完全に切れる**.
+Rempel は :math:`h=2` を使う (R2D2 も同じ) ので, :math:`r<0.5` では
+人工拡散がゼロになる. :math:`h=0` は 2 次 Lax-Friedrichs に一致する.
+
+パラメタ (R2D2 の値)
+--------------------
+* :math:`h` = ``fh`` = 2.0
+* :math:`\\epsilon` = ``ep`` = 2.0 (generalized minmod. 2 で MC リミタ)
+* 特性速度 :math:`c = |v| + v_A + 0.3\\,c_{s,\\rm eff}`
+
+音速に 0.3 を掛けるのは, 抑制後とはいえ音速が流れより 2 桁速く, そのままだと
+人工拡散がモデルの依存する低拡散領域 (オーバーシュート層の
+:math:`\\kappa_t`, 放射層の :math:`\\nu_{\\rm dif}`) を上回ってしまうため.
+CFL には抑制なしの :math:`|v|+v_A+c_{s,\\rm eff}` を使う.
 
 なぜ SLD だけでは足りないか (部分的な風上化の下限)
 --------------------------------------------------
@@ -81,110 +117,90 @@ from S2MFD.physics.conservative import (
     add_flux_divergence, add_flux_divergence_scaled, add_flux_work,
 )
 
-__all__ = ['sld_flux_r', 'sld_flux_th', 'sld_diffuse', 'sld_diffuse_work',
-           'sld_diffuse_scaled', 'sld_diffuse_primitive', 'sld_diffusivity_max']
+__all__ = ['sld_slope_r', 'sld_slope_th', 'sld_flux_r', 'sld_flux_th',
+           'sld_diffuse', 'sld_diffuse_work', 'sld_diffuse_scaled',
+           'sld_diffuse_primitive', 'sld_diffusivity_max']
 
 
 @njit(inline='always')
-def _minmod(a, b):
-    if a*b <= 0.0:
-        return 0.0
-    if abs(a) < abs(b):
-        return a
-    return b
+def _minmod3(d_dwn, d_upp, ep):
+    """一般化 minmod リミタ (Rempel 2014 式 8, R2D2 の ``artdif_dqq``).
+
+    3 つの候補 :math:`\\epsilon\\Delta_{\\rm dwn}`,
+    :math:`\\epsilon\\Delta_{\\rm upp}`,
+    :math:`\\tfrac12(\\Delta_{\\rm dwn}+\\Delta_{\\rm upp})` のうち,
+    すべて同符号ならゼロに最も近いものを, 符号が揃わなければ 0 を返す.
+    :math:`\\epsilon=2` で monotonized central (MC) リミタになる.
+    """
+    d_cen = 0.5*(d_dwn + d_upp)
+    a, b, c = ep*d_dwn, ep*d_upp, d_cen
+    dmax = a if a > b else b
+    if c > dmax:
+        dmax = c
+    dmin = a if a < b else b
+    if c < dmin:
+        dmin = c
+    return (dmax if dmax < 0.0 else 0.0) + (dmin if dmin > 0.0 else 0.0)
+
+
+@njit(inline='always')
+def _sld_face_flux(q_dwn, q_upp, dq_dwn, dq_upp, fh, cc, jac):
+    """面フラックス (Rempel 2014 式 9-10, R2D2 の ``artdif_flux``).
+
+    ``jac`` は保存量のヤコビアン (保存形に載せるための係数).
+    """
+    ql = q_dwn + 0.5*dq_dwn
+    qr = q_upp - 0.5*dq_upp
+    d = q_upp - q_dwn
+    # ゼロ割り回避 (R2D2 と同じく符号を保ったまま下限を張る)
+    ad = abs(d)
+    d = (1.0 if d >= 0.0 else -1.0)*(ad if ad > 1.0e-20 else 1.0e-20)
+    ra = (qr - ql)/d
+    if ra > 1.0:
+        ra = 1.0
+    if ra <= 0.0:
+        return 0.0            # 反拡散にはしない
+    pp = 1.0 + fh*(ra - 1.0)
+    if pp < 0.0:
+        pp = 0.0
+    return -0.5*cc*jac*pp*(qr - ql)
 
 
 @njit(fastmath=False)
-def sld_flux_r(uu, jac_face, cspeed, coefficient, floor, margin, out):
-    """r 方向の slope-limited diffusion フラックスを作る.
-
-    セル境界での「解像されていない跳び」を
-
-    .. math::
-       \\Delta_{i-1/2} &= u_i - u_{i-1} \\\\
-       \\Psi_i &= {\\rm minmod}(\\Delta_{i-1/2},\\,\\Delta_{i+1/2}) \\\\
-       {\\rm jump}_{i-1/2} &= \\Delta_{i-1/2}
-         - \\tfrac12(\\Psi_{i-1}+\\Psi_i)
-
-    で測る. 滑らかで解像された場では :math:`\\Psi\\simeq\\Delta` となり
-    jump はほぼゼロになる. 格子スケールの振動があるときだけ有限になる.
-
-    フラックスは
-
-    .. math:: F_{i-1/2} = -\\tfrac12\\,h\\,c_{i-1/2}\\,J_{i-1/2}\\,{\\rm jump}
-
-    符号ガード
-    ----------
-    jump が :math:`\\Delta` と逆符号のときはフラックスをゼロにし,
-    :math:`|{\\rm jump}|\\le|\\Delta|` に制限する. これにより拡散は必ず
-    勾配を下る向きになり, **散逸が正値であることが構造的に保証される**
-    (反拡散になってエネルギーを注入することがない).
-
-    Parameters
-    ----------
-    uu : numpy.ndarray
-        拡散させるプリミティブ変数 (Omega1, v_r, v_theta, B など).
-    jac_face : numpy.ndarray
-        r 面上のヤコビアン係数 (ixg, jxg). 角運動量なら
-        :math:`\\rho_0r^4\\sin^3\\theta`, 運動量なら
-        :math:`\\rho_0r^2\\sin\\theta`.
-    cspeed : numpy.ndarray
-        面上の特性速度 (ixg, jxg). 通常 :math:`|v|+c_{s,\\rm eff}`.
-    coefficient : float
-        全体に掛かる無次元係数 (``cfg.sld_coefficient``).
-    out : numpy.ndarray
-        フラックスの出力先 (ixg, jxg). 面 ``i`` はセル ``i-1`` と ``i`` の境界.
-    """
+def sld_flux_r(uu, jac_face, cspeed, fh, ep, margin, out):
+    """r 方向の SLD フラックス. 面 ``i`` はセル ``i-1`` と ``i`` の境界."""
     ixg, jxg = uu.shape
     for j in range(jxg):
         for i in range(margin, ixg - margin + 1):
-            d0 = uu[i, j] - uu[i - 1, j]
-            # 隣接する面差分 (端では自分自身で代用)
-            dm = uu[i - 1, j] - uu[i - 2, j] if i - 2 >= 0 else d0
-            dp = uu[i + 1, j] - uu[i, j] if i + 1 < ixg else d0
-            psi_l = _minmod(dm, d0)
-            psi_r = _minmod(d0, dp)
-            jump = d0 - 0.5*(psi_l + psi_r)
-            # 符号ガード: 勾配を下る向きにだけ効かせる
-            if jump*d0 < 0.0:
-                jump = 0.0
-            elif abs(jump) > abs(d0):
-                jump = d0
-            # 部分的な風上化 (下限). リミタが「解像されている」と判断した
-            # 場合でも floor の割合だけは Rusanov 型の散逸を残す
-            if abs(jump) < floor*abs(d0):
-                jump = floor*d0
-            out[i, j] = -0.5*coefficient*cspeed[i, j]*jac_face[i, j]*jump
+            # セル i-1 と i の再構成傾き
+            im2 = i - 2 if i - 2 >= 0 else i - 1
+            ip1 = i + 1 if i + 1 < ixg else i
+            dq_dwn = _minmod3(uu[i - 1, j] - uu[im2, j],
+                              uu[i, j] - uu[i - 1, j], ep)
+            dq_upp = _minmod3(uu[i, j] - uu[i - 1, j],
+                              uu[ip1, j] - uu[i, j], ep)
+            out[i, j] = _sld_face_flux(uu[i - 1, j], uu[i, j], dq_dwn, dq_upp,
+                                       fh, cspeed[i, j], jac_face[i, j])
 
 
 @njit(fastmath=False)
-def sld_flux_th(uu, jac_face, cspeed, coefficient, floor, margin, out):
-    """theta 方向の slope-limited diffusion フラックス.
-
-    :func:`sld_flux_r` の theta 版. 面 ``j`` はセル ``j-1`` と ``j`` の境界.
-    """
+def sld_flux_th(uu, jac_face, cspeed, fh, ep, margin, out):
+    """theta 方向の SLD フラックス. 面 ``j`` はセル ``j-1`` と ``j`` の境界."""
     ixg, jxg = uu.shape
     for i in range(ixg):
         for j in range(margin, jxg - margin + 1):
-            d0 = uu[i, j] - uu[i, j - 1]
-            dm = uu[i, j - 1] - uu[i, j - 2] if j - 2 >= 0 else d0
-            dp = uu[i, j + 1] - uu[i, j] if j + 1 < jxg else d0
-            psi_l = _minmod(dm, d0)
-            psi_r = _minmod(d0, dp)
-            jump = d0 - 0.5*(psi_l + psi_r)
-            if jump*d0 < 0.0:
-                jump = 0.0
-            elif abs(jump) > abs(d0):
-                jump = d0
-            # 部分的な風上化 (下限). リミタが「解像されている」と判断した
-            # 場合でも floor の割合だけは Rusanov 型の散逸を残す
-            if abs(jump) < floor*abs(d0):
-                jump = floor*d0
-            out[i, j] = -0.5*coefficient*cspeed[i, j]*jac_face[i, j]*jump
+            jm2 = j - 2 if j - 2 >= 0 else j - 1
+            jp1 = j + 1 if j + 1 < jxg else j
+            dq_dwn = _minmod3(uu[i, j - 1] - uu[i, jm2],
+                              uu[i, j] - uu[i, j - 1], ep)
+            dq_upp = _minmod3(uu[i, j] - uu[i, j - 1],
+                              uu[i, jp1] - uu[i, j], ep)
+            out[i, j] = _sld_face_flux(uu[i, j - 1], uu[i, j], dq_dwn, dq_upp,
+                                       fh, cspeed[i, j], jac_face[i, j])
 
 
 @njit(fastmath=False)
-def sld_diffuse(dqq, uu, jac_r, jac_th, csp_r, csp_th, coefficient, floor,
+def sld_diffuse(dqq, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
                 drr, dth, margin, ffr, ffth):
     """プリミティブ変数 ``uu`` に人工拡散を掛け, 保存量の時間微分に加算する.
 
@@ -192,53 +208,59 @@ def sld_diffuse(dqq, uu, jac_r, jac_th, csp_r, csp_th, coefficient, floor,
     保存量が境界から出入りすることはない (ユーザー要求
     「境界から保存量が出ていかないように。人工粘性も物理も」).
     """
-    sld_flux_r(uu, jac_r, csp_r, coefficient, floor, margin, ffr)
+    sld_flux_r(uu, jac_r, csp_r, fh, ep, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
-    sld_flux_th(uu, jac_th, csp_th, coefficient, floor, margin, ffth)
+    sld_flux_th(uu, jac_th, csp_th, fh, ep, margin, ffth)
     zero_boundary_faces_th(ffth, margin)
     add_flux_divergence(dqq, ffr, ffth, drr, dth, margin)
 
 
 @njit(fastmath=False)
-def sld_diffuse_scaled(dqq, uu, jac_r, jac_th, csp_r, csp_th, coefficient,
-                       floor, drr, dth, margin, scale, ffr, ffth):
-    """:func:`sld_diffuse` の, 発散に動径依存の係数が掛かる版.
+def sld_diffuse_work(dqq, heat, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
+                     drr, dth, margin, ffr, ffth):
+    """:func:`sld_diffuse` に加えて, 局所的な散逸率を ``heat`` に積む.
 
-    密度に人工拡散を掛けるときに使う. 音速抑制法では保存量が
-    :math:`\\int\\xi_s^2\\rho_1\\,dV` なので, 連続の式と同じく
-    :math:`\\xi_s^{-2}` を発散全体に掛けないと質量保存が壊れる
-    (:math:`\\xi_s` が動径に依存する場合).
+    角運動量に掛けるときはこちらを使う. :math:`\\Omega_0` は
+    :math:`-F\\cdot\\nabla\\Omega` の微分で消えるので, 局所的な加熱が
+    :math:`\\Omega_0/\\Omega_1` 倍に化ける問題を避けられる
+    (:func:`S2MFD.physics.conservative.add_flux_work` の説明を参照).
     """
-    sld_flux_r(uu, jac_r, csp_r, coefficient, floor, margin, ffr)
+    sld_flux_r(uu, jac_r, csp_r, fh, ep, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
-    sld_flux_th(uu, jac_th, csp_th, coefficient, floor, margin, ffth)
+    sld_flux_th(uu, jac_th, csp_th, fh, ep, margin, ffth)
+    zero_boundary_faces_th(ffth, margin)
+    add_flux_divergence(dqq, ffr, ffth, drr, dth, margin)
+    add_flux_work(heat, ffr, ffth, uu, drr, dth, margin)
+
+
+@njit(fastmath=False)
+def sld_diffuse_scaled(dqq, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
+                       drr, dth, margin, scale, ffr, ffth):
+    """発散に動径依存の係数が掛かる版 (密度に使う).
+
+    音速抑制法では保存量が :math:`\\int\\xi_s^2\\rho_1\\,dV` なので,
+    連続の式と同じく :math:`\\xi_s^{-2}` を発散全体に掛けないと質量保存が
+    壊れる (:math:`\\xi_s` が動径に依存する場合).
+    """
+    sld_flux_r(uu, jac_r, csp_r, fh, ep, margin, ffr)
+    zero_boundary_faces_r(ffr, margin)
+    sld_flux_th(uu, jac_th, csp_th, fh, ep, margin, ffth)
     zero_boundary_faces_th(ffth, margin)
     add_flux_divergence_scaled(dqq, ffr, ffth, drr, dth, margin, scale)
 
 
 @njit(fastmath=False)
-def sld_diffuse_primitive(duu, uu, jac_r, jac_th, ijac, csp_r, csp_th,
-                          coefficient, floor, drr, dth, margin, ffr, ffth):
+def sld_diffuse_primitive(duu, uu, jac_r, jac_th, ijac, csp_r, csp_th, fh, ep,
+                          drr, dth, margin, ffr, ffth):
     """保存形ではなく直接解いているプリミティブ変数に人工拡散を掛ける.
 
     エントロピーのように保存量として持っていない変数に使う.
     フラックスは保存形と同じヤコビアン付きで作り, 最後にセル中心の
     ヤコビアンで割って :math:`\\partial u/\\partial t` に変換する.
-
-    エントロピーへの人工拡散を忘れると何が起きるか
-    ----------------------------------------------
-    :math:`s_1` は中心差分で移流されるだけで散逸を持たないため, 格子スケールの
-    ノイズが減衰しない. そのノイズは状態方程式
-    :math:`p_1=p_0(\\gamma\\rho_1/\\rho_0+s_1)` を通して圧力に乗り,
-    :math:`\\rho_0` が小さい対流層上部で
-    :math:`\\rho_0^{-1}\\partial_r p_1` として巨大な加速に化ける. その速度が
-    さらに :math:`s_1` をかき混ぜるので正のフィードバックになり,
-    計算が発散する. 実際に赤道近傍・上部対流層から壊れることを確認した
-    (``doc/dev_records`` の作業記録を参照).
     """
-    sld_flux_r(uu, jac_r, csp_r, coefficient, floor, margin, ffr)
+    sld_flux_r(uu, jac_r, csp_r, fh, ep, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
-    sld_flux_th(uu, jac_th, csp_th, coefficient, floor, margin, ffth)
+    sld_flux_th(uu, jac_th, csp_th, fh, ep, margin, ffth)
     zero_boundary_faces_th(ffth, margin)
     ixg, jxg = duu.shape
     idrr = 1.0/drr
@@ -250,13 +272,12 @@ def sld_diffuse_primitive(duu, uu, jac_r, jac_th, ijac, csp_r, csp_th,
 
 
 @njit(fastmath=False)
-def sld_diffusivity_max(csp_r, csp_th, coefficient, floor, drr, dth, rr, margin):
-    """人工拡散の実効拡散係数の最大値を返す (CFL 用).
+def sld_diffusivity_max(csp_r, csp_th, drr, dth, rr, margin):
+    """人工拡散の実効拡散係数の上限 :math:`\\tfrac12 c\\Delta x` を返す (CFL 用).
 
-    SLD フラックスは :math:`-\\tfrac12 h c\\,\\Delta u` なので, 実効的な
-    拡散係数は :math:`\\tfrac12 h c\\,\\Delta x` に相当する. これを
-    陽解法の拡散安定条件に入れないと, ``sld_coefficient`` を大きくしたときに
-    静かに不安定化する (係数 4 で即座に発散することを確認済み).
+    :math:`\\Phi_h\\le1` なので, これが実際に到達しうる最大値になる
+    (Rempel 2014 §2.1: "the maximum diffusivity of
+    :math:`0.5\\,c_{i+1/2}\\,\\Delta x`").
     """
     ixg, jxg = csp_r.shape
     kmax = 0.0
@@ -264,26 +285,7 @@ def sld_diffusivity_max(csp_r, csp_th, coefficient, floor, drr, dth, rr, margin)
         dl = drr if drr < rr[i]*dth else rr[i]*dth
         for j in range(margin, jxg - margin):
             c = csp_r[i, j] if csp_r[i, j] > csp_th[i, j] else csp_th[i, j]
-            k = 0.5*coefficient*c*dl
+            k = 0.5*c*dl
             if k > kmax:
                 kmax = k
     return kmax
-
-
-@njit(fastmath=False)
-def sld_diffuse_work(dqq, heat, uu, jac_r, jac_th, csp_r, csp_th, coefficient,
-                     floor, drr, dth, margin, ffr, ffth):
-    """:func:`sld_diffuse` に加えて, 局所的な散逸率を ``heat`` に積む.
-
-    角運動量に人工拡散を掛けるときはこちらを使う.
-    :math:`\\Omega=\\Omega_0+\\Omega_1` の :math:`\\Omega_0` は
-    :math:`-F\\cdot\\nabla\\Omega` の微分で消えるので, 局所的な加熱が
-    :math:`\\Omega_0/\\Omega_1` 倍に化ける問題を避けられる
-    (:func:`S2MFD.physics.conservative.add_flux_work` の説明を参照).
-    """
-    sld_flux_r(uu, jac_r, csp_r, coefficient, floor, margin, ffr)
-    zero_boundary_faces_r(ffr, margin)
-    sld_flux_th(uu, jac_th, csp_th, coefficient, floor, margin, ffth)
-    zero_boundary_faces_th(ffth, margin)
-    add_flux_divergence(dqq, ffr, ffth, drr, dth, margin)
-    add_flux_work(heat, ffr, ffth, uu, drr, dth, margin)

@@ -53,7 +53,10 @@ class GAConfig:
     # --- 実行制御 ---
     max_workers: int = None          # None なら min(個体数, CPU数)
     seed: int = None
-    pin_cpus: bool = True            # ワーカーを個別コアに固定 (NUMA局所性)
+    # ワーカーを個別コアに固定する。空いた専用機では効果がほぼないが
+    # (実測 1.03 vs 1.04 秒)、コア数を超えて過負荷になる環境では有効。
+    # 共有機ではスケジューラの自由度を奪うため既定は無効。
+    pin_cpus: bool = False
 
 
 @dataclass
@@ -81,8 +84,8 @@ def _evaluate_one(args):
 def _pin_worker(counter, cores):
     """ワーカープロセスを1コアに固定する (ProcessPoolExecutor の initializer)。
 
-    個体評価はメモリ帯域律速なので、プロセスがコア間を移動すると
-    キャッシュと NUMA 局所性が失われて 4 割ほど遅くなる。
+    コア数を超えるプロセスが走る環境ではキャッシュと NUMA 局所性が保たれ
+    速くなることがある。空いた専用機では差はほぼない。
     """
     import os
     with counter.get_lock():

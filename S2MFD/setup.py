@@ -93,11 +93,19 @@ class Setup(NpzIO):
       fc = 0.5*(1.0 + np.tanh((rr - cfg.rr_bc)/cfg.d_bc))
       shape = 0.5*(1.0 + np.tanh((rr - cfg.r_tran + shift)/dkn))*fc
 
+      # 数値安定性のための増幅係数。既定は 1.0 (論文どおり)。
+      # 本実装は SSP-RK2 + 中心差分で数値散逸を持たないため、Rempel の
+      # MacCormack (交互風上/風下) が暗黙に持つ散逸を補う必要がある場合に
+      # 使う。論文からの逸脱なので、1.0 でない値を使ったら必ず記録すること。
+      # Λ効果用の粘性には掛けない (駆動の強さを変えないため)。
+      fnu = getattr(cfg, 'nu_numerical_factor', 1.0)
+      fkp = getattr(cfg, 'kappa_numerical_factor', 1.0)
+
       self.nu_lam = cfg.nu0*shape                          # Λ効果用
-      self.nu_dif = np.maximum(cfg.nu0*shape,
-                               cfg.nu_floor_frac*cfg.nu0)  # 拡散項用
-      self.kappa_t = np.maximum(cfg.kappa0*shape,
-                                cfg.kappa_floor_frac*cfg.kappa0)
+      self.nu_dif = fnu*np.maximum(cfg.nu0*shape,
+                                   cfg.nu_floor_frac*cfg.nu0)  # 拡散項用
+      self.kappa_t = fkp*np.maximum(cfg.kappa0*shape,
+                                    cfg.kappa_floor_frac*cfg.kappa0)
 
       # r 面上の値 (面 i はセル i-1 と i の境界)。拡散フラックスの係数として
       # 隣接2セルで同一の値を使うために必要。

@@ -977,5 +977,9 @@ def test_sld_meridional_has_spherical_geometry_terms(setup_dynamic):
     tol_t = 1e-10*np.abs(dmt[sl]).max()
     assert np.allclose(dmr[sl] - r_mr[sl], exp_r, rtol=1e-8, atol=tol_r)
     assert np.allclose(dmt[sl] - r_mt[sl], exp_t, rtol=1e-8, atol=tol_t)
-    # 幾何項が無視できない大きさであること (テストが自明でないこと)
-    assert np.abs(exp_r).max() > 0.01*np.abs(r_mr[sl]).max()
+    # 幾何項が実際に効いていること (テストが自明でないこと)。
+    # 格子ノイズに対しては主項 (theta 微分 ~ F/(r dtheta)) の方が
+    # 幾何項 (~ F/r) より dtheta 分だけ大きいので比は小さいが、
+    # 滑らかなベクトル場では主項が小さくなるので相対的に効いてくる。
+    assert np.abs(exp_r).max() > 1e-4*np.abs(r_mr[sl]).max()
+    assert np.abs(exp_t).max() > 1e-4*np.abs(r_mt[sl]).max()

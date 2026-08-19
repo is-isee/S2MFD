@@ -8,12 +8,14 @@ from . import stepping
 
 __all__ = ['time_marching',
            'time_marching_reference',
-           'time_marching_kernel_fast',
+           'get_time_marching_kernel',
+           'separable_profiles',
            'rk_combine',
            'boundary_condition',
-           'poloidal_mag', 
+           'poloidal_mag',
            'advection',
            'diffusion',
            'omega_effect',
            'alpha_effect',
+           'stepping',
            ]

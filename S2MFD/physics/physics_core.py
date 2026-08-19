@@ -520,9 +520,10 @@ def separable_profiles(setup):
    Returns
    -------
    tuple
-      (separable, factors) — separable が True なら factors は
-      (urr_u, urr_v, uth_u, uth_v, et_u, et_v, etrr_u, etrr_v,
-       omth_u, omth_v, so_u, so_v)。False ならダミーの 1D 配列。
+      (separable, factors)。separable が True なら factors は
+      urr_u, urr_v, uth_u, uth_v, et_u, et_v, etrr_u, etrr_v,
+      omth_u, omth_v, so_u, so_v の 12 本の 1D 配列。
+      False ならダミーのゼロ配列が入る。
    """
    # 背景場は uu0/so0 の更新で変わるので、代表要素で変化を検出する
    fp = tuple(float(getattr(setup, name).flat[k])

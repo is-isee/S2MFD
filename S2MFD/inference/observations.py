@@ -1,9 +1,10 @@
 """観測データ (黒点数時系列) の読み込み・内挿・極小期検出。
 
 データ規約 (旧 IDPA の make_time_series.py と同一):
+
 - 年単位の時系列を 40 日間隔に線形内挿して使う
   (シミュレーションの出力間隔 dtout = 40 日と 1:1 対応させるため)
-- 時刻の単位は「年 × 365 日 × 86400 秒」の予報年秒
+- 時刻の単位は「年 × 365 日 × 86400 秒」
 """
 import os
 from dataclasses import dataclass
@@ -11,6 +12,9 @@ from importlib import resources
 
 import numpy as np
 from scipy.signal import argrelextrema
+
+__all__ = ['Observations', 'interpolate_to_interval', 'load_observations',
+           'detect_minimum_years', 'load_initial_field']
 
 YEAR_SECONDS = 365 * 24 * 3600
 DEFAULT_INTERVAL_DAYS = 40

@@ -4,13 +4,15 @@
 推定パラメタの仕様 (param_spec) を引数で受ける1つの実装に統合したもの。
 
 アルゴリズムは Shimizu & Hotta (2026) 3章に準拠:
-- 選択: ASP (Adaptive Selection Pressure) トーナメント
+
+- 選択: ASP (Adaptive Selection Pressure) トーナメント。
   適応度変化率と多様性に応じてトーナメントサイズを 3/7/5 に切替
 - 交叉: SBX (Simulated Binary Crossover), eta=2, 交叉確率 0.8
 - 変異: ガウス変異 (sigma = 0.1|x|), 変異確率 0.3
 - エリート保存
 
 旧実装との意図的な差異 (doc/dev_records/2026-08-19_idpa_analysis.md 参照):
+
 - トーナメントサイズは個体数比 (len//10 等) ではなく論文どおりの固定値
   3/7/5 (個体数30では両者は一致する)。少数個体でも壊れないようガード付き。
 - エリートは固定スロット3ではなくランダムな1個体を置換する。
@@ -24,6 +26,8 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 
 import numpy as np
+
+__all__ = ['GAConfig', 'Chromosome', 'GAResult', 'GeneticAlgorithm']
 
 logger = logging.getLogger(__name__)
 

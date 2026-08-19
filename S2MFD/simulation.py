@@ -295,6 +295,7 @@ class Simulation(S2MFD.Data):
         """現在の状態から助走計算を行う (パラメタ推定の初期条件生成)。
 
         Shimizu & Hotta (2026) の手順:
+
         1. duration (既定は呼び出し側で 80 年を指定) だけ積分する
         2. until_minimum=True なら、黒点数プロキシが極小 (連続3点の中央が
            最小) になるまで積分を続ける

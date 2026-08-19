@@ -12,4 +12,5 @@ S2MFD Documentation
 
    installation
    usage
+   inference
    api_reference

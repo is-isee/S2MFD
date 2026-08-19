@@ -6,6 +6,9 @@
 import numpy as np
 from scipy.signal import argrelextrema
 
+__all__ = ['correlation', 'total_count_error', 'period_mse', 'nmse',
+           'mape', 'fitness']
+
 YEAR_SECONDS = 365 * 24 * 3600
 
 

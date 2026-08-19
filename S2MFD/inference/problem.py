@@ -3,6 +3,7 @@
 旧 IDPA の DefunctionProblem + run_defunction_simulation の再設計。
 
 個体評価の流れ (Shimizu & Hotta 2026, 2.7章):
+
 1. Jouve+2008 の平衡場から、ゲノムの開始振幅 (定数) で 80 年 + 黒点数
    極小期までスピンアップ
 2. 時刻を観測窓の開始に整列し、時間変化関数 (線形 + sin級数) をフックとして
@@ -10,6 +11,7 @@
 3. 40日間隔の黒点数プロキシ時系列を観測と比較して適応度を返す
 
 旧実装との差異:
+
 - 個体評価はディスク出力なし (save_dir=None)。並列実行時の出力ディレクトリ
   競合が原因ごと消える。最良個体の最終ランのみ save_dir を指定して
   スナップショットを保存する。
@@ -24,6 +26,9 @@ import numpy as np
 import S2MFD
 from S2MFD.tools import sunspot_proxy
 from . import metrics
+
+__all__ = ['DynamoProblem', 'TimeFunction', 'linear_plus_sines',
+           'U0_SPEC', 'S0_SPEC', 'U0_KEYS', 'S0_KEYS']
 
 logger = logging.getLogger(__name__)
 

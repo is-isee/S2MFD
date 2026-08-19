@@ -222,8 +222,8 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
                          JL, JLY, JV, JVY, W2, RR, RRm, sinTH, sinTHm,
                          ro0, ro0m, lam_rp, lam_tp, om0,
                          nu_dif, nu_dif_m, nu_lam, nu_lam_m, drr, dth, margin,
-                         magnetic, consistent_advection, dq_stress,
-                         ffr, ffth, cen):
+                         magnetic, consistent_advection, open_bottom,
+                         dq_stress, bflux, ffr, ffth, cen):
     """角運動量方程式の右辺を ``dq_om`` に加算する.
 
     すべての項を発散形
@@ -250,6 +250,15 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
     移流フラックスは齋藤 (2024) に合わせ, 積 :math:`q(\\Omega_0+\\Omega_1)v`
     をセル中心で作ってから面へ算術平均する (因子ごとに平均するのではない).
     拡散フラックスは面上の勾配をそのまま使い, 係数だけを面へ平均する.
+
+    出力の分け方
+    ------------
+    ``dq_om`` には移流と Maxwell 応力だけを加算し, **レイノルズ応力
+    (粘性 + :math:`\\Lambda` 効果) は ``dq_stress`` にだけ**書き出す.
+    呼び出し側で ``dq_om += dq_stress`` すること. 分けているのは
+    エントロピー方程式の加熱項 :math:`Q=\\sum\\tfrac12 E_{ik}R_{ik}` が
+    「レイノルズ応力が流れにした仕事の符号反転」に等しく,
+    :func:`add_dissipative_heating` にそのまま渡せるようにするため.
 
     Parameters
     ----------
@@ -385,7 +394,24 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
             # Lambda 効果: セル中心の値を面へ平均
             ffr[i, j] = (cvis*sn3*(om1[i, j] - om1[i - 1, j])*idrr
                          + clam*sn2*0.5*(lam_rp[i, j] + lam_rp[i - 1, j]))
-    zero_boundary_faces_r(ffr, margin)
+    if open_bottom:
+        # Rempel 2005/2006 の下部境界 (Omega1 = 0 の剛体回転リザーバ) では
+        # 粘性フラックスが境界を通る。これがタコクラインを形成するトルクで、
+        # 系は角運動量について閉じなくなる。フラックスをゼロにすると
+        # 境界条件が実質無効になるので、粘性分だけ残す。
+        # Lambda 効果は内部の再分配なので境界では落とす。
+        for j in range(jxg):
+            rm = RRm[margin, 0]
+            rm4 = rm*rm*rm*rm
+            sn = sinTH[margin, j]
+            bflux[j] = (-nu_dif_m[margin]*ro0m[margin]*rm4*sn*sn*sn
+                        * (om1[margin, j] - om1[margin - 1, j])*idrr)
+            ffr[margin, j] = bflux[j]
+            ffr[ixg - margin, j] = 0.0
+    else:
+        zero_boundary_faces_r(ffr, margin)
+        for j in range(jxg):
+            bflux[j] = 0.0
 
     for i in range(ixg):
         r = RR[i, 0]
@@ -400,7 +426,9 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
                                       + sinTH[i, j - 1]*sinTH[i, j - 1]*lam_tp[i, j - 1]))
     zero_boundary_faces_th(ffth, margin)
 
-    add_flux_divergence(dq_om, ffr, ffth, drr, dth, margin)
+    # レイノルズ応力は dq_stress にだけ書き出す。dq_om への合流は呼び出し側が
+    # 行う (dq_stress はエントロピーの加熱項にも使うため分けている)。
+    # ここで dq_om にも足すと二重計上になり、粘性と Lambda 効果が 2 倍になる。
     add_flux_divergence(dq_stress, ffr, ffth, drr, dth, margin)
 
 

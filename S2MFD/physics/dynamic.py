@@ -176,7 +176,11 @@ class DynamicSolver:
         self._build_artdif_coefficients()
 
         # 診断用の累積量
-        self.boundary_angmom_flux = 0.0   # 下部境界を通った角運動量 (時間積分)
+        # 下部境界を通って流入した角運動量の時間積分 [erg s]。
+        # angmom_bottom_bc='uniform_rotation' では系が閉じないので、
+        # 「保存する」代わりに「収支が厳密に合う」ことを検証するために使う。
+        self.boundary_angmom_flux = 0.0
+        self._bflux = np.zeros(grid.jxg)
 
     # -- 初期化 ----------------------------------------------------------
     def _build_artdif_coefficients(self):
@@ -281,7 +285,8 @@ class DynamicSolver:
             st.lam_rp, st.lam_tp, cfg.om0,
             st.nu_dif, st.nu_dif_m, st.nu_lam, st.nu_lam_m,
             grid.drr, grid.dth, m, self.magnetic,
-            self.consistent_advection, ds_om, w.ffr, w.ffth, w.cen)
+            self.consistent_advection, self.om1_bottom_dirichlet,
+            ds_om, self._bflux, w.ffr, w.ffth, w.cen)
 
         # --- 子午面の粘性 (散逸項として分離) -----------------------------
         hydro.viscous_meridional_rhs(ds_mr, ds_mt, self.vrr, self.vth,
@@ -343,14 +348,26 @@ class DynamicSolver:
 
     # -- 時間積分 ---------------------------------------------------------
     def step(self, dt):
-        """SSP-RK2 (Heun) で 1 ステップ進める."""
+        """SSP-RK2 (Heun) で 1 ステップ進める.
+
+        下部境界を通った角運動量も RK2 と同じ重みで積算するので,
+        ``sum(q_L) - sum(q_L)_0 == boundary_angmom_flux`` が
+        machine precision で成り立つ (境界が開いている設定でも
+        「漏れているが勘定は合っている」ことを検証できる).
+        """
         q0 = self.conserved()
         k1 = self.rhs()
+        # 物理セルの範囲だけ足す (ゴーストセルは発散に寄与しない)
+        j0, j1 = self.m, self.grid.jxg - self.m
+        f1 = self._bflux[j0:j1].sum()*self.grid.dth
         q1 = tuple(a + dt*b for a, b in zip(q0, k1))
         self.set_primitive_from_conserved(q1)
         k2 = self.rhs()
+        f2 = self._bflux[j0:j1].sum()*self.grid.dth
         qn = tuple(0.5*(a + b + dt*c) for a, b, c in zip(q0, q1, k2))
         self.set_primitive_from_conserved(qn)
+        # 面フラックスは「流出」向きが正なので、流入分は符号を反転して積算
+        self.boundary_angmom_flux += dt*0.5*(f1 + f2)
 
     def cfl_dt(self):
         """CFL 条件から許容タイムステップを返す."""

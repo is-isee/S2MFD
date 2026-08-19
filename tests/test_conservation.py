@@ -16,6 +16,8 @@ from S2MFD.stratification import Stratification
 from S2MFD.physics import conservative as cons
 from S2MFD.physics import hydro
 from S2MFD.physics import artdif
+from S2MFD.physics import energy
+from S2MFD.physics import dynamic
 
 from conftest import make_cfg, make_grid
 
@@ -179,7 +181,8 @@ def _angmom_step(q_om, om1, vrr, vth, bb, grid, strat, setup, cfg, dt, work,
             strat.ro0, strat.ro0m, setup.lam_rp, setup.lam_tp, cfg.om0,
             setup.nu_dif, setup.nu_dif_m, setup.nu_lam, setup.nu_lam_m,
             grid.drr, grid.dth, m, magnetic,
-            consistent, np.zeros_like(q), work.ffr, work.ffth, work.cen)
+            consistent, False, np.zeros_like(q), np.zeros(grid.jxg),
+            work.ffr, work.ffth, work.cen)
         return dq
 
     q1 = q_om + dt*rhs(q_om)
@@ -300,8 +303,8 @@ def test_perturbation_form_beats_total_form(setup_dynamic):
                 setup.lam_rp, setup.lam_tp, cfg.om0,
                 setup.nu_dif, setup.nu_dif_m, setup.nu_lam, setup.nu_lam_m,
                 grid.drr, grid.dth, m, False,
-                False, np.zeros((grid.ixg, grid.jxg)),
-                work.ffr, work.ffth, work.cen)
+                False, False, np.zeros((grid.ixg, grid.jxg)),
+                np.zeros(grid.jxg), work.ffr, work.ffth, work.cen)
             return dq
 
         for _ in range(1500):
@@ -604,3 +607,200 @@ def test_flux_divergence_telescopes_exactly():
     total = cons.cell_integral(dq, 0.25, 0.125, m)
     scale = cons.cell_integral(np.abs(dq), 0.25, 0.125, m)
     assert abs(total)/scale < 1e-15
+
+
+# ---------------------------------------------------------------------------
+# エネルギー収支 (Rempel 2006 式 20-34)
+# ---------------------------------------------------------------------------
+def test_energy_reservoirs_are_positive(setup_dynamic):
+    """エネルギー貯留が正で、桁が妥当なこと。"""
+    cfg, grid, strat, setup = setup_dynamic
+    eb = energy.EnergyBudget(cfg, grid, strat, setup)
+    om1 = np.ascontiguousarray(-0.05*cfg.om0*grid.cosTH**2)
+    prof = np.sin(np.pi*(grid.RR - grid.rrmin)/(grid.rrmax - grid.rrmin))
+    vrr = np.ascontiguousarray(1e3*prof*(3*grid.cosTH**2 - 1))
+    vth = np.ascontiguousarray(1e3*prof*np.sin(2*grid.TH))
+    bph = np.ascontiguousarray(1e4*prof*np.sin(2*grid.TH))
+
+    e_om, e_m, e_b = eb.reservoirs(om1, vrr, vth, bph)
+    assert e_om > 0 and e_m > 0 and e_b > 0
+    # 剛体回転のエネルギーが支配的で、差動回転分ははるかに小さい
+    assert eb.differential_rotation_energy(om1) < 0.01*e_om
+    # 太陽の対流層の回転エネルギーは 1e41 erg 台
+    assert 1e40 < e_om < 1e43, f'E_Omega の桁が妥当でない: {e_om:.3e}'
+
+
+@pytest.mark.parametrize('seed', range(3))
+def test_dissipation_terms_are_positive_definite(setup_dynamic, seed):
+    """粘性散逸とオーム散逸が任意の場に対して正であること。
+
+    :math:`Q_\\nu^\\Omega` と :math:`Q_\\eta` は二乗和の積分なので、
+    符号や幾何因子を取り違えていなければ必ず正になる。
+    """
+    cfg, grid, strat, setup = setup_dynamic
+    eb = energy.EnergyBudget(cfg, grid, strat, setup)
+    rng = np.random.default_rng(seed)
+    prof = np.sin(np.pi*(grid.RR - grid.rrmin)/(grid.rrmax - grid.rrmin))
+    om1 = np.ascontiguousarray(0.05*cfg.om0*prof
+                               * np.cos(rng.integers(1, 4)*grid.TH))
+    vrr = np.ascontiguousarray(1e3*prof*np.cos(rng.integers(1, 4)*grid.TH))
+    vth = np.ascontiguousarray(1e3*prof*np.sin(rng.integers(1, 4)*grid.TH))
+    bb = [np.ascontiguousarray(1e3*prof*np.sin(k*grid.TH)) for k in (1, 2, 3)]
+    se1 = np.ascontiguousarray(1e-5*prof*np.cos(grid.TH))
+
+    q = eb.exchanges(om1, vrr, vth, bb[0], bb[1], bb[2], se1)
+    assert q['Q_nu_Omega'] > 0, f"粘性散逸が負: {q['Q_nu_Omega']:.3e}"
+    assert q['Q_eta'] > 0, f"オーム散逸が負: {q['Q_eta']:.3e}"
+    assert q['Q_nu_M'] > 0, f"子午面の粘性散逸が負: {q['Q_nu_M']:.3e}"
+
+
+def test_lambda_exchange_vanishes_without_lambda_effect(setup_dynamic):
+    """Λ効果をゼロにすると Q_Lambda がゼロになること。"""
+    cfg, grid, strat, setup = setup_dynamic
+    eb = energy.EnergyBudget(cfg, grid, strat, setup)
+    saved = (setup.lam_rp.copy(), setup.lam_tp.copy())
+    try:
+        setup.lam_rp[:] = 0.0
+        setup.lam_tp[:] = 0.0
+        om1 = np.ascontiguousarray(-0.05*cfg.om0*grid.cosTH**2)
+        z = np.zeros((grid.ixg, grid.jxg))
+        q = eb.exchanges(om1, z, z, z, z, z, z)
+        assert q['Q_Lambda'] == 0.0
+    finally:
+        setup.lam_rp[:], setup.lam_tp[:] = saved
+
+
+def test_energy_budget_tracks_actual_evolution(setup_dynamic):
+    """収支式が実際の時間発展と整合すること。
+
+    :math:`\\partial_t E_\\Omega = Q_\\Lambda - Q_\\nu^\\Omega - Q_C
+    - Q_L^\\Omega` を、ソルバで実測した :math:`\\Delta E_\\Omega/\\Delta t`
+    と比較する。収支項はソルバとは別の離散化 (中心差分と体積積分) で
+    計算しているので完全一致はしないが、桁と符号が合っていなければ
+    式の転記か実装のどちらかが間違っている。
+
+    Rempel (2006) 表 1 の注も「エネルギー交換項の精度は 0.001 程度」と
+    しており、定常状態でない過渡期はさらに緩い。
+    """
+    cfg, grid, strat, setup = setup_dynamic
+    sol = dynamic.DynamicSolver(cfg, grid, strat, setup)
+    sol.magnetic = False
+    eb = energy.EnergyBudget(cfg, grid, strat, setup)
+    sol.set_primitive_from_conserved(sol.conserved())
+    dt = sol.cfl_dt()
+
+    # 少し回して非自明な状態にする
+    for _ in range(300):
+        sol.step(dt)
+
+    def e_omega():
+        return eb.differential_rotation_energy(sol.om1)
+
+    e0 = e_omega()
+    q = eb.exchanges(sol.om1, sol.vrr, sol.vth, sol.brr, sol.bth, sol.bph,
+                     sol.se1)
+    nsub = 200
+    for _ in range(nsub):
+        sol.step(dt)
+    measured = (e_omega() - e0)/(nsub*dt)
+
+    predicted = q['Q_Lambda'] - q['Q_nu_Omega'] - q['Q_C'] - q['Q_L_Omega']
+    assert measured > 0, 'Λ効果で差動回転が育っていない'
+    assert np.sign(measured) == np.sign(predicted), (
+        f'収支の符号が実測と合わない: 実測 {measured:.3e} 予測 {predicted:.3e}')
+    ratio = predicted/measured
+    assert 0.3 < ratio < 3.0, (
+        f'収支が実測と桁で合わない: 予測/実測 = {ratio:.3f} '
+        f'(実測 {measured:.3e}, 予測 {predicted:.3e})')
+
+
+# ---------------------------------------------------------------------------
+# 開いた境界での収支 (Rempel の下部境界条件)
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize('bc,closed', [('stress_free', True),
+                                       ('uniform_rotation', False)])
+def test_bottom_boundary_angular_momentum_budget(bc, closed):
+    """境界条件に応じて「保存」または「収支が厳密に合う」こと。
+
+    Rempel (2005, 2006) は下部境界 r=0.65 RSUN で Ω1 = 0 の Dirichlet 条件を
+    課してタコクラインを強制する。この境界は固定 Ω のリザーバなので、
+    **系は角運動量について閉じない** — 粘性フラックスが境界を通る。
+
+    ユーザー要求「境界から保存量が出ていかないように」は、Rempel の設定では
+    そのままでは満たせない。そこで:
+
+    - ``stress_free``      : 閉じた系。∫q_L が machine precision で保存
+    - ``uniform_rotation`` : 開いた系。∫q_L の変化が境界フラックスの
+      時間積分と machine precision で一致する (漏れを許すのではなく、
+      漏れを厳密に勘定する)
+
+    の 2 つを提供し、どちらも回帰テストで固定する。
+    """
+    cfg = make_cfg('parameters/rempel06.py', ix=48, jx=48, dynamics='hydro',
+                   angmom_bottom_bc=bc)
+    grid = make_grid(cfg)
+    strat = Stratification(cfg, grid)
+    setup = S2MFD.Setup(cfg, grid)
+    sol = dynamic.DynamicSolver(cfg, grid, strat, setup)
+    m = grid.margin
+
+    sol.om1[:] = -0.05*cfg.om0*grid.cosTH**2
+    sol.set_primitive_from_conserved(sol.conserved())
+    dt = sol.cfl_dt()
+
+    def total():
+        return cons.cell_integral(strat.JL*sol.om1, grid.drr, grid.dth, m)
+
+    l0 = total()
+    scale = cons.cell_integral(np.abs(strat.JL*cfg.om0), grid.drr, grid.dth, m)
+    for _ in range(1500):
+        sol.step(dt)
+    dl = total() - l0
+    flux = sol.boundary_angmom_flux
+
+    if closed:
+        assert flux == 0.0, '閉じた境界なのにフラックスが記録されている'
+        assert abs(dl)/scale < 1e-14, f'角運動量が保存していない: {dl/scale:.3e}'
+    else:
+        # 境界から実際に角運動量が入っていること (テストが自明でないこと)
+        assert abs(dl)/scale > 1e-6, (
+            f'開いた境界なのに何も流入していない: {dl/scale:.3e}')
+        assert abs(dl - flux)/abs(dl) < 1e-12, (
+            f'境界フラックスの収支が合わない: ΔL={dl:.6e} 積分={flux:.6e}')
+
+
+def test_reynolds_stress_is_not_double_counted():
+    """レイノルズ応力が角運動量方程式に二重計上されていないこと。
+
+    ``angular_momentum_rhs`` は応力を ``dq_stress`` にだけ書き出し、
+    ``dq_om`` への合流は呼び出し側が行う設計になっている。両方に書くと
+    粘性と Λ 効果が 2 倍になり、しかも見た目には「それらしい」解が出る
+    ので気付きにくい (実際にこのバグが入っていた。境界フラックスの収支が
+    ちょうど 2 倍ずれることで発覚した)。
+    """
+    cfg = make_cfg('parameters/rempel06.py', ix=32, jx=32, dynamics='hydro')
+    grid = make_grid(cfg)
+    strat = Stratification(cfg, grid)
+    setup = S2MFD.Setup(cfg, grid)
+    m = grid.margin
+    work = hydro.HydroWork(grid)
+    shape = (grid.ixg, grid.jxg)
+    z = np.zeros(shape)
+
+    om1 = np.ascontiguousarray(-0.05*cfg.om0*grid.cosTH**2)
+    dq_om = np.zeros(shape)
+    dq_stress = np.zeros(shape)
+    hydro.angular_momentum_rhs(
+        dq_om, om1, z, z, z, z, z,
+        strat.JL, strat.JLY, strat.JV, strat.JVY, strat.W2,
+        grid.RR, grid.RRm, grid.sinTH, grid.sinTHm, strat.ro0, strat.ro0m,
+        setup.lam_rp, setup.lam_tp, cfg.om0,
+        setup.nu_dif, setup.nu_dif_m, setup.nu_lam, setup.nu_lam_m,
+        grid.drr, grid.dth, m, False, False, False,
+        dq_stress, np.zeros(grid.jxg), work.ffr, work.ffth, work.cen)
+
+    sl = (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
+    # 速度ゼロなので移流も Maxwell もない -> dq_om はゼロのままのはず
+    assert np.abs(dq_om[sl]).max() == 0.0, (
+        'dq_om に応力が混入している (二重計上)')
+    assert np.abs(dq_stress[sl]).max() > 0.0, 'dq_stress に応力が出ていない'

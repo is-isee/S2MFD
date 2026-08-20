@@ -46,6 +46,8 @@
 import numpy as np
 from numba import njit
 
+from ._jit import kernel, prange
+
 from S2MFD.physics.conservative import (
     face_average_r, face_average_th,
     zero_boundary_faces_r, zero_boundary_faces_th,
@@ -162,7 +164,7 @@ def cfl_dt(vrr, vth, brr, bth, bph, ro0, ro1, cs_eff, rr, drr, dth,
 # ---------------------------------------------------------------------------
 # 質量保存 (音速抑制法)
 # ---------------------------------------------------------------------------
-@njit(fastmath=False)
+@kernel()
 def mass_rhs(dq_ro, vrr, vth, JV, JVY, izeta2, drr, dth, margin, ffr, ffth, cen):
     """連続の式の右辺を ``dq_ro`` に加算する.
 
@@ -194,14 +196,14 @@ def mass_rhs(dq_ro, vrr, vth, JV, JVY, izeta2, drr, dth, margin, ffr, ffth, cen)
     ixg, jxg = dq_ro.shape
 
     # --- r 方向: セル中心で流束量を作り, 面へ算術平均 ---------------------
-    for i in range(ixg):
+    for i in prange(ixg):
         for j in range(jxg):
             cen[i, j] = JV[i, j]*vrr[i, j]
     face_average_r(cen, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
 
     # --- theta 方向 -------------------------------------------------------
-    for i in range(ixg):
+    for i in prange(ixg):
         for j in range(jxg):
             cen[i, j] = JVY[i, j]*vth[i, j]
     face_average_th(cen, margin, ffth)
@@ -210,7 +212,7 @@ def mass_rhs(dq_ro, vrr, vth, JV, JVY, izeta2, drr, dth, margin, ffr, ffth, cen)
     # --- 発散 (RSST 係数は発散全体に掛ける) -------------------------------
     idrr = 1.0/drr
     idth = 1.0/dth
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         iz2 = izeta2[i]
         for j in range(margin, jxg - margin):
             dq_ro[i, j] -= iz2*((ffr[i + 1, j] - ffr[i, j])*idrr
@@ -220,7 +222,7 @@ def mass_rhs(dq_ro, vrr, vth, JV, JVY, izeta2, drr, dth, margin, ffr, ffth, cen)
 # ---------------------------------------------------------------------------
 # 角運動量保存
 # ---------------------------------------------------------------------------
-@njit(fastmath=False)
+@kernel()
 def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
                          JL, JLY, JV, JVY, W2, RR, RRm, sinTH, sinTHm,
                          ro0, ro0m, lam_rp, lam_tp, om0,
@@ -383,7 +385,7 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
     # になり, Rempel 2005 の記述「Q は粘性散逸による加熱項と Lambda 効果に
     # よる冷却項を含み, 後者が一般に支配的」がそのまま再現される.
     # =====================================================================
-    for i in range(margin, ixg - margin + 1):
+    for i in prange(margin, ixg - margin + 1):
         rm = RRm[i, 0]
         rm3 = rm*rm*rm
         rm4 = rm3*rm
@@ -416,7 +418,7 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
         for j in range(jxg):
             bflux[j] = 0.0
 
-    for i in range(ixg):
+    for i in prange(ixg):
         r = RR[i, 0]
         r2 = r*r
         cvis = -nu_dif[i]*ro0[i]*r2
@@ -441,7 +443,7 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
 # ---------------------------------------------------------------------------
 # 子午面の運動量 (r, theta 成分)
 # ---------------------------------------------------------------------------
-@njit(fastmath=False)
+@kernel()
 def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
                  JV, JVY, JM, RSIN, RR, sinTH, cosTH, ro0, gr,
                  om0, drr, dth, margin, magnetic, ffr, ffth, cen,
@@ -492,12 +494,12 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
     # =====================================================================
     # 移流: r 方向運動量
     # =====================================================================
-    for i in range(ixg):
+    for i in prange(ixg):
         for j in range(jxg):
             cen[i, j] = JV[i, j]*vrr[i, j]*vrr[i, j]
     face_average_r(cen, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
-    for i in range(ixg):
+    for i in prange(ixg):
         for j in range(jxg):
             cen[i, j] = JVY[i, j]*vrr[i, j]*vth[i, j]
     face_average_th(cen, margin, ffth)
@@ -507,12 +509,12 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
     # =====================================================================
     # 移流: theta 方向運動量
     # =====================================================================
-    for i in range(ixg):
+    for i in prange(ixg):
         for j in range(jxg):
             cen[i, j] = JV[i, j]*vth[i, j]*vrr[i, j]
     face_average_r(cen, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
-    for i in range(ixg):
+    for i in prange(ixg):
         for j in range(jxg):
             cen[i, j] = JVY[i, j]*vth[i, j]*vth[i, j]
     face_average_th(cen, margin, ffth)
@@ -522,7 +524,7 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
     # =====================================================================
     # 幾何学的源項 + 圧力勾配 + 浮力
     # =====================================================================
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         for j in range(margin, jxg - margin):
             o1 = om1[i, j]
             cent = 2.0*om0*o1 + o1*o1          # (Om0+Om1)^2 - Om0^2
@@ -577,7 +579,7 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
 # ---------------------------------------------------------------------------
 # 子午面の粘性応力
 # ---------------------------------------------------------------------------
-@njit(fastmath=False)
+@kernel()
 def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
                            nu_dif, nu_dif_m, drr, dth, margin, ffr, ffth):
     """子午面運動量に働く粘性力を加算する.
@@ -611,7 +613,7 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
     # r 方向運動量
     # =====================================================================
     # --- r 面フラックス ---------------------------------------------------
-    for i in range(margin, ixg - margin + 1):
+    for i in prange(margin, ixg - margin + 1):
         rop3 = 0.5*(ro0[i]*rr[i]**3 + ro0[i - 1]*rr[i - 1]**3)
         rop1a = ro0[i]*rr[i]
         rop1b = ro0[i - 1]*rr[i - 1]
@@ -626,7 +628,7 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
     zero_boundary_faces_r(ffr, margin)
 
     # --- theta 面フラックス ----------------------------------------------
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         r2 = rr[i]*rr[i]
         for j in range(margin, jxg - margin + 1):
             sh_a = sinTH[i, j]*(vth[i + 1, j]/rr[i + 1]
@@ -641,7 +643,7 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
     add_flux_divergence(dq_mr, ffr, ffth, drr, dth, margin)
 
     # --- 幾何因子による源項 ----------------------------------------------
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         r2 = rr[i]*rr[i]
         for j in range(margin, jxg - margin):
             dvr = (vrr[i + 1, j]/rr[i + 1] - vrr[i - 1, j]/rr[i - 1])*0.5*idrr
@@ -652,7 +654,7 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
     # =====================================================================
     # theta 方向運動量
     # =====================================================================
-    for i in range(margin, ixg - margin + 1):
+    for i in prange(margin, ixg - margin + 1):
         rop3 = 0.5*(ro0[i]*rr[i]**3 + ro0[i - 1]*rr[i - 1]**3)
         rop1a = ro0[i]*rr[i]
         rop1b = ro0[i - 1]*rr[i - 1]
@@ -664,7 +666,7 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
                                          + 0.5*(rop1a*dva + rop1b*dvb))
     zero_boundary_faces_r(ffr, margin)
 
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         r2 = rr[i]*rr[i]
         for j in range(margin, jxg - margin + 1):
             sh_a = sinTH[i, j]*(vrr[i + 1, j]/rr[i + 1]
@@ -679,7 +681,7 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
 
     add_flux_divergence(dq_mt, ffr, ffth, drr, dth, margin)
 
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         r2 = rr[i]*rr[i]
         for j in range(margin, jxg - margin):
             s = sinTH[i, j]
@@ -697,7 +699,7 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
 # ---------------------------------------------------------------------------
 # エントロピー
 # ---------------------------------------------------------------------------
-@njit(fastmath=False)
+@kernel()
 def entropy_rhs(dse1, se1, vrr, vth, ro0, tm0, pr0, hp, delta, kappa, kappa_m,
                 JM, iJM, rr, sinTH, sinTHm, gamma, drr, dth, margin, ffr, ffth):
     """エントロピー方程式の右辺を ``dse1`` に加算する (Rempel 2006 式 5).
@@ -740,7 +742,7 @@ def entropy_rhs(dse1, se1, vrr, vth, ro0, tm0, pr0, hp, delta, kappa, kappa_m,
     idth = 1.0/dth
 
     # --- 熱伝導フラックス (面で1回だけ計算) ------------------------------
-    for i in range(margin, ixg - margin + 1):
+    for i in prange(margin, ixg - margin + 1):
         # 面上の kappa*rho0*T0. 隣接2セルで同じ値を使う
         c = kappa_m[i]*0.5*(ro0[i]*tm0[i] + ro0[i - 1]*tm0[i - 1])
         rm2 = 0.25*(rr[i] + rr[i - 1])*(rr[i] + rr[i - 1])
@@ -748,14 +750,14 @@ def entropy_rhs(dse1, se1, vrr, vth, ro0, tm0, pr0, hp, delta, kappa, kappa_m,
             ffr[i, j] = -c*rm2*sinTH[i, j]*(se1[i, j] - se1[i - 1, j])*idrr
     zero_boundary_faces_r(ffr, margin)
 
-    for i in range(ixg):
+    for i in prange(ixg):
         c = kappa[i]*ro0[i]*tm0[i]
         for j in range(margin, jxg - margin + 1):
             ffth[i, j] = -c*sinTHm[i, j]*(se1[i, j] - se1[i, j - 1])*idth
     zero_boundary_faces_th(ffth, margin)
 
     # --- 移流 + 背景勾配 + 熱伝導 ----------------------------------------
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         for j in range(margin, jxg - margin):
             dsdr = (se1[i + 1, j] - se1[i - 1, j])*0.5*idrr
             dsdt = (se1[i, j + 1] - se1[i, j - 1])*0.5*idth
@@ -766,7 +768,7 @@ def entropy_rhs(dse1, se1, vrr, vth, ro0, tm0, pr0, hp, delta, kappa, kappa_m,
                            + cond*iJM[i, j]/(ro0[i]*tm0[i]))
 
 
-@njit(fastmath=False)
+@kernel()
 def add_dissipative_heating(dse1, heat, dq_mr, dq_mt, vrr, vth,
                             pr0, iJM, gamma, margin):
     """散逸で失われたエネルギーをエントロピーに戻す.
@@ -799,14 +801,14 @@ def add_dissipative_heating(dse1, heat, dq_mr, dq_mt, vrr, vth,
     冷却項を含み, 後者が一般に支配的」がそのまま再現される.
     """
     ixg, jxg = dse1.shape
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         c = (gamma - 1.0)/pr0[i]
         for j in range(margin, jxg - margin):
             q = heat[i, j] - (vrr[i, j]*dq_mr[i, j] + vth[i, j]*dq_mt[i, j])
             dse1[i, j] += c*q*iJM[i, j]
 
 
-@njit(fastmath=False)
+@kernel()
 def add_ohmic_heating(dse1, brr, bth, bph, eta, pr0, RR, sinTH,
                       gamma, drr, dth, margin):
     """オーム散逸をエントロピーに加える (Rempel 2006 式 5 の最終項).
@@ -824,7 +826,7 @@ def add_ohmic_heating(dse1, brr, bth, bph, eta, pr0, RR, sinTH,
     ixg, jxg = dse1.shape
     idrr = 1.0/drr
     idth = 1.0/dth
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         c = (gamma - 1.0)/pr0[i]/FOUR_PI
         for j in range(margin, jxg - margin):
             r = RR[i, j]
@@ -842,19 +844,19 @@ def add_ohmic_heating(dse1, brr, bth, bph, eta, pr0, RR, sinTH,
 # ---------------------------------------------------------------------------
 # 保存量 <-> プリミティブ変数
 # ---------------------------------------------------------------------------
-@njit(fastmath=False)
+@kernel()
 def to_primitive_om1(q_om, iJL, om1, margin):
     """:math:`q_L \\to \\Omega_1`. 物理セルのみ変換する (ゴーストは境界条件で埋める)."""
     ixg, jxg = q_om.shape
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         for j in range(margin, jxg - margin):
             om1[i, j] = q_om[i, j]*iJL[i, j]
 
 
-@njit(fastmath=False)
+@kernel()
 def to_primitive_ro1(q_ro, iJM, ro1, margin):
     """:math:`q_\\rho \\to \\rho_1`. 物理セルのみ変換する."""
     ixg, jxg = q_ro.shape
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         for j in range(margin, jxg - margin):
             ro1[i, j] = q_ro[i, j]*iJM[i, j]

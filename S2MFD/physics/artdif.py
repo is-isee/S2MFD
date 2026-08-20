@@ -112,6 +112,8 @@ SLD は「解像された場には効かない」ことが利点だが, 本モ�
 import numpy as np
 from numba import njit
 
+from ._jit import kernel, prange
+
 from S2MFD.physics.conservative import (
     zero_boundary_faces_r, zero_boundary_faces_th,
     add_flux_divergence, add_flux_divergence_scaled, add_flux_work,
@@ -168,11 +170,11 @@ def _sld_face_flux(q_dwn, q_upp, dq_dwn, dq_upp, fh, cc, jac):
     return -0.5*cc*jac*pp*(qr - ql)
 
 
-@njit(fastmath=False)
+@kernel()
 def sld_flux_r(uu, jac_face, cspeed, fh, ep, margin, out):
     """r 方向の SLD フラックス. 面 ``i`` はセル ``i-1`` と ``i`` の境界."""
     ixg, jxg = uu.shape
-    for j in range(jxg):
+    for j in prange(jxg):
         for i in range(margin, ixg - margin + 1):
             # セル i-1 と i の再構成傾き
             im2 = i - 2 if i - 2 >= 0 else i - 1
@@ -185,11 +187,11 @@ def sld_flux_r(uu, jac_face, cspeed, fh, ep, margin, out):
                                        fh, cspeed[i, j], jac_face[i, j])
 
 
-@njit(fastmath=False)
+@kernel()
 def sld_flux_th(uu, jac_face, cspeed, fh, ep, margin, out):
     """theta 方向の SLD フラックス. 面 ``j`` はセル ``j-1`` と ``j`` の境界."""
     ixg, jxg = uu.shape
-    for i in range(ixg):
+    for i in prange(ixg):
         for j in range(margin, jxg - margin + 1):
             jm2 = j - 2 if j - 2 >= 0 else j - 1
             jp1 = j + 1 if j + 1 < jxg else j
@@ -251,7 +253,7 @@ def sld_diffuse_scaled(dqq, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
     add_flux_divergence_scaled(dqq, ffr, ffth, drr, dth, margin, scale)
 
 
-@njit(fastmath=False)
+@kernel()
 def sld_diffuse_primitive(duu, uu, jac_r, jac_th, ijac, csp_r, csp_th, fh, ep,
                           drr, dth, margin, ffr, ffth):
     """保存形ではなく直接解いているプリミティブ変数に人工拡散を掛ける.
@@ -267,7 +269,7 @@ def sld_diffuse_primitive(duu, uu, jac_r, jac_th, ijac, csp_r, csp_th, fh, ep,
     ixg, jxg = duu.shape
     idrr = 1.0/drr
     idth = 1.0/dth
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         for j in range(margin, jxg - margin):
             duu[i, j] -= ((ffr[i + 1, j] - ffr[i, j])*idrr
                           + (ffth[i, j + 1] - ffth[i, j])*idth)*ijac[i, j]
@@ -293,7 +295,7 @@ def sld_diffusivity_max(csp_r, csp_th, drr, dth, rr, margin):
     return kmax
 
 
-@njit(fastmath=False)
+@kernel()
 def sld_diffuse_meridional(dq_mr, dq_mt, vrr, vth, jac_r, jac_th,
                            csp_r, csp_th, fh, ep, drr, dth, margin,
                            ffr1, ffth1, ffr2, ffth2):
@@ -340,7 +342,7 @@ def sld_diffuse_meridional(dq_mr, dq_mt, vrr, vth, jac_r, jac_th,
 
     # --- 幾何項 (theta 掃引での基底の回転) ---------------------------------
     ixg, jxg = dq_mr.shape
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         for j in range(margin, jxg - margin):
             dq_mr[i, j] += 0.5*(ffth2[i, j] + ffth2[i, j + 1])
             dq_mt[i, j] -= 0.5*(ffth1[i, j] + ffth1[i, j + 1])
@@ -349,7 +351,7 @@ def sld_diffuse_meridional(dq_mr, dq_mt, vrr, vth, jac_r, jac_th,
 # ---------------------------------------------------------------------------
 # 4 次のハイパー拡散 (Rempel 2014 §2.1 の "fourth hyper-diffusion term")
 # ---------------------------------------------------------------------------
-@njit(fastmath=False)
+@kernel()
 def hyper_flux_r(uu, jac_face, vadv, h4, margin, out):
     """r 方向の 4 次ハイパー拡散フラックス.
 
@@ -390,7 +392,7 @@ def hyper_flux_r(uu, jac_face, vadv, h4, margin, out):
     (音速ではない — 背景勾配に隠れた振動は流れに乗って運ばれるため).
     """
     ixg, jxg = uu.shape
-    for j in range(jxg):
+    for j in prange(jxg):
         for i in range(margin, ixg - margin + 1):
             ip1 = i + 1 if i + 1 < ixg else i
             im2 = i - 2 if i - 2 >= 0 else i - 1
@@ -398,26 +400,26 @@ def hyper_flux_r(uu, jac_face, vadv, h4, margin, out):
             out[i, j] = h4*vadv[i, j]*jac_face[i, j]*d3
 
 
-@njit(fastmath=False)
+@kernel()
 def hyper_diffuse_r(dqq, uu, jac_r, vadv_r, h4, drr, dth, margin, ffr, ffth):
     """保存量に 4 次ハイパー拡散を加える (r 方向のみ)."""
     hyper_flux_r(uu, jac_r, vadv_r, h4, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
     ixg, jxg = dqq.shape
-    for i in range(ixg):
+    for i in prange(ixg):
         for j in range(jxg):
             ffth[i, j] = 0.0
     add_flux_divergence(dqq, ffr, ffth, drr, dth, margin)
 
 
-@njit(fastmath=False)
+@kernel()
 def hyper_diffuse_r_primitive(duu, uu, jac_r, ijac, vadv_r, h4, drr, margin, ffr):
     """保存形で持っていないプリミティブ変数に 4 次ハイパー拡散を加える."""
     hyper_flux_r(uu, jac_r, vadv_r, h4, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
     ixg, jxg = duu.shape
     idrr = 1.0/drr
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         for j in range(margin, jxg - margin):
             duu[i, j] -= (ffr[i + 1, j] - ffr[i, j])*idrr*ijac[i, j]
 

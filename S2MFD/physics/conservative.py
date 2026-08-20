@@ -63,6 +63,8 @@ machine precision 保存に必須の 3 条件
 import numpy as np
 from numba import njit
 
+from ._jit import kernel, prange
+
 __all__ = [
     'face_average_r', 'face_average_th',
     'zero_boundary_faces_r', 'zero_boundary_faces_th',
@@ -72,7 +74,7 @@ __all__ = [
 ]
 
 
-@njit(fastmath=False)
+@kernel()
 def face_average_r(qq, margin, out):
     """セル中心量から r 面の値を算術平均で作る.
 
@@ -92,12 +94,12 @@ def face_average_r(qq, margin, out):
         呼び出し側であらかじめゼロ初期化しておくこと.
     """
     ixg, jxg = qq.shape
-    for i in range(margin, ixg - margin + 1):
+    for i in prange(margin, ixg - margin + 1):
         for j in range(jxg):
             out[i, j] = 0.5 * (qq[i - 1, j] + qq[i, j])
 
 
-@njit(fastmath=False)
+@kernel()
 def face_average_th(qq, margin, out):
     """セル中心量から theta 面の値を算術平均で作る.
 
@@ -105,7 +107,7 @@ def face_average_th(qq, margin, out):
     に対して計算する.
     """
     ixg, jxg = qq.shape
-    for i in range(ixg):
+    for i in prange(ixg):
         for j in range(margin, jxg - margin + 1):
             out[i, j] = 0.5 * (qq[i, j - 1] + qq[i, j])
 
@@ -139,7 +141,7 @@ def zero_boundary_faces_th(ff, margin):
         ff[i, jxg - margin] = 0.0
 
 
-@njit(fastmath=False)
+@kernel()
 def add_flux_divergence(dqq, ffr, ffth, drr, dth, margin):
     """フラックスの発散を ``dqq`` から差し引く (``dqq -= div F``).
 
@@ -162,13 +164,13 @@ def add_flux_divergence(dqq, ffr, ffth, drr, dth, margin):
     ixg, jxg = dqq.shape
     idrr = 1.0 / drr
     idth = 1.0 / dth
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         for j in range(margin, jxg - margin):
             dqq[i, j] -= ((ffr[i + 1, j] - ffr[i, j]) * idrr
                           + (ffth[i, j + 1] - ffth[i, j]) * idth)
 
 
-@njit(fastmath=False)
+@kernel()
 def add_flux_divergence_scaled(dqq, ffr, ffth, drr, dth, margin, scale):
     """発散に動径依存の係数を掛けて差し引く (``dqq -= scale(r) * div F``).
 
@@ -185,7 +187,7 @@ def add_flux_divergence_scaled(dqq, ffr, ffth, drr, dth, margin, scale):
     ixg, jxg = dqq.shape
     idrr = 1.0/drr
     idth = 1.0/dth
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         sc = scale[i]
         for j in range(margin, jxg - margin):
             dqq[i, j] -= sc*((ffr[i + 1, j] - ffr[i, j])*idrr
@@ -203,7 +205,7 @@ def flux_divergence(ffr, ffth, drr, dth, margin):
     return dqq
 
 
-@njit(fastmath=False)
+@kernel()
 def add_flux_work(heat, ffr, ffth, uu, drr, dth, margin):
     """局所的なエネルギー変換率 :math:`-F\\cdot\\nabla u` を ``heat`` に加算する.
 
@@ -245,7 +247,7 @@ def add_flux_work(heat, ffr, ffth, uu, drr, dth, margin):
     ixg, jxg = heat.shape
     idrr = 1.0/drr
     idth = 1.0/dth
-    for i in range(margin, ixg - margin):
+    for i in prange(margin, ixg - margin):
         for j in range(margin, jxg - margin):
             heat[i, j] -= 0.5*(
                 ffr[i, j]*(uu[i, j] - uu[i - 1, j])*idrr

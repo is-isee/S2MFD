@@ -119,7 +119,9 @@ from S2MFD.physics.conservative import (
 
 __all__ = ['sld_flux_r', 'sld_flux_th', 'sld_diffuse_meridional',
            'sld_diffuse', 'sld_diffuse_work', 'sld_diffuse_scaled',
-           'sld_diffuse_primitive', 'sld_diffusivity_max']
+           'sld_diffuse_primitive', 'sld_diffusivity_max',
+           'hyper_flux_r', 'hyper_diffuse_r', 'hyper_diffuse_r_primitive',
+           'mean_profile_diffuse_r', 'mean_profile_diffuse_r_primitive']
 
 
 @njit(inline='always')
@@ -342,3 +344,182 @@ def sld_diffuse_meridional(dq_mr, dq_mt, vrr, vth, jac_r, jac_th,
         for j in range(margin, jxg - margin):
             dq_mr[i, j] += 0.5*(ffth2[i, j] + ffth2[i, j + 1])
             dq_mt[i, j] -= 0.5*(ffth1[i, j] + ffth1[i, j + 1])
+
+
+# ---------------------------------------------------------------------------
+# 4 次のハイパー拡散 (Rempel 2014 §2.1 の "fourth hyper-diffusion term")
+# ---------------------------------------------------------------------------
+@njit(fastmath=False)
+def hyper_flux_r(uu, jac_face, vadv, h4, margin, out):
+    """r 方向の 4 次ハイパー拡散フラックス.
+
+    Rempel (2014) §2.1:
+
+        "We also added an additional optional fourth hyper-diffusion term
+         that scales with the advection velocity and acts only in the vertical
+         direction on the quantities log(rho), v_z, and eps. This term allows
+         us to damp some low level spurious oscillations on the grid scale
+         that are too small to cause monotonicity changes in the presence of
+         a background gradient (stratification) and go mostly undetected by
+         the slope-limited diffusion scheme."
+
+    なぜ SLD では取れないか
+    -----------------------
+    背景勾配 (成層や大規模構造) があると, MC リミタは「単調で解像されている」
+    と判断してしまう. その上に乗った微小な格子スケールの振動は単調性を
+    壊さないので, :math:`u_r-u_l\\simeq0` のまま
+    :math:`\\Phi_h=0` になり, SLD が素通りさせる.
+
+    4 階微分なら**線形・2 次の背景を完全に見ない**ので, 背景勾配に隠れた
+    格子スケール成分だけを選択的に潰せる.
+
+    離散化
+    ------
+    :math:`\\partial u/\\partial t = -\\nu_4\\partial^4u/\\partial x^4`
+    をフラックス形 :math:`F=\\nu_4\\partial^3u/\\partial x^3` で書き,
+    :math:`\\nu_4 = h_4|v|\\Delta x^3` と取ると
+
+    .. math::
+       F_{i-1/2} = h_4\\,|v|_{i-1/2}\\,J_{i-1/2}\\,
+                   (u_{i+1} - 3u_i + 3u_{i-1} - u_{i-2})
+
+    となり :math:`\\Delta x` が消える. 1 セルおきに符号が変わる振動に対して
+    3 階差分は :math:`-8(-1)^i` と最大になり, 線形・2 次の場では厳密にゼロ.
+
+    ``vadv`` は面上の移流速度 :math:`|\\boldsymbol v|`
+    (音速ではない — 背景勾配に隠れた振動は流れに乗って運ばれるため).
+    """
+    ixg, jxg = uu.shape
+    for j in range(jxg):
+        for i in range(margin, ixg - margin + 1):
+            ip1 = i + 1 if i + 1 < ixg else i
+            im2 = i - 2 if i - 2 >= 0 else i - 1
+            d3 = uu[ip1, j] - 3.0*uu[i, j] + 3.0*uu[i - 1, j] - uu[im2, j]
+            out[i, j] = h4*vadv[i, j]*jac_face[i, j]*d3
+
+
+@njit(fastmath=False)
+def hyper_diffuse_r(dqq, uu, jac_r, vadv_r, h4, drr, dth, margin, ffr, ffth):
+    """保存量に 4 次ハイパー拡散を加える (r 方向のみ)."""
+    hyper_flux_r(uu, jac_r, vadv_r, h4, margin, ffr)
+    zero_boundary_faces_r(ffr, margin)
+    ixg, jxg = dqq.shape
+    for i in range(ixg):
+        for j in range(jxg):
+            ffth[i, j] = 0.0
+    add_flux_divergence(dqq, ffr, ffth, drr, dth, margin)
+
+
+@njit(fastmath=False)
+def hyper_diffuse_r_primitive(duu, uu, jac_r, ijac, vadv_r, h4, drr, margin, ffr):
+    """保存形で持っていないプリミティブ変数に 4 次ハイパー拡散を加える."""
+    hyper_flux_r(uu, jac_r, vadv_r, h4, margin, ffr)
+    zero_boundary_faces_r(ffr, margin)
+    ixg, jxg = duu.shape
+    idrr = 1.0/drr
+    for i in range(margin, ixg - margin):
+        for j in range(margin, jxg - margin):
+            duu[i, j] -= (ffr[i + 1, j] - ffr[i, j])*idrr*ijac[i, j]
+
+
+# ---------------------------------------------------------------------------
+# 緯度平均プロファイルへの拡散
+# ---------------------------------------------------------------------------
+@njit(fastmath=False)
+def _mean_profile(uu, jac, margin, wsum, prof):
+    """質量重み付きの theta 平均プロファイルを作る."""
+    ixg, jxg = uu.shape
+    for i in range(margin, ixg - margin):
+        w = 0.0
+        a = 0.0
+        for j in range(margin, jxg - margin):
+            w += jac[i, j]
+            a += jac[i, j]*uu[i, j]
+        wsum[i] = w
+        prof[i] = a/w if w != 0.0 else 0.0
+
+
+@njit(fastmath=False)
+def mean_profile_diffuse_r(dqq, uu, jac, kappa, drr, margin, wsum, prof, dq1):
+    """**theta 方向に平均した動径プロファイルにだけ**拡散をかける.
+
+    なぜこれが要るか
+    ----------------
+    格子スケールの振動のうち, **緯度平均して初めて見える成分**がある.
+    各点では滑らかな場の上に乗った数 % の揺らぎに過ぎないので, SLD の
+    リミタは「解像されている」と判断して素通りさせる (実測では
+    :math:`r\\simeq0.5` で :math:`h=2` の切断閾値ちょうど). しかし
+    緯度平均すると滑らかな成分が打ち消し合い (質量保存により
+    :math:`\\int v_r\\sin\\theta\\,d\\theta\\simeq0`), 振動だけが残る.
+
+    この成分は浮力と圧力勾配によって格子スケールで駆動されており
+    (collocated 格子の odd-even 分離), SLD と物理粘性との釣り合いで
+    有限振幅の**強制平衡**に落ち着いてしまう.
+
+    なぜ弱くてよいか
+    ----------------
+    :math:`v_r` の緯度平均は質量保存によりほぼゼロなので, そこを
+    滑らかにしても物理的な解を削らない. 標的が非常に限定されているので
+    係数は小さくてよく, 演算も 1 次元 + ブロードキャストで安い.
+
+    保存
+    ----
+    質量重み付き平均を取り, 動径フラックスの発散を同じ重みで各緯度へ
+    配分するので, :math:`\\sum_j` が厳密に元の :math:`dQ_i` に戻り,
+    :math:`\\sum_i` は telescoping する. 境界面はリテラル 0.0.
+    各緯度への配分が ``jac`` に比例するため, プリミティブ量への寄与は
+    **緯度によらず一定** — つまり theta 平均成分だけを変える.
+
+    Parameters
+    ----------
+    kappa : float
+        拡散係数 [cm^2/s].
+    wsum, prof, dq1 : numpy.ndarray
+        1 次元の作業配列 (``ixg``,).
+    """
+    ixg, jxg = dqq.shape
+    _mean_profile(uu, jac, margin, wsum, prof)
+    idrr = 1.0/drr
+    # 面フラックス (境界面はゼロのまま) -> セルの変化率
+    for i in range(margin, ixg - margin):
+        dq1[i] = 0.0
+    for i in range(margin, ixg - margin):
+        fl = 0.0
+        fu = 0.0
+        if i > margin:
+            fl = -kappa*0.5*(wsum[i] + wsum[i - 1])*(prof[i] - prof[i - 1])*idrr
+        if i < ixg - margin - 1:
+            fu = -kappa*0.5*(wsum[i + 1] + wsum[i])*(prof[i + 1] - prof[i])*idrr
+        dq1[i] = -(fu - fl)*idrr
+    # 質量重みで各緯度へ配分 (プリミティブ量では theta によらず一定の変化)
+    for i in range(margin, ixg - margin):
+        w = wsum[i]
+        if w == 0.0:
+            continue
+        c = dq1[i]/w
+        for j in range(margin, jxg - margin):
+            dqq[i, j] += c*jac[i, j]
+
+
+@njit(fastmath=False)
+def mean_profile_diffuse_r_primitive(duu, uu, jac, ijac, kappa, drr, margin,
+                                     wsum, prof, dq1):
+    """保存形で持っていないプリミティブ変数版 (エントロピーなど)."""
+    ixg, jxg = duu.shape
+    _mean_profile(uu, jac, margin, wsum, prof)
+    idrr = 1.0/drr
+    for i in range(margin, ixg - margin):
+        fl = 0.0
+        fu = 0.0
+        if i > margin:
+            fl = -kappa*0.5*(wsum[i] + wsum[i - 1])*(prof[i] - prof[i - 1])*idrr
+        if i < ixg - margin - 1:
+            fu = -kappa*0.5*(wsum[i + 1] + wsum[i])*(prof[i + 1] - prof[i])*idrr
+        dq1[i] = -(fu - fl)*idrr
+    for i in range(margin, ixg - margin):
+        w = wsum[i]
+        if w == 0.0:
+            continue
+        c = dq1[i]/w
+        for j in range(margin, jxg - margin):
+            duu[i, j] += c*jac[i, j]*ijac[i, j]

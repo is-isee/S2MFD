@@ -983,3 +983,68 @@ def test_sld_meridional_has_spherical_geometry_terms(setup_dynamic):
     # 滑らかなベクトル場では主項が小さくなるので相対的に効いてくる。
     assert np.abs(exp_r).max() > 1e-4*np.abs(r_mr[sl]).max()
     assert np.abs(exp_t).max() > 1e-4*np.abs(r_mt[sl]).max()
+
+
+# ---------------------------------------------------------------------------
+# 4 次ハイパー拡散 (Rempel 2014)
+# ---------------------------------------------------------------------------
+def test_hyperdiffusion_conserves_exactly(setup_dynamic):
+    """4 次ハイパー拡散が保存量を厳密に保存すること。
+
+    SLD と同じく面フラックス配列を持ち、境界面をリテラル 0.0 にするので
+    telescoping が成り立つ。人工拡散を足すたびに保存が少しずつ壊れる、
+    という事態を防ぐための回帰テスト。
+    """
+    cfg, grid, strat, setup = setup_dynamic
+    m = grid.margin
+    shape = (grid.ixg, grid.jxg)
+    rng = np.random.default_rng(23)
+    uu = np.ascontiguousarray(1e3*rng.standard_normal(shape))
+    jac_r = np.zeros(shape)
+    jac_r[1:] = 0.5*(strat.JV[1:] + strat.JV[:-1])
+    vadv = np.full(shape, 1.0e3)
+    ffr = np.zeros(shape)
+    ffth = np.zeros(shape)
+    dq = np.zeros(shape)
+
+    artdif.hyper_diffuse_r(dq, uu, jac_r, vadv, 0.05,
+                           grid.drr, grid.dth, m, ffr, ffth)
+    total = cons.cell_integral(dq, grid.drr, grid.dth, m)
+    scale = cons.cell_integral(np.abs(dq), grid.drr, grid.dth, m)
+    assert scale > 0, 'ハイパー拡散が何も効いていない'
+    assert abs(total)/scale < 1e-14, (
+        f'ハイパー拡散が保存を壊している: {total/scale:.3e}')
+
+
+def test_hyperdiffusion_vanishes_for_quadratic_fields(setup_dynamic):
+    """2 次までの滑らかな場ではハイパー拡散が厳密にゼロになること。
+
+    4 階微分なので、線形・2 次の背景勾配は完全に見えない。これが
+    「背景勾配に隠れた格子スケール振動だけを選択的に潰す」の中身であり、
+    物理的な構造を削らないための必須条件。
+    """
+    cfg, grid, strat, setup = setup_dynamic
+    m = grid.margin
+    shape = (grid.ixg, grid.jxg)
+    jac = np.ones(shape)
+    vadv = np.full(shape, 1.0e3)
+    out = np.zeros(shape)
+    ii = np.arange(grid.ixg, dtype=float)[:, None]*np.ones((1, grid.jxg))
+
+    for name, field in (('linear', 3.0*ii + 1.0),
+                        ('quadratic', 0.5*ii**2 - 2.0*ii + 7.0)):
+        out[:] = 0.0
+        artdif.hyper_flux_r(np.ascontiguousarray(field), jac, vadv, 0.05,
+                            m, out)
+        inner = out[m + 2:grid.ixg - m - 1, :]
+        assert np.abs(inner).max() < 1e-9*np.abs(field).max(), (
+            f'{name} な場でハイパー拡散のフラックスが立っている: '
+            f'{np.abs(inner).max():.3e}')
+
+    # 1 セルおきに符号が変わる振動には最大限効く
+    zig = np.ascontiguousarray(((-1.0)**ii))
+    out[:] = 0.0
+    artdif.hyper_flux_r(zig, jac, vadv, 0.05, m, out)
+    i = grid.ixg//2
+    # 3 階差分は grid-scale 振動に対して -8*(-1)^i
+    assert abs(abs(out[i, 0]) - 0.05*1.0e3*8.0) < 1e-8*0.05*1.0e3*8.0

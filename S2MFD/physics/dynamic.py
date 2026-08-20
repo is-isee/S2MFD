@@ -27,6 +27,7 @@ import numpy as np
 from numba import njit
 
 from S2MFD.physics import hydro, artdif
+from S2MFD.physics import conservative as cons
 
 __all__ = ['DynamicSolver', 'apply_radial_bc', 'apply_polar_bc']
 
@@ -157,6 +158,14 @@ class DynamicSolver:
         self.sld_ep = getattr(cfg, 'sld_ep', 2.0)   # 一般化 minmod の epsilon
         # 特性速度 |v| + v_A + cs_factor*c_s,eff の音速係数 (R2D2 は 0.3)
         self.cs_factor = getattr(cfg, 'sld_cs_factor', 0.3)
+        # Rempel (2014) の 4 次ハイパー拡散の係数。移流速度に比例し、
+        # 動径方向のみ、背景勾配に隠れた格子スケール振動を潰す。
+        # 論文に数値の指定はないので実測で決める。
+        self.hyper_h4 = getattr(cfg, 'hyper_h4', 0.0)
+        # 緯度平均プロファイルへの拡散係数 (nu_t 単位)。
+        # 緯度平均でしか見えない格子スケール成分を潰す。標的が限定されて
+        # いるので弱くてよく、物理的な緯度平均 v_r はほぼゼロなので解を削らない。
+        self.mean_diff_frac = getattr(cfg, 'mean_profile_diffusion', 0.0)
         self.consistent_advection = getattr(cfg, 'consistent_advection', False)
 
         # プリミティブ変数
@@ -212,6 +221,12 @@ class DynamicSolver:
         # 特性速度は毎ステップ更新する
         self.csp_r = np.zeros(self.shape)
         self.csp_th = np.zeros(self.shape)
+        # ハイパー拡散用の移流速度 (面上)
+        self.vadv_r = np.zeros(self.shape)
+        # 緯度平均拡散の 1 次元作業配列
+        self._w1 = np.zeros(self.shape[0])
+        self._p1 = np.zeros(self.shape[0])
+        self._d1 = np.zeros(self.shape[0])
 
 
     def _update_characteristic_speed(self):
@@ -255,6 +270,8 @@ class DynamicSolver:
                               / (4.0*np.pi*rho))
         self.csp_r[1:] = 0.5*(cc[1:] + cc[:-1])
         self.csp_th[:, 1:] = 0.5*(cc[:, 1:] + cc[:, :-1])
+        vv = np.sqrt(self.vrr**2 + self.vth**2)
+        self.vadv_r[1:] = 0.5*(vv[1:] + vv[:-1])
 
     # -- 状態の変換 -------------------------------------------------------
     def conserved(self):
@@ -377,6 +394,40 @@ class DynamicSolver:
                                          self.csp_r, self.csp_th,
                                          self.sld_fh, self.sld_ep,
                                          grid.drr, grid.dth, m, w.ffr, w.ffth)
+
+            # --- 4 次ハイパー拡散 (Rempel 2014) ---------------------------
+            # 背景勾配があると SLD のリミタが「単調」と判断してしまい、
+            # その上に乗った格子スケールの振動を素通りさせる。4 階微分なら
+            # 線形・2 次の背景を見ないので、それだけを選択的に潰せる。
+            # 動径方向のみ、移流速度に比例。対象は Rempel と同じく
+            # 密度・重力方向の速度・内部エネルギー (ここでは rho1, v_r, s1)。
+            # 緯度平均プロファイルへの拡散 (緯度平均でしか見えない成分用)
+            if self.mean_diff_frac > 0.0:
+                kap = self.mean_diff_frac*float(np.max(st.nu_dif))
+                artdif.mean_profile_diffuse_r(
+                    ds_mr, self.vrr, s.JV, kap, grid.drr, m,
+                    self._w1, self._p1, self._d1)
+                artdif.mean_profile_diffuse_r_primitive(
+                    dse1, self.se1, s.JM, s.iJM, kap, grid.drr, m,
+                    self._w1, self._p1, self._d1)
+
+            if self.hyper_h4 > 0.0:
+                artdif.hyper_diffuse_r(ds_mr, self.vrr, self.jacV_r,
+                                       self.vadv_r, self.hyper_h4,
+                                       grid.drr, grid.dth, m, w.ffr, w.ffth)
+                artdif.hyper_diffuse_r_primitive(
+                    dse1, self.se1, self.jacM_r, self.iJM, self.vadv_r,
+                    self.hyper_h4, grid.drr, m, w.ffr)
+                # 密度は保存量なので RSST の 1/zeta^2 を掛ける
+                artdif.hyper_flux_r(self.ro1, self.jacM_r, self.vadv_r,
+                                    self.hyper_h4, m, w.ffr)
+                cons.zero_boundary_faces_r(w.ffr, m)
+                for jj in range(grid.jxg):
+                    for ii in range(grid.ixg):
+                        w.ffth[ii, jj] = 0.0
+                cons.add_flux_divergence_scaled(dq_ro, w.ffr, w.ffth,
+                                                grid.drr, grid.dth, m,
+                                                self.izeta2)
 
         # --- エントロピー -------------------------------------------------
         hydro.entropy_rhs(dse1, self.se1, self.vrr, self.vth, s.ro0, s.tm0,

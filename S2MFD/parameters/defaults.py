@@ -63,6 +63,10 @@ rrb = 0.65*RSUN # base of the meridional flow
 # 'kinematic' 以外では以下の熱力学パラメタが必要になる。
 dynamics = 'kinematic'
 
+# 動径運動量に磁気圧勾配 (磁気浮力) を含めるか。False にすると
+# Rempel (2006) の "magnetic buoyancy off" 解になる (表1 列 4/6/8)。
+magnetic_buoyancy = True
+
 # Flag for continuation
 cont_flag = True
 

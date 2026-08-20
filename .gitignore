@@ -173,3 +173,5 @@ reference/
 
 # Parameter-inference outputs
 results/
+# シミュレーション出力 (再生成可能・巨大)
+results_rempel/

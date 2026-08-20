@@ -1048,3 +1048,52 @@ def test_hyperdiffusion_vanishes_for_quadratic_fields(setup_dynamic):
     i = grid.ixg//2
     # 3 階差分は grid-scale 振動に対して -8*(-1)^i
     assert abs(abs(out[i, 0]) - 0.05*1.0e3*8.0) < 1e-8*0.05*1.0e3*8.0
+
+
+def test_magnetic_buoyancy_switch_removes_radial_magnetic_pressure(setup_dynamic):
+    """``magnetic_buoyancy=False`` で動径の磁気圧勾配だけが消える.
+
+    Rempel (2006) 3.4 節は式 (2) の :math:`\\nabla p_{\\rm mag}` を落とした
+    「magnetic buoyancy off」の解を表1 列 4/6/8 に載せている。軸対称モデル
+    での磁気浮力は非現実的 (実際の浮力不安定モードは非軸対称) というのが
+    理由。ここでは
+
+    * 差分 (full - off) がちょうど :math:`\\partial_r(B^2/8\\pi)` であること
+    * :math:`\\theta` 方向のローレンツ力は一切変わらないこと
+
+    を確認する。後者を落とすと Rempel の定義から外れる。
+    """
+    cfg, grid, strat, setup = setup_dynamic
+    m = grid.margin
+    shape = (grid.ixg, grid.jxg)
+    rng = np.random.default_rng(3)
+    brr = np.ascontiguousarray(rng.standard_normal(shape))
+    bth = np.ascontiguousarray(rng.standard_normal(shape))
+    bph = np.ascontiguousarray(rng.standard_normal(shape))
+    z = np.zeros(shape)
+    w = hydro.HydroWork(grid)
+
+    out = {}
+    for key, mb in (('on', True), ('off', False)):
+        dmr = np.zeros(shape)
+        dmt = np.zeros(shape)
+        hydro.momentum_rhs(dmr, dmt, z, z, z, z, z, brr, bth, bph,
+                           strat.JV, strat.JVY, strat.JM, strat.RSIN,
+                           grid.RR, grid.sinTH, grid.cosTH, strat.ro0,
+                           strat.gr, cfg.om0, grid.drr, grid.dth, m,
+                           True, w.ffr, w.ffth, w.cen, mb)
+        out[key] = (dmr, dmt)
+
+    sl = (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
+    # theta 成分は不変
+    assert np.array_equal(out['on'][1], out['off'][1])
+
+    # r 成分の差は grad_r (B^2/8pi) の中心差分そのもの
+    bsq = brr**2 + bth**2 + bph**2
+    dpmag = np.zeros(shape)
+    dpmag[1:-1, :] = 0.5*(bsq[2:, :] - bsq[:-2, :])/grid.drr/(8.0*np.pi)
+    expect = -strat.JM[sl]*dpmag[sl]
+    diff = out['on'][0][sl] - out['off'][0][sl]
+    assert np.allclose(diff, expect, rtol=1e-12, atol=1e-12*np.abs(expect).max())
+    # 実際に無視できない大きさであること (テストが空回りしていない保証)
+    assert np.abs(diff).max() > 0.1*np.abs(out['on'][0][sl]).max()

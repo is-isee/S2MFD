@@ -39,6 +39,22 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
             /grid.rr[i]*grid.rr[2*grid.margin-i-1]
       
          
+   elif cfg.boundary_condition_type == 'R06':
+      # Rempel (2006) §2.2:
+      #   "B_Phi vanishes at both radial boundaries, while A vanishes at the
+      #    inner boundary, and the poloidal field is assumed to be radial at
+      #    the top boundary."
+      # 'vertical' との違いは下部境界の B_phi だけ (完全導体 d(rB)/dr=0 ではなく
+      # B_phi = 0)。深部は磁気拡散が 3 桁小さいので、ここの扱いが効く。
+      for i in range(0, grid.margin):
+         # 上部: B_phi = 0, ポロイダル場は動径方向 (d(rA)/dr = 0)
+         Bph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = -Bph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin]
+         Aph[grid.ixg-i-1,grid.margin:grid.jxg-grid.margin] = +Aph[grid.ixg-2*grid.margin+i,grid.margin:grid.jxg-grid.margin] \
+            /grid.rr[grid.ixg-i-1]*grid.rr[grid.ixg-2*grid.margin+i]
+         # 下部: A = 0, B_phi = 0
+         Aph[i,grid.margin:grid.jxg-grid.margin] = - Aph[2*grid.margin-i-1,grid.margin:grid.jxg-grid.margin]
+         Bph[i,grid.margin:grid.jxg-grid.margin] = - Bph[2*grid.margin-i-1,grid.margin:grid.jxg-grid.margin]
+
    elif cfg.boundary_condition_type == 'potential':
       # ルジャンドル射影と外部ポテンシャル場による再構成は Aφ について線形なので、
       # Legendre.build_potential_operator() が両者をまとめた行列を用意している。

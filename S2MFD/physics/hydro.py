@@ -444,7 +444,8 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
 @njit(fastmath=False)
 def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
                  JV, JVY, JM, RSIN, RR, sinTH, cosTH, ro0, gr,
-                 om0, drr, dth, margin, magnetic, ffr, ffth, cen):
+                 om0, drr, dth, margin, magnetic, ffr, ffth, cen,
+                 magnetic_buoyancy=True):
     """動径・子午面運動量の右辺を加算する.
 
     .. math::
@@ -558,6 +559,17 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
                       - (brr[i, j + 1] - brr[i, j - 1])*0.5*idth)/r
                 fl_r = (jt*bph[i, j] - jp*bth[i, j])/FOUR_PI
                 fl_t = (jp*brr[i, j] - jr*bph[i, j])/FOUR_PI
+                if not magnetic_buoyancy:
+                    # Rempel (2006) 表1 の "magnetic buoyancy off" (列 4,6,8):
+                    # 式 (2) の grad p_mag を落とす。J x B = (B.grad)B/4pi
+                    # - grad(B^2/8pi) なので、動径方向の磁気圧勾配を足し戻せば
+                    # 磁気張力だけが残る。軸対称モデルの磁気浮力は非現実的
+                    # (実際の浮力不安定は非軸対称) というのが論文の理由付け。
+                    bsq_p = (brr[i + 1, j]**2 + bth[i + 1, j]**2
+                             + bph[i + 1, j]**2)
+                    bsq_m = (brr[i - 1, j]**2 + bth[i - 1, j]**2
+                             + bph[i - 1, j]**2)
+                    fl_r += 0.5*(bsq_p - bsq_m)*idrr/(2.0*FOUR_PI)
                 dq_mr[i, j] += JM[i, j]*fl_r
                 dq_mt[i, j] += JM[i, j]*fl_t
 

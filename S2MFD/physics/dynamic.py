@@ -149,6 +149,9 @@ class DynamicSolver:
         self.shape = shape
 
         self.magnetic = (getattr(cfg, 'dynamics', 'kinematic') == 'dynamic')
+        #: 動径運動量の磁気圧勾配 (磁気浮力) を含めるか。Rempel (2006) 表1
+        #: の列 4/6/8 はこれを False にした「magnetic buoyancy off」の解。
+        self.magnetic_buoyancy = bool(getattr(cfg, 'magnetic_buoyancy', True))
         self.om1_bottom_dirichlet = (
             getattr(cfg, 'angmom_bottom_bc', 'uniform_rotation')
             == 'uniform_rotation')
@@ -187,6 +190,10 @@ class DynamicSolver:
         # 人工拡散のヤコビアン係数 (面上)
         self._build_artdif_coefficients()
 
+        # rhs の作業配列 (毎回確保せず使い回す)
+        self._rhs_bufs = tuple(np.zeros(shape) for _ in range(9))
+        self._zero = np.zeros(shape)
+
         # 診断用の累積量
         # 下部境界を通って流入した角運動量の時間積分 [erg s]。
         # angmom_bottom_bc='uniform_rotation' では系が閉じないので、
@@ -218,11 +225,19 @@ class DynamicSolver:
         # 質量の theta フラックスは r の冪が 1 つ低い (r sin(theta))
         self.jacM_r, self.jacM_th = face_r(s.JM), face_th(s.RSIN)
         self.iJM = s.iJM
+        # 磁場用 (スカラー拡散の幾何係数):
+        #   d/dt u = (1/(r^2 sin th)) [ d_r(r^2 sin th d_r u) + d_th(sin th d_th u) ]
+        self.jacB_r = face_r(s.JM)
+        self.jacB_th = face_th(self.grid.sinTH)
+        self.iJB = s.iJM
         # 特性速度は毎ステップ更新する
         self.csp_r = np.zeros(self.shape)
         self.csp_th = np.zeros(self.shape)
         # ハイパー拡散用の移流速度 (面上)
         self.vadv_r = np.zeros(self.shape)
+        # 磁場フィルタ用の特性速度 (音速を含まない)
+        self.cspB_r = np.zeros(self.shape)
+        self.cspB_th = np.zeros(self.shape)
         # 緯度平均拡散の 1 次元作業配列
         self._w1 = np.zeros(self.shape[0])
         self._p1 = np.zeros(self.shape[0])
@@ -272,6 +287,15 @@ class DynamicSolver:
         self.csp_th[:, 1:] = 0.5*(cc[:, 1:] + cc[:, :-1])
         vv = np.sqrt(self.vrr**2 + self.vth**2)
         self.vadv_r[1:] = 0.5*(vv[1:] + vv[:-1])
+        # 磁場フィルタ用の特性速度は**流れだけ**。
+        # 誘導方程式で磁場を運ぶのは流れであって音波ではない。
+        # アルヴェン波も入れない: 運動学的ダイナモでは運動方程式を解かないので
+        # そもそもアルヴェン波が存在しないし、力学モードでも磁場の輸送速度は
+        # 流れである (アルヴェン波は運動量方程式との結合で現れる)。
+        # 音速を入れると、運動学的ランでフィルタの実効拡散係数 (1/2)c*dx が
+        # 磁気拡散 eta を桁で上回り CFL を破る (実測 1.3e13 対 eta=1e12)。
+        self.cspB_r[1:] = 0.5*(vv[1:] + vv[:-1])
+        self.cspB_th[:, 1:] = 0.5*(vv[:, 1:] + vv[:, :-1])
 
     # -- 状態の変換 -------------------------------------------------------
     def conserved(self):
@@ -308,20 +332,14 @@ class DynamicSolver:
         cfg, grid, s, st = self.cfg, self.grid, self.strat, self.setup
         m = self.m
         w = self.work
-        z = np.zeros(self.shape)
+        z = self._zero
 
-        dq_ro = np.zeros(self.shape)
-        dq_mr = np.zeros(self.shape)
-        dq_mt = np.zeros(self.shape)
-        dq_om = np.zeros(self.shape)
-        dse1 = np.zeros(self.shape)
-        # 散逸項だけを集める配列 (エントロピーへ渡す)
-        ds_mr = np.zeros(self.shape)
-        ds_mt = np.zeros(self.shape)
-        ds_om = np.zeros(self.shape)
-        # 角運動量の散逸だけは「局所的な変換率 -F.grad(Omega1)」として
-        # 別に積む (Omega*dq_om だと Omega0/Omega1 倍の偽の加熱になる)
-        heat = np.zeros(self.shape)
+        # 作業配列は使い回す。毎 substep で 9 本を np.zeros すると
+        # 配列確保とゼロ埋めだけで rhs の 2 割以上を食う。
+        (dq_ro, dq_mr, dq_mt, dq_om, dse1,
+         ds_mr, ds_mt, ds_om, heat) = self._rhs_bufs
+        for a in self._rhs_bufs:
+            a[:] = 0.0
 
         # --- 質量 --------------------------------------------------------
         hydro.mass_rhs(dq_ro, self.vrr, self.vth, s.JV, s.JVY, self.izeta2,
@@ -333,7 +351,7 @@ class DynamicSolver:
                            s.JV, s.JVY, s.JM, s.RSIN, grid.RR, grid.sinTH,
                            grid.cosTH, s.ro0, s.gr, cfg.om0,
                            grid.drr, grid.dth, m, self.magnetic,
-                           w.ffr, w.ffth, w.cen)
+                           w.ffr, w.ffth, w.cen, self.magnetic_buoyancy)
 
         # --- 角運動量 (移流 + Maxwell、および分離したレイノルズ応力) ------
         hydro.angular_momentum_rhs(
@@ -498,6 +516,59 @@ class DynamicSolver:
         st.om = om
         st.omrr = drr2(om, grid.drr)
         st.omth = dth2(om, grid.dth)/grid.RR
+
+    def magnetic_filter(self, bph, aph, dt):
+        """磁場に人工拡散 (SLD) を掛ける — 誘導方程式の後のフィルタ段.
+
+        Rempel (2014) は SLD を
+        :math:`\\{\\log\\rho, v_x, v_y, v_z, \\varepsilon, B_x, B_y, B_z\\}`
+        の**全変数**に掛けており, 磁場も例外ではない. 実装も
+        「4 次時間積分の 1 ステップを終えた後の独立したフィルタ段」として
+        適用すると明記されている:
+
+            "The numerical diffusion scheme is implemented in a dimensional
+             split way ... and is applied to the solution in a separate
+             filtering step after a full time-step update of our fourth-order
+             time integration scheme."
+
+        本実装もそれに倣い, **検証済みの誘導方程式カーネルには一切触れずに**
+        その後段で掛ける. これにより運動学的ダイナモ (``dynamics='kinematic'``)
+        の経路は完全に無変更のまま保たれる.
+
+        対象は :math:`B_\\varphi` とベクトルポテンシャル :math:`A_\\varphi`.
+        :math:`A_\\varphi` を拡散させればポロイダル場が拡散し, しかも
+        :math:`\\nabla\\cdot B=0` は自動的に保たれる.
+
+        特性速度は :math:`|v|+v_A` で, **音速を含めない**. 磁場は音波では
+        運ばれないためで, 実用上も重要である: 運動学的ダイナモ (流れを固定して
+        誘導方程式だけを解く) では :math:`\\Delta t` が音速で決まらないので,
+        音速を入れるとフィルタの実効拡散係数 :math:`\\tfrac12 c\\Delta x` が
+        磁気拡散 :math:`\\eta_t` を桁で上回って CFL を破る
+        (実測: :math:`1.3\\times10^{13}` 対 :math:`\\eta_t=10^{12}`).
+
+        Parameters
+        ----------
+        dt : float
+            フィルタ段で進める時間 (本体のタイムステップと同じ).
+
+        Returns
+        -------
+        tuple
+            フィルタ後の ``(bph, aph)``. 引数の配列がその場で更新される.
+        """
+        if not self.use_artdif:
+            return bph, aph
+        grid, m, w = self.grid, self.m, self.work
+        self._update_characteristic_speed()
+        for fld in (bph, aph):
+            d = self._rhs_bufs[0]
+            d[:] = 0.0
+            artdif.sld_diffuse_primitive(
+                d, np.ascontiguousarray(fld), self.jacB_r, self.jacB_th,
+                self.iJB, self.cspB_r, self.cspB_th, self.sld_fh, self.sld_ep,
+                grid.drr, grid.dth, m, w.ffr, w.ffth)
+            fld += dt*d
+        return bph, aph
 
     def set_magnetic_field(self, brr, bth, bph):
         """ローレンツ力に使う磁場を外から与える."""

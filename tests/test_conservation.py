@@ -1429,3 +1429,188 @@ def test_mass_flux_bc_makes_boundary_face_flux_vanish(mass_flux_bc,
     else:
         # 旧来の v_r 反対称では有意に残る (この不整合が境界層を作る)
         assert worst > 1e-3, f'旧BCなのに不整合が小さい: {worst:.2e}'
+
+
+class TestHemisphereEnergyNormalisation:
+    """半球格子でもエネルギー積分が全球換算になること。
+
+    Rempel (2006) 式 (34) は
+
+        int dV = 4 pi int_{rmin}^{rmax} dr int_0^{pi/2} dtheta r^2 sin(theta)
+
+    で、表 1 の注も "we solve our model only for the northern hemisphere, but
+    we compute from that the energy conversion for the entire sphere" と
+    明記している。全球 [0, pi] を解くときの 2 pi と、半球 [0, pi/2] を
+    解くときの 4 pi は、赤道対称な解に対して同じ値を与えなければならない。
+    """
+
+    def _budget(self, thmax, jx):
+        import S2MFD
+        from S2MFD.stratification import Stratification
+        from S2MFD.physics.energy import EnergyBudget
+        cfg = make_cfg('parameters/rempel06.py', ix=32, jx=jx,
+                       thmin=0.0, thmax=thmax)
+        grid = make_grid(cfg)
+        strat = Stratification(cfg, grid)
+        setup = S2MFD.Setup(cfg, grid)
+        return cfg, grid, EnergyBudget(cfg, grid, strat, setup)
+
+    def test_symmetric_field_gives_same_energy(self):
+        # 赤道対称な om1 (cos^2 で偶) を全球と半球で積分して比べる
+        cf, gf, ef = self._budget(np.pi, 64)
+        ch, gh, eh = self._budget(np.pi / 2, 32)
+        full = ef.differential_rotation_energy(np.cos(gf.TH) ** 2 * cf.om0 * 0.1)
+        half = eh.differential_rotation_energy(np.cos(gh.TH) ** 2 * ch.om0 * 0.1)
+        assert np.isclose(full, half, rtol=2e-3), \
+            f"全球 {full:.6e} と半球 {half:.6e} が一致しない"
+
+
+class TestHemisphereEquivalence:
+    """半球 [0, pi/2] と全球 [0, pi] が同じ解を与えること。
+
+    Rempel (2006) §2.2 は "We restrict our simulations to one hemisphere and
+    impose the dipole symmetry through our equatorial boundary condition"
+    と述べている。種磁場 sin(2 theta) は赤道について厳密に反対称で、
+    演算子はパリティを混ぜないので、全球計算は北半球の解を南半球に
+    鏡映したものになる。したがって半球計算は全球計算の北半球と一致する
+    はずで、計算量は半分になる。
+    """
+
+    def _run(self, thmax, jx, nstep):
+        import S2MFD
+        from S2MFD.stratification import Stratification
+        from S2MFD.physics import time_marching, poloidal_mag, boundary_condition
+        from S2MFD.physics.dynamic import DynamicSolver
+        # margin=2 が要る: SLD のリミタ (sld_flux_th) は境界面の 2 セル先を
+        # 参照するので、赤道でゴーストが 1 層しかないと片側差分に落ちて
+        # 全球計算と違うフラックスになる。
+        cfg = make_cfg('parameters/rempel06.py', ix=48, jx=jx,
+                       thmin=0.0, thmax=thmax, alpha_quenching=False,
+                       margin=2)
+        grid = make_grid(cfg)
+        strat = Stratification(cfg, grid)
+        setup = S2MFD.Setup(cfg, grid)
+        sol = DynamicSolver(cfg, grid, strat, setup)
+        sol.set_primitive_from_conserved(sol.conserved())
+        prof = np.exp(-((grid.RR - 0.72 * cfg.RSUN) / (0.05 * cfg.RSUN)) ** 2)
+        Bph = np.ascontiguousarray(3.0e3 * prof * np.sin(2 * grid.TH))
+        Aph = np.zeros_like(Bph)
+        sol.magnetic = True
+        sol.sync_to_induction()
+        pm = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+        sol.set_magnetic_field(pm[0], pm[1], Bph)
+        dt = sol.cfl_dt()
+        for _ in range(nstep):
+            Bph, Aph = time_marching(Bph, Aph, dt, cfg, grid, setup)
+            Bph, Aph = sol.magnetic_filter(Bph, Aph, dt)
+            Bph, Aph = boundary_condition(Bph, Aph, cfg, grid, None)
+            pm = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+            sol.set_magnetic_field(pm[0], pm[1], Bph)
+            sol.step(dt)
+            sol.sync_to_induction()
+        m = grid.margin
+        return cfg, grid, sol, Bph, Aph, dt
+
+    def _compare(self, nstep, tol):
+        cf, gf, sf, Bf, Af, dtf = self._run(np.pi, 96, nstep)
+        ch, gh, sh, Bh, Ah, dth = self._run(np.pi / 2, 48, nstep)
+        assert np.isclose(dtf, dth, rtol=1e-12), "dt が違うと比較にならない"
+        m = gf.margin
+        # 全球格子の北半球 (j = m .. m+48) と半球格子の物理セルを比べる
+        nf = (slice(m, gf.ixg - m), slice(m, m + 48))
+        nh = (slice(m, gh.ixg - m), slice(m, gh.jxg - m))
+        for name, qf, qh in (('Bph', Bf, Bh), ('Aph', Af, Ah),
+                             ('om1', sf.om1, sh.om1), ('vth', sf.vth, sh.vth)):
+            scale = max(np.abs(qf[nf]).max(), 1e-300)
+            rel = np.abs(qf[nf] - qh[nh]).max() / scale
+            assert rel <= tol, \
+                f"{name} が半球と全球で一致しない ({nstep} step, 相対 {rel:.2e})"
+
+    def test_rhs_is_bit_identical(self):
+        """右辺 (時間微分) は半球と全球でビット一致する。
+
+        これが定式化の等価性そのものの検証。赤道境界条件と margin=2 が
+        揃っていれば、北半球のセルは全球計算とまったく同じ演算列をたどる。
+        """
+        import S2MFD
+        from S2MFD.stratification import Stratification
+        from S2MFD.physics.dynamic import DynamicSolver
+
+        def rhs_for(thmax, jx):
+            cfg = make_cfg('parameters/rempel06.py', ix=48, jx=jx, thmin=0.0,
+                           thmax=thmax, alpha_quenching=False, margin=2)
+            grid = make_grid(cfg)
+            strat = Stratification(cfg, grid)
+            setup = S2MFD.Setup(cfg, grid)
+            sol = DynamicSolver(cfg, grid, strat, setup)
+            f = np.exp(-((grid.RR - 0.8 * cfg.RSUN) / (0.1 * cfg.RSUN)) ** 2)
+            sol.vth[:] = 100.0 * f * np.sin(2 * grid.TH)
+            sol.vrr[:] = 50.0 * f * np.cos(2 * grid.TH)
+            sol.om1[:] = 1e-8 * f * np.cos(2 * grid.TH)
+            sol.ro1[:] = 1e-8 * f * np.cos(2 * grid.TH)
+            sol.se1[:] = 1e-10 * f * np.cos(2 * grid.TH)
+            sol.magnetic = False
+            return grid, sol.rhs()
+
+        gf, rf = rhs_for(np.pi, 96)
+        gh, rh = rhs_for(np.pi / 2, 48)
+        m = gf.margin
+        nf = (slice(m, gf.ixg - m), slice(m, m + 48))
+        nh = (slice(m, gh.ixg - m), slice(m, gh.jxg - m))
+        for name, a, b in zip(('dq_ro', 'dq_mr', 'dq_mt', 'dq_om', 'dse1'), rf, rh):
+            assert np.array_equal(a[nf], b[nh]), f"{name} がビット一致しない"
+
+    def test_first_step_matches_to_roundoff(self):
+        """1 ステップ後は丸め (1 ULP) の範囲で一致する。
+
+        右辺はビット一致するが、RK2 の 2 段目とゴースト充填を通ると
+        om1 に 1 ULP 程度の差が出る。全球側の「赤道の向こう側のセル」は
+        独立に計算された値で、半球側の鏡像とは丸めの分だけ違うため。
+        """
+        self._compare(1, 1e-15)
+
+    def test_stays_close_over_many_steps(self):
+        """多ステップでは丸め誤差がダイナモの成長率で増幅される。
+
+        1 step でビット一致していても、成長モードが round-off を種として
+        毎ステップ ~1.3 倍に増幅するため、40 step では相対 1e-10 程度まで
+        開く。これは定式化の違いではなく、指数増幅する系では避けられない。
+        (実測: 2 step 9e-15 -> 10 step 3e-12 -> 40 step 4e-10)
+        """
+        self._compare(40, 1e-9)
+
+    def test_margin_one_loses_the_sld_stencil(self):
+        """margin=1 では赤道で SLD のリミタが片側に落ちることの記録。
+
+        これは「半球にすると答えが変わる」のではなく「ゴーストが足りない」
+        という実装上の要請。margin=2 にすれば厳密に一致する。
+        """
+        import S2MFD
+        from S2MFD.stratification import Stratification
+        from S2MFD.physics.dynamic import DynamicSolver
+
+        def rhs_for(thmax, jx, margin):
+            cfg = make_cfg('parameters/rempel06.py', ix=48, jx=jx, thmin=0.0,
+                           thmax=thmax, alpha_quenching=False, margin=margin)
+            grid = make_grid(cfg)
+            strat = Stratification(cfg, grid)
+            setup = S2MFD.Setup(cfg, grid)
+            sol = DynamicSolver(cfg, grid, strat, setup)
+            f = np.exp(-((grid.RR - 0.8 * cfg.RSUN) / (0.1 * cfg.RSUN)) ** 2)
+            sol.vth[:] = 100.0 * f * np.sin(2 * grid.TH)
+            sol.vrr[:] = 50.0 * f * np.cos(2 * grid.TH)
+            sol.magnetic = False
+            return grid, sol.rhs()
+
+        for margin, expect_exact in ((1, False), (2, True)):
+            gf, rf = rhs_for(np.pi, 96, margin)
+            gh, rh = rhs_for(np.pi / 2, 48, margin)
+            m = gf.margin
+            nf = (slice(m, gf.ixg - m), slice(m, m + 48))
+            nh = (slice(m, gh.ixg - m), slice(m, gh.jxg - m))
+            d = np.abs(rf[2][nf] - rh[2][nh]).max()
+            if expect_exact:
+                assert d == 0.0, f"margin={margin} で一致しない ({d:.2e})"
+            else:
+                assert d > 0.0, "margin=1 でも一致してしまった (期待と違う)"
+

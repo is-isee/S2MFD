@@ -119,6 +119,18 @@ d_cz = 0.05*RSUN
 # --- Babcock-Leighton alpha 効果 (Rempel 2006 式 16-19) -------------------
 alpha_type = 'R06'
 alpha0 = 12.5             # 0.125 m/s [cm/s]
+
+# --- alpha クエンチング -----------------------------------------------------
+# Rempel 2006 は α クエンチングを**運動学的参照解 (図 3) にだけ**使う。
+# §3.1: "Since Lorentz force feedback introduces enough nonlinearity to
+#        saturate the dynamo, it is not necessary to include alpha quenching
+#        as typically done in kinematic models."
+# 図 4 キャプション: "... and no alpha quenching."
+# 表 1 の列 3-9 (本文の主結果) はすべてクエンチングなし。
+# 運動学的ラン (図 3: 周期 19 年, max B_phi = 1.28 T) を再現するときだけ
+# True にすること。
+alpha_quenching = False
+alpha_b_eq = 1.0e4        # B_eq = 1 T = 1e4 G。alpha_quenching=True のときのみ使う
 d_alpha = 0.05*RSUN
 # B_phi を平均する放物線カーネル h(r): 0.71 - 0.76 RSUN でゼロ、0.735 でピーク
 r_h_bot = 0.71*RSUN

@@ -71,9 +71,24 @@ class EnergyBudget:
         self.cfg, self.grid, self.strat, self.setup = cfg, grid, strat, setup
         m = grid.margin
         self.sl = (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
-        # 体積要素. 全球 [0, pi] を解くので方位角の 2pi を掛ける
-        # (Rempel は北半球のみなので 4pi を掛けている. 対称解なら同じ値).
-        self.dV = (2.0*np.pi*grid.RR**2*grid.sinTH
+        # 体積要素.
+        #
+        # Rempel (2006) 式 (34) は北半球のみを解いて全球換算する規約:
+        #     int dV = 4 pi int dr int_0^{pi/2} dtheta r^2 sin(theta)
+        # 表 1 の注も "we solve our model only for the northern hemisphere,
+        # but we compute from that the energy conversion for the entire
+        # sphere" と明記している.
+        #
+        # 本実装は全球 [0, pi] でも半球 [0, pi/2] でも走るので, どちらでも
+        # 「全球の値」になるように方位角因子を切り替える:
+        #     全球 [0, pi]    -> 2 pi (theta 積分が両半球を覆う)
+        #     半球 [0, pi/2]  -> 4 pi (theta 積分が片半球なので 2 倍する)
+        # 赤道対称な解ならこの 2 つは同じ値を与える (test_conservation.py の
+        # TestHemisphereEnergyNormalisation で検証).
+        thmax = getattr(cfg, 'thmax', np.pi)
+        hemisphere = abs(thmax - 0.5*np.pi) < 1.0e-9
+        azimuth = 4.0*np.pi if hemisphere else 2.0*np.pi
+        self.dV = (azimuth*grid.RR**2*grid.sinTH
                    * grid.drr[:, None]*grid.dth)
         self.varpi = strat.RSIN
 

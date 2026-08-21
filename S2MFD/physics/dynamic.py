@@ -23,6 +23,8 @@ q_om    :math:`r^4\\sin^3\\theta\\,\\rho_0\\Omega_1`  ``om1``
 時間積分は SSP-RK2 (Heun). 保存量の線形結合なので, 各 substep で保存則が
 成り立てば RK の合成後も成り立つ.
 """
+import warnings
+
 import numpy as np
 from numba import njit
 
@@ -215,6 +217,13 @@ class DynamicSolver:
             getattr(cfg, 'angmom_bottom_bc', 'uniform_rotation')
             == 'uniform_rotation')
         self.use_artdif = getattr(cfg, 'artificial_diffusion', True)
+        if not self._top_is_pole and self.m < 2 and self.use_artdif:
+            warnings.warn(
+                f"北半球のみ (thmax = pi/2) を margin={self.m} で解いています。"
+                "SLD のリミタ (sld_flux_th) は境界面の 2 セル先を参照するので、"
+                "赤道でゴーストが 1 層だと片側差分に落ち、全球計算と違う"
+                "拡散フラックスになります。margin=2 以上にしてください。",
+                UserWarning, stacklevel=2)
         # Rempel (2014) の SLD パラメタ (R2D2 と同じ既定値)
         self.sld_fh = getattr(cfg, 'sld_fh', 2.0)   # 論文の h
         self.sld_ep = getattr(cfg, 'sld_ep', 2.0)   # 一般化 minmod の epsilon
@@ -420,7 +429,7 @@ class DynamicSolver:
 
         # --- 質量 --------------------------------------------------------
         hydro.mass_rhs(dq_ro, self.vrr, self.vth, s.JV, s.JVY, self.izeta2,
-                       grid.drr, grid.wfm, grid.dth, m, w.ffr, w.ffth, w.cen)
+                       grid.drr, grid.wfm, grid.dth, m, w.ffr, w.ffth, w.cen, self._top_is_pole)
 
         # --- 子午面運動量 (移流 + 幾何源項 + 圧力 + 浮力 + ローレンツ) ----
         hydro.momentum_rhs(dq_mr, dq_mt, self.vrr, self.vth, self.om1,
@@ -429,7 +438,7 @@ class DynamicSolver:
                            grid.cosTH, s.ro0, s.gr, cfg.om0,
                            grid.drr, grid.drr2, grid.wfm, grid.dth, m,
                            self.magnetic,
-                           w.ffr, w.ffth, w.cen, self.magnetic_buoyancy)
+                           w.ffr, w.ffth, w.cen, self.magnetic_buoyancy, self._top_is_pole)
 
         # --- 角運動量 (移流 + Maxwell、および分離したレイノルズ応力) ------
         hydro.angular_momentum_rhs(
@@ -441,14 +450,14 @@ class DynamicSolver:
             st.nu_dif, st.nu_dif_m, st.nu_lam, st.nu_lam_m,
             grid.drr, grid.drrm, grid.wfm, grid.dth, m, self.magnetic,
             self.consistent_advection, self.om1_bottom_dirichlet,
-            ds_om, heat, self._bflux, w.ffr, w.ffth, w.cen)
+            ds_om, heat, self._bflux, w.ffr, w.ffth, w.cen, self._top_is_pole)
 
         # --- 子午面の粘性 (散逸項として分離) -----------------------------
         hydro.viscous_meridional_rhs(ds_mr, ds_mt, self.vrr, self.vth,
                                      grid.rr, grid.sinTH, grid.cosTH, s.ro0,
                                      st.nu_dif, st.nu_dif_m,
                                      grid.drr, grid.drrm, grid.drr2, grid.wfm,
-                                     grid.dth, m, w.ffr, w.ffth)
+                                     grid.dth, m, w.ffr, w.ffth, self._top_is_pole)
 
         # --- 人工拡散 (これも散逸項) -------------------------------------
         if self.use_artdif:
@@ -459,28 +468,30 @@ class DynamicSolver:
                                     self.csp_r, self.csp_th,
                                self.sld_fh, self.sld_ep,
                                     grid.drr, grid.drrm, grid.dth, m,
-                                    w.ffr, w.ffth)
+                                    w.ffr, w.ffth, self._top_is_pole)
             # 子午面速度はベクトル成分なので、theta 掃引で基底が回る分の
             # 幾何項が要る (v_r と v_theta が混ざる)
             artdif.sld_diffuse_meridional(
                 ds_mr, ds_mt, self.vrr, self.vth,
                 self.jacV_r, self.jacV_th, self.csp_r, self.csp_th,
                 self.sld_fh, self.sld_ep, grid.drr, grid.drrm, grid.dth, m,
-                w.ffr, w.ffth, w.ffr2, w.ffth2)
+                w.ffr, w.ffth, w.ffr2, w.ffth2, self._top_is_pole)
             # 密度にも掛ける (音波の格子スケール振動を抑える)。保存量は
             # ∫ζ²ρ1 dV なので、連続の式と同じく発散に 1/ζ² を掛ける
             artdif.sld_diffuse_scaled(dq_ro, self.ro1, self.jacM_r,
                                       self.jacM_th, self.csp_r, self.csp_th,
                                       self.sld_fh, self.sld_ep,
                                       grid.drr, grid.drrm, grid.dth, m,
-                                      self.izeta2, w.ffr, w.ffth)
+                                      self.izeta2, w.ffr, w.ffth, self._top_is_pole)
 
             # 人工拡散が角運動量から抜いたエネルギーを記録する (診断用)。
             # heat は -F.grad(Omega1) なので、その体積積分が散逸率になる。
             # heat は -F.grad(Omega1) = 流れから抜けたエネルギー (加熱側が正)。
             # その体積積分がそのまま散逸率。q_L はヤコビアンを吸収済みなので
             # sum * drr * dth に方位角の 2pi を掛ければ体積積分になる。
-            self.artificial_dissipation = 2.0*np.pi*float(
+            # 方位角因子は EnergyBudget と同じ規約 (半球なら全球換算で 4pi)
+            azim = 2.0*np.pi if self._top_is_pole else 4.0*np.pi
+            self.artificial_dissipation = azim*float(
                 ((heat - heat_before)[m:grid.ixg - m, m:grid.jxg - m]
                  * grid.drr[m:grid.ixg - m, None]).sum())*grid.dth
 
@@ -492,7 +503,7 @@ class DynamicSolver:
                                          self.csp_r, self.csp_th,
                                          self.sld_fh, self.sld_ep,
                                          grid.drr, grid.drrm, grid.dth, m,
-                                         w.ffr, w.ffth)
+                                         w.ffr, w.ffth, self._top_is_pole)
 
             # --- 4 次ハイパー拡散 (Rempel 2014) ---------------------------
             # 背景勾配があると SLD のリミタが「単調」と判断してしまい、
@@ -533,7 +544,7 @@ class DynamicSolver:
                           s.pr0, s.hp, s.delta, st.kappa_t, st.kappa_t_m,
                           s.JM, s.iJM, grid.rr, grid.sinTH, grid.sinTHm,
                           s.gamma, grid.drr, grid.drrm, grid.drr2, grid.wfm,
-                          grid.dth, m, w.ffr, w.ffth)
+                          grid.dth, m, w.ffr, w.ffth, self._top_is_pole)
         # 散逸したエネルギーをエントロピーに戻す (係数はちょうど 1)
         hydro.add_dissipative_heating(dse1, heat, ds_mr, ds_mt,
                                       self.vrr, self.vth,
@@ -652,7 +663,7 @@ class DynamicSolver:
             artdif.sld_diffuse_primitive(
                 d, np.ascontiguousarray(fld), self.jacB_r, self.jacB_th,
                 self.iJB, self.cspB_r, self.cspB_th, self.sld_fh, self.sld_ep,
-                grid.drr, grid.drrm, grid.dth, m, w.ffr, w.ffth)
+                grid.drr, grid.drrm, grid.dth, m, w.ffr, w.ffth, self._top_is_pole)
             fld += dt*d
         return bph, aph
 
@@ -661,6 +672,17 @@ class DynamicSolver:
         self.brr[:] = brr
         self.bth[:] = bth
         self.bph[:] = bph
+
+    @property
+    def _top_is_pole(self):
+        """theta 方向の上端が極か (True) 赤道か (False).
+
+        北半球のみを解く場合 (thmax = pi/2) は上端が赤道なので、拡散
+        フラックスをそこでゼロにしてはいけない
+        (:func:`S2MFD.physics.conservative.zero_boundary_faces_th` 参照)。
+        """
+        thmax = getattr(self.cfg, 'thmax', np.pi)
+        return abs(thmax - 0.5*np.pi) > 1.0e-9
 
     def cfl_dt(self):
         """CFL 条件から許容タイムステップを返す."""

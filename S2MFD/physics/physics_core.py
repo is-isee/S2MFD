@@ -642,11 +642,28 @@ def time_marching(Bph, Aph, dt, cfg, grid, setup):
       if cfg.alpha_type == 'R06':
          # Rempel (2006) 式 (19): 0.71-0.76 RSUN の放物線カーネルで
          # B_phi を動径平均する (BL のように 1 点を取るのではない)。
-         # クエンチングは B_eq = 1 T = 1e4 G (CGS)。
          b_src = (setup.alpha_kernel[:, None]*Bph
                   * grid.drr[:, None]).sum(axis=0)
-         beq = getattr(cfg, 'alpha_b_eq', 1.0e4)
-         alpha_fac = b_src/(1 + (b_src/beq)**2)
+         # α クエンチングは**運動学的ランだけ**のもの。
+         #   §2.2 (運動学的参照解, 図 3):
+         #     "We use for the alpha effect an amplitude of alpha_0 = 0.125 m/s
+         #      and include alpha quenching with a quenching field strength of
+         #      1 T (10 kG)."
+         #   §3.1 (ローレンツ力フィードバックあり, 表 1 の列 3-9):
+         #     "Since Lorentz force feedback introduces enough nonlinearity to
+         #      saturate the dynamo, it is not necessary to include alpha
+         #      quenching as typically done in kinematic models."
+         #   図 4 キャプション: "Dynamo solution with Lorentz force feedback
+         #      and no alpha quenching."
+         # 非運動学的ランでクエンチングを掛けると磁場が B_eq で頭打ちになり、
+         # 表 1 の max(B_phi) = 1.2-1.4 T に届かない。
+         # 既定を True にしてあるのは、この分岐を持たない既存の運動学的
+         # ダイナモ (alpha_type='BL'/'H10'/'normal') と挙動を揃えるため。
+         if getattr(cfg, 'alpha_quenching', True):
+            beq = getattr(cfg, 'alpha_b_eq', 1.0e4)   # B_eq = 1 T = 1e4 G (CGS)
+            alpha_fac = b_src/(1 + (b_src/beq)**2)
+         else:
+            alpha_fac = b_src
       else:
          b_src = Bph[setup.ibase, :]
          alpha_fac = b_src/(1 + b_src**2)

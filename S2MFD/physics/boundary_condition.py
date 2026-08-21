@@ -77,12 +77,40 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
          Bph[i,grid.margin:grid.jxg-grid.margin] = + Bph[2*grid.margin-i-1,grid.margin:grid.jxg-grid.margin] \
             /grid.rr[i]*grid.rr[2*grid.margin-i-1]
 
-   # 緯度方向境界条件      
+   # --- 緯度方向境界条件 ----------------------------------------------------
+   # Rempel (2006) §2.2:
+   #   "The boundary condition is A = B_Phi = 0 at the pole and
+   #    dA/dtheta = B_Phi = 0 at the equator, which selects the dipole
+   #    symmetry for the solution"
+   #
+   # 極 : A も B_phi もゼロ            -> どちらも反対称の鏡像 (-1)
+   # 赤道: B_phi = 0, dA/dtheta = 0     -> B_phi は反対称 (-1)、A は対称 (+1)
+   #
+   # 双極子は A ∝ sinθ で赤道について偶、B_phi は奇。赤道を極と同じ扱いに
+   # すると A に本来ない節ができ、ポロイダル場が赤道で切れてしまう。
+   #
+   # 上端が赤道かどうかは thmax で決まる (theta = pi/2 が赤道)。
+   # cfg.equator_top_bc を明示すれば上書きできる。
+   aph_top_sign = -1.0 if _pole_at_top(cfg, grid) else +1.0
+   rows = slice(grid.margin, grid.ixg-grid.margin)
    for j in range(0, grid.margin):
-      #pole A=B=0
-      Bph[grid.margin:grid.ixg-grid.margin,j]  = -Bph[grid.margin:grid.ixg-grid.margin,2*grid.margin-j-1]
-      Aph[grid.margin:grid.ixg-grid.margin,j]  = -Aph[grid.margin:grid.ixg-grid.margin,2*grid.margin-j-1]
+      # 下端 (theta = thmin) は常に極
+      Bph[rows,j]  = -Bph[rows,2*grid.margin-j-1]
+      Aph[rows,j]  = -Aph[rows,2*grid.margin-j-1]
 
-      Bph[grid.margin:grid.ixg-grid.margin,grid.jxg-j-1] = -Bph[grid.margin:grid.ixg-grid.margin,grid.jxg-2*grid.margin+j]
-      Aph[grid.margin:grid.ixg-grid.margin,grid.jxg-j-1] = -Aph[grid.margin:grid.ixg-grid.margin,grid.jxg-2*grid.margin+j]
+      Bph[rows,grid.jxg-j-1] = -Bph[rows,grid.jxg-2*grid.margin+j]
+      Aph[rows,grid.jxg-j-1] = aph_top_sign*Aph[rows,grid.jxg-2*grid.margin+j]
    return Bph, Aph
+
+
+def _pole_at_top(cfg, grid):
+   """theta 方向の上端が極か (True) 赤道か (False) を返す。
+
+   ``cfg.equator_top_bc = True`` を指定すれば強制的に赤道扱いにできる。
+   指定がなければ ``thmax`` から判定する (theta = pi/2 が赤道)。
+   """
+   forced = getattr(cfg, 'equator_top_bc', None)
+   if forced is not None:
+      return not forced
+   thmax = getattr(cfg, 'thmax', np.pi)
+   return abs(thmax - 0.5*np.pi) > 1.0e-9

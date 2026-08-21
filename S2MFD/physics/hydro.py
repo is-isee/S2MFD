@@ -166,7 +166,7 @@ def cfl_dt(vrr, vth, brr, bth, bph, ro0, ro1, cs_eff, rr, drr, dth,
 # ---------------------------------------------------------------------------
 @kernel()
 def mass_rhs(dq_ro, vrr, vth, JV, JVY, izeta2, drr, wfm, dth, margin,
-             ffr, ffth, cen):
+             ffr, ffth, cen, top_is_pole=True):
     """連続の式の右辺を ``dq_ro`` に加算する.
 
     .. math::
@@ -208,7 +208,7 @@ def mass_rhs(dq_ro, vrr, vth, JV, JVY, izeta2, drr, wfm, dth, margin,
         for j in range(jxg):
             cen[i, j] = JVY[i, j]*vth[i, j]
     face_average_th(cen, margin, ffth)
-    zero_boundary_faces_th(ffth, margin)
+    zero_boundary_faces_th(ffth, margin, top_is_pole)
 
     # --- 発散 (RSST 係数は発散全体に掛ける) -------------------------------
     idth = 1.0/dth
@@ -230,7 +230,7 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
                          nu_dif, nu_dif_m, nu_lam, nu_lam_m,
                          drr, drrm, wfm, dth, margin,
                          magnetic, consistent_advection, open_bottom,
-                         dq_stress, heat, bflux, ffr, ffth, cen):
+                         dq_stress, heat, bflux, ffr, ffth, cen, top_is_pole=True):
     """角運動量方程式の右辺を ``dq_om`` に加算する.
 
     すべての項を発散形
@@ -374,7 +374,7 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
             for j in range(margin, jxg - margin + 1):
                 ffth[i, j] += 0.5*(cen[i, j] + cen[i, j - 1])
 
-    zero_boundary_faces_th(ffth, margin)
+    zero_boundary_faces_th(ffth, margin, top_is_pole)
 
     # 発散 (セル体積で割らない — ヤコビアンは保存量に吸収済み)
     add_flux_divergence(dq_om, ffr, ffth, drr, dth, margin)
@@ -438,7 +438,7 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
             ffth[i, j] = (cvis*sm3*(om1[i, j] - om1[i, j - 1])*idth
                           + clam*0.5*(sinTH[i, j]*sinTH[i, j]*lam_tp[i, j]
                                       + sinTH[i, j - 1]*sinTH[i, j - 1]*lam_tp[i, j - 1]))
-    zero_boundary_faces_th(ffth, margin)
+    zero_boundary_faces_th(ffth, margin, top_is_pole)
 
     # レイノルズ応力は dq_stress にだけ書き出す。dq_om への合流は呼び出し側が
     # 行う (dq_stress はエントロピーの加熱項にも使うため分けている)。
@@ -456,7 +456,7 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
 def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
                  JV, JVY, JM, RSIN, RR, sinTH, cosTH, ro0, gr,
                  om0, drr, drr2, wfm, dth, margin, magnetic, ffr, ffth, cen,
-                 magnetic_buoyancy=True):
+                 magnetic_buoyancy=True, top_is_pole=True):
     """動径・子午面運動量の右辺を加算する.
 
     .. math::
@@ -511,7 +511,7 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
         for j in range(jxg):
             cen[i, j] = JVY[i, j]*vrr[i, j]*vth[i, j]
     face_average_th(cen, margin, ffth)
-    zero_boundary_faces_th(ffth, margin)
+    zero_boundary_faces_th(ffth, margin, top_is_pole)
     add_flux_divergence(dq_mr, ffr, ffth, drr, dth, margin)
 
     # =====================================================================
@@ -526,7 +526,7 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
         for j in range(jxg):
             cen[i, j] = JVY[i, j]*vth[i, j]*vth[i, j]
     face_average_th(cen, margin, ffth)
-    zero_boundary_faces_th(ffth, margin)
+    zero_boundary_faces_th(ffth, margin, top_is_pole)
     add_flux_divergence(dq_mt, ffr, ffth, drr, dth, margin)
 
     # =====================================================================
@@ -593,7 +593,7 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
 @kernel()
 def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
                            nu_dif, nu_dif_m, drr, drrm, drr2, wfm, dth,
-                           margin, ffr, ffth):
+                           margin, ffr, ffth, top_is_pole=True):
     """子午面運動量に働く粘性力を加算する.
 
     圧縮性の粘性応力テンソル
@@ -653,7 +653,7 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
             ffth[i, j] = -nu_dif[i]*ro0[i]*(
                 r2*0.5*(sh_a + sh_b)
                 + 0.5*(sinTH[i, j] + sinTH[i, j - 1])*(vrr[i, j] - vrr[i, j - 1])*idth)
-    zero_boundary_faces_th(ffth, margin)
+    zero_boundary_faces_th(ffth, margin, top_is_pole)
 
     add_flux_divergence(dq_mr, ffr, ffth, drr, dth, margin)
 
@@ -697,7 +697,7 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
                 -c23*r2*0.5*(sh_a + sh_b)
                 + c43*0.5*(sinTH[i, j] + sinTH[i, j - 1])*(vth[i, j] - vth[i, j - 1])*idth
                 - c23*0.5*(cosTH[i, j]*vth[i, j] + cosTH[i, j - 1]*vth[i, j - 1]))
-    zero_boundary_faces_th(ffth, margin)
+    zero_boundary_faces_th(ffth, margin, top_is_pole)
 
     add_flux_divergence(dq_mt, ffr, ffth, drr, dth, margin)
 
@@ -723,7 +723,7 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
 @kernel()
 def entropy_rhs(dse1, se1, vrr, vth, ro0, tm0, pr0, hp, delta, kappa, kappa_m,
                 JM, iJM, rr, sinTH, sinTHm, gamma, drr, drrm, drr2, wfm,
-                dth, margin, ffr, ffth):
+                dth, margin, ffr, ffth, top_is_pole=True):
     """エントロピー方程式の右辺を ``dse1`` に加算する (Rempel 2006 式 5).
 
     .. math::
@@ -779,7 +779,7 @@ def entropy_rhs(dse1, se1, vrr, vth, ro0, tm0, pr0, hp, delta, kappa, kappa_m,
         c = kappa[i]*ro0[i]*tm0[i]
         for j in range(margin, jxg - margin + 1):
             ffth[i, j] = -c*sinTHm[i, j]*(se1[i, j] - se1[i, j - 1])*idth
-    zero_boundary_faces_th(ffth, margin)
+    zero_boundary_faces_th(ffth, margin, top_is_pole)
 
     # --- 移流 + 背景勾配 + 熱伝導 ----------------------------------------
     for i in prange(margin, ixg - margin):

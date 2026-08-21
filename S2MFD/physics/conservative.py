@@ -138,17 +138,33 @@ def zero_boundary_faces_r(ff, margin):
 
 
 @njit(fastmath=False)
-def zero_boundary_faces_th(ff, margin):
-    """theta 方向の物理境界面 (極) のフラックスをリテラル 0.0 にする.
+def zero_boundary_faces_th(ff, margin, top_is_pole=True):
+    """theta 方向の物理境界面のフラックスをリテラル 0.0 にする.
 
     極では ``sin(theta) -> 0`` なので幾何因子から自動的にゼロになりそうに
     見えるが, 実際には ``THm[margin]`` が厳密に 0 でも下流の演算で丸め誤差が
     入りうる. 代入で潰しておく.
+
+    ``top_is_pole=False`` (北半球のみを解いていて上端が**赤道**) のときは
+    上端面をゼロにしない
+    ---------------------------------------------------------------------
+    赤道は対称面であって壁ではない. 赤道について**反対称**な量
+    (:math:`v_\theta`, :math:`B_\varphi`) は赤道でゼロになるが、その
+    **勾配**はゼロではないので、拡散フラックスは赤道面を横切って有限に
+    流れる (全球計算では両半球がここで運動量と磁束をやり取りしている).
+    ここをゼロにすると赤道が自由すべり壁になり、全球計算と違う解になる.
+
+    対称量 (:math:`\\rho_1`, :math:`v_r`, :math:`\\Omega_1`, :math:`s_1`)
+    は勾配が赤道でゼロなので、ゼロにしてもしなくても同じ値になる.
+    したがって上端が赤道なら一律にゼロ化を外すのが正しい.
+
+    下端 (theta = thmin) は常に極なので必ずゼロにする.
     """
     ixg, jxg = ff.shape
     for i in range(ixg):
         ff[i, margin] = 0.0
-        ff[i, jxg - margin] = 0.0
+        if top_is_pole:
+            ff[i, jxg - margin] = 0.0
 
 
 @kernel()

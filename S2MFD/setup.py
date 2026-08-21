@@ -1,5 +1,7 @@
 from S2MFD.tools import drr2, dth2
 from S2MFD.npz_io import NpzIO
+import warnings
+
 import numpy as np
 from scipy.special import erf
 
@@ -115,6 +117,44 @@ class Setup(NpzIO):
          face[1:] = 0.5*(arr[1:] + arr[:-1])
          setattr(self, name + '_m', face)
 
+   def _r_max(self, cfg, grid):
+      """Rempel の :math:`r_{\\max}` (Λ 効果と α 効果の基準半径) を返す。
+
+      論文では計算領域の上端そのもの (:math:`0.985R_\\odot`) だが、本実装は
+      数値安定性のために領域を切り詰めて走らせることがある。そのとき
+      ``grid.rrmax`` をそのまま使うと**駆動の位置まで一緒に動いてしまう**:
+
+      * Λ 効果 (2005 式 33): :math:`\\tanh((r_{\\max}-r)/d)` の遷移層
+      * α 効果 (2006 式 17): :math:`\\max[0,1-(r-r_{\\max})^2/d_\\alpha^2]`
+        は湧き出しを :math:`r>r_{\\max}-d_\\alpha` に閉じ込める
+        (論文 §2.2 は "confines the poloidal source term above
+        :math:`r=0.935R_\\odot`" と明記)
+
+      ``cfg.r_max`` を明示すれば領域と切り離せる。指定がなければ従来どおり
+      ``grid.rrmax`` に追随する。
+
+      **警告について**: Rempel (2005) §2.5 は
+      "we require a vanishing angular momentum flux at the top boundary"
+      と述べており、:math:`\\tanh((r_{\\max}-r)/d)` はそのための遷移層である。
+      :math:`r_{\\max}` を領域上端からずらすと Λ フラックスが上部境界で
+      ゼロにならず、stress-free 条件と整合しなくなる。したがって
+      「領域を切り詰めたまま駆動だけ論文の位置に置く」ことは近似ですらない。
+      両者がずれている場合は警告を出す。
+      """
+      r_max = getattr(cfg, 'r_max', None)
+      if r_max is None:
+         return grid.rrmax
+      if abs(r_max - grid.rrmax) > 1e-6*cfg.RSUN:
+         warnings.warn(
+            f"cfg.r_max ({r_max/cfg.RSUN:.4f} RSUN) が計算領域の上端 "
+            f"({grid.rrmax/cfg.RSUN:.4f} RSUN) と違います。Λ 効果の遷移層 "
+            f"tanh((r_max-r)/d) は上部境界で角運動量フラックスを消すための"
+            f"もの (Rempel 2005 §2.5) なので、ずれていると上部境界を通って"
+            f"角運動量が出入りします。論文を再現するなら領域上端を "
+            f"0.985 RSUN にしてください。",
+            UserWarning, stacklevel=3)
+      return r_max
+
    def build_lambda(self, cfg, grid):
       """Λ効果 (非等方レイノルズ応力) のプロファイルを構築する。
 
@@ -147,7 +187,7 @@ class Setup(NpzIO):
       lam0 = getattr(cfg, 'lambda0', 0.8)
       eps = np.deg2rad(getattr(cfg, 'lambda_tilt_deg', 15.0))
 
-      ff = grid.sinTH**n*grid.cosTH*np.tanh((grid.rrmax - grid.RR)/dl)
+      ff = grid.sinTH**n*grid.cosTH*np.tanh((self._r_max(cfg, grid) - grid.RR)/dl)
       # 規格化は物理セルの最大値で取る (ゴーストセルは外挿なので除く)
       i0, i1 = grid.margin, grid.ixg - grid.margin
       j0, j1 = grid.margin, grid.jxg - grid.margin
@@ -211,7 +251,8 @@ class Setup(NpzIO):
          # ここでは r, theta 依存の形状 f_alpha*g_alpha だけを so に入れ、
          # Bbar_phi(theta) との積は時間積分カーネル側で取る
          # (so に B_phi を含められないため)。
-         fal = np.maximum(0.0, 1.0 - (grid.RR - grid.rrmax)**2/cfg.d_alpha**2)
+         fal = np.maximum(0.0, 1.0 - (grid.RR - self._r_max(cfg, grid))**2
+                          / cfg.d_alpha**2)
          gnum = grid.sinTH**2*grid.cosTH
          i0, i1 = grid.margin, grid.ixg - grid.margin
          j0, j1 = grid.margin, grid.jxg - grid.margin

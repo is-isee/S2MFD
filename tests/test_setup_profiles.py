@@ -91,3 +91,69 @@ class TestSetupSaveLoad:
         setup.save(path)
         loaded = S2MFD.Setup.load(path)
         assert not isinstance(loaded.ibase, np.ndarray)
+
+
+class TestForcingRadiusDecoupling:
+    """Λ 効果と α 効果の r_max を領域上端から切り離す。
+
+    Rempel (2005) 式 (33) の Λ 効果は
+    :math:`f\\propto\\tanh((r_{\\max}-r)/d)`、Rempel (2006) 式 (17) の α 効果は
+    :math:`f_\\alpha=\\max[0,1-(r-r_{\\max})^2/d_\\alpha^2]` で、どちらも
+    論文の領域上端 :math:`r_{\\max}=0.985R_\\odot` を基準にしている。
+
+    実装は長らくこれを ``grid.rrmax`` (計算領域の上端) に結びつけていたため、
+    数値安定性のために領域を 0.96 R⊙ に切り詰めると駆動の位置まで
+    0.025 R⊙ 内側に動いてしまっていた
+    (α ソースの下限が論文の 0.935 R⊙ から 0.91 R⊙ になる)。
+    """
+
+    def _profiles(self, rrmax_frac, r_max=None):
+        over = {'rrmax': rrmax_frac * 6.96e10, 'dynamics': 'dynamic'}
+        if r_max is not None:
+            over['r_max'] = r_max * 6.96e10
+        cfg = make_cfg('parameters/rempel06.py', ix=64, jx=32, **over)
+        grid = make_grid(cfg)
+        return cfg, grid, S2MFD.Setup(cfg, grid)
+
+    def test_default_follows_domain_top(self):
+        """r_max を指定しなければ従来どおり領域上端に追随する。"""
+        cfg, grid, a = self._profiles(0.96)
+        _, _, b = self._profiles(0.96, r_max=0.96)
+        assert np.array_equal(a.lam_rp, b.lam_rp)
+        assert np.array_equal(a.so, b.so)
+
+    def test_alpha_source_edge_follows_r_max_not_domain(self):
+        """α ソースの内端は r_max - d_alpha に来る (領域上端ではない)。"""
+        cfg, grid, s = self._profiles(0.96, r_max=0.985)
+        m = grid.margin
+        rr = grid.rr[m:grid.ixg - m]
+        # so が立っている最も内側の半径
+        active = np.abs(s.so[m:grid.ixg - m]).max(axis=1) > 0
+        r_edge = rr[active][0] / cfg.RSUN
+        assert abs(r_edge - (0.985 - 0.05)) < 0.01, \
+            f"α ソースの内端が {r_edge:.3f} R (期待 0.935 R)"
+
+    def test_domain_coupled_alpha_edge_is_wrong(self):
+        """従来 (r_max=領域上端) だと内端が 0.91 R にずれることの記録。"""
+        cfg, grid, s = self._profiles(0.96)
+        m = grid.margin
+        rr = grid.rr[m:grid.ixg - m]
+        active = np.abs(s.so[m:grid.ixg - m]).max(axis=1) > 0
+        r_edge = rr[active][0] / cfg.RSUN
+        assert abs(r_edge - (0.96 - 0.05)) < 0.01
+
+    def test_warns_when_r_max_differs_from_domain_top(self):
+        """r_max != 領域上端では Λ フラックスが上部境界で消えないので警告する。
+
+        Rempel (2005) §2.5 は "we require a vanishing angular momentum flux at
+        the top boundary" と述べており、tanh((r_max-r)/d) はそのための遷移層。
+        r_max を領域上端からずらすと、この条件が破れる。
+        """
+        with pytest.warns(UserWarning, match='r_max'):
+            self._profiles(0.96, r_max=0.985)
+
+    def test_no_warning_when_consistent(self):
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter('error')
+            self._profiles(0.985, r_max=0.985)

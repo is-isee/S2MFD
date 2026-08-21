@@ -212,7 +212,7 @@ def sld_flux_th(uu, jac_face, cspeed, fh, ep, margin, out):
 
 @njit(fastmath=False)
 def sld_diffuse(dqq, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
-                drr, drrm, dth, margin, ffr, ffth):
+                drr, drrm, dth, margin, ffr, ffth, top_is_pole=True):
     """プリミティブ変数 ``uu`` に人工拡散を掛け, 保存量の時間微分に加算する.
 
     境界面のフラックスはリテラル 0.0 に落とすので, 人工拡散を通じて
@@ -222,13 +222,13 @@ def sld_diffuse(dqq, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
     sld_flux_r(uu, jac_r, csp_r, fh, ep, drr, drrm, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
     sld_flux_th(uu, jac_th, csp_th, fh, ep, margin, ffth)
-    zero_boundary_faces_th(ffth, margin)
+    zero_boundary_faces_th(ffth, margin, top_is_pole)
     add_flux_divergence(dqq, ffr, ffth, drr, dth, margin)
 
 
 @njit(fastmath=False)
 def sld_diffuse_work(dqq, heat, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
-                     drr, drrm, dth, margin, ffr, ffth):
+                     drr, drrm, dth, margin, ffr, ffth, top_is_pole=True):
     """:func:`sld_diffuse` に加えて, 局所的な散逸率を ``heat`` に積む.
 
     角運動量に掛けるときはこちらを使う. :math:`\\Omega_0` は
@@ -239,14 +239,14 @@ def sld_diffuse_work(dqq, heat, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
     sld_flux_r(uu, jac_r, csp_r, fh, ep, drr, drrm, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
     sld_flux_th(uu, jac_th, csp_th, fh, ep, margin, ffth)
-    zero_boundary_faces_th(ffth, margin)
+    zero_boundary_faces_th(ffth, margin, top_is_pole)
     add_flux_divergence(dqq, ffr, ffth, drr, dth, margin)
     add_flux_work(heat, ffr, ffth, uu, drr, dth, margin)
 
 
 @njit(fastmath=False)
 def sld_diffuse_scaled(dqq, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
-                       drr, drrm, dth, margin, scale, ffr, ffth):
+                       drr, drrm, dth, margin, scale, ffr, ffth, top_is_pole=True):
     """発散に動径依存の係数が掛かる版 (密度に使う).
 
     音速抑制法では保存量が :math:`\\int\\xi_s^2\\rho_1\\,dV` なので,
@@ -256,13 +256,13 @@ def sld_diffuse_scaled(dqq, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
     sld_flux_r(uu, jac_r, csp_r, fh, ep, drr, drrm, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
     sld_flux_th(uu, jac_th, csp_th, fh, ep, margin, ffth)
-    zero_boundary_faces_th(ffth, margin)
+    zero_boundary_faces_th(ffth, margin, top_is_pole)
     add_flux_divergence_scaled(dqq, ffr, ffth, drr, dth, margin, scale)
 
 
 @kernel()
 def sld_diffuse_primitive(duu, uu, jac_r, jac_th, ijac, csp_r, csp_th, fh, ep,
-                          drr, drrm, dth, margin, ffr, ffth):
+                          drr, drrm, dth, margin, ffr, ffth, top_is_pole=True):
     """保存形ではなく直接解いているプリミティブ変数に人工拡散を掛ける.
 
     エントロピーのように保存量として持っていない変数に使う.
@@ -272,7 +272,7 @@ def sld_diffuse_primitive(duu, uu, jac_r, jac_th, ijac, csp_r, csp_th, fh, ep,
     sld_flux_r(uu, jac_r, csp_r, fh, ep, drr, drrm, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
     sld_flux_th(uu, jac_th, csp_th, fh, ep, margin, ffth)
-    zero_boundary_faces_th(ffth, margin)
+    zero_boundary_faces_th(ffth, margin, top_is_pole)
     ixg, jxg = duu.shape
     idth = 1.0/dth
     for i in prange(margin, ixg - margin):
@@ -305,7 +305,7 @@ def sld_diffusivity_max(csp_r, csp_th, drr, dth, rr, margin):
 @kernel()
 def sld_diffuse_meridional(dq_mr, dq_mt, vrr, vth, jac_r, jac_th,
                            csp_r, csp_th, fh, ep, drr, drrm, dth, margin,
-                           ffr1, ffth1, ffr2, ffth2):
+                           ffr1, ffth1, ffr2, ffth2, top_is_pole=True):
     """子午面速度 :math:`(v_r, v_\\theta)` に人工拡散を掛ける (幾何項つき).
 
     球座標の基底ベクトルは :math:`\\theta` に依存する
@@ -337,14 +337,14 @@ def sld_diffuse_meridional(dq_mr, dq_mt, vrr, vth, jac_r, jac_th,
     sld_flux_r(vrr, jac_r, csp_r, fh, ep, drr, drrm, margin, ffr1)
     zero_boundary_faces_r(ffr1, margin)
     sld_flux_th(vrr, jac_th, csp_th, fh, ep, margin, ffth1)
-    zero_boundary_faces_th(ffth1, margin)
+    zero_boundary_faces_th(ffth1, margin, top_is_pole)
     add_flux_divergence(dq_mr, ffr1, ffth1, drr, dth, margin)
 
     # --- v_theta -----------------------------------------------------------
     sld_flux_r(vth, jac_r, csp_r, fh, ep, drr, drrm, margin, ffr2)
     zero_boundary_faces_r(ffr2, margin)
     sld_flux_th(vth, jac_th, csp_th, fh, ep, margin, ffth2)
-    zero_boundary_faces_th(ffth2, margin)
+    zero_boundary_faces_th(ffth2, margin, top_is_pole)
     add_flux_divergence(dq_mt, ffr2, ffth2, drr, dth, margin)
 
     # --- 幾何項 (theta 掃引での基底の回転) ---------------------------------

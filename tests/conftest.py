@@ -31,6 +31,9 @@ def make_grid(cfg):
         ix=cfg.ix, jx=cfg.jx, margin=cfg.margin,
         rrmin=cfg.rrmin, rrmax=cfg.rrmax,
         thmin=cfg.thmin, thmax=cfg.thmax,
+        stretch=getattr(cfg, 'grid_stretch', 0.0),
+        stretch_center=getattr(cfg, 'grid_stretch_center',
+                               0.5*(cfg.rrmin + cfg.rrmax)),
     )
 
 

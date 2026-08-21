@@ -75,11 +75,17 @@ __all__ = [
 
 
 @kernel()
-def face_average_r(qq, margin, out):
+def face_average_r(qq, wfm, margin, out):
     """セル中心量から r 面の値を算術平均で作る.
 
-    ``out[i] = 0.5*(qq[i-1] + qq[i])`` を ``i in [margin, ixg-margin]``
-    に対して計算する. 境界面 (``i = margin`` と ``i = ixg-margin``) も
+    ``out[i] = wfm[i]*qq[i-1] + (1-wfm[i])*qq[i]`` を
+    ``i in [margin, ixg-margin]`` に対して計算する.
+
+    ``wfm`` は面の位置への線形補間の重みで, 一様格子では厳密に 0.5.
+    非一様格子で単純平均を使うと **2 次精度が 1 次に落ちる** ので
+    (``doc/dev_records/2026-08-21_nonuniform_grid.md`` の実測),
+    距離で重み付けする. どんな重みでもフラックスはテレスコープするので
+    保存性はこの選択に依らない. 境界面 (``i = margin`` と ``i = ixg-margin``) も
     埋めるが, 保存が必要なフラックスでは呼び出し側で
     :func:`zero_boundary_faces_r` によって 0.0 に上書きされる.
 
@@ -87,6 +93,8 @@ def face_average_r(qq, margin, out):
     ----------
     qq : numpy.ndarray
         セル中心量 (ixg, jxg).
+    wfm : numpy.ndarray
+        面への線形補間の重み (ixg,). ``grid.wfm``.
     margin : int
         ゴーストセル数.
     out : numpy.ndarray
@@ -95,8 +103,10 @@ def face_average_r(qq, margin, out):
     """
     ixg, jxg = qq.shape
     for i in prange(margin, ixg - margin + 1):
+        w = wfm[i]
+        w1 = 1.0 - w
         for j in range(jxg):
-            out[i, j] = 0.5 * (qq[i - 1, j] + qq[i, j])
+            out[i, j] = w * qq[i - 1, j] + w1 * qq[i, j]
 
 
 @kernel()
@@ -162,9 +172,9 @@ def add_flux_divergence(dqq, ffr, ffth, drr, dth, margin):
         ゴーストセル数.
     """
     ixg, jxg = dqq.shape
-    idrr = 1.0 / drr
     idth = 1.0 / dth
     for i in prange(margin, ixg - margin):
+        idrr = 1.0 / drr[i]          # **セル幅**で割る (面間隔ではない)
         for j in range(margin, jxg - margin):
             dqq[i, j] -= ((ffr[i + 1, j] - ffr[i, j]) * idrr
                           + (ffth[i, j + 1] - ffth[i, j]) * idth)
@@ -185,9 +195,9 @@ def add_flux_divergence_scaled(dqq, ffr, ffth, drr, dth, margin, scale):
         動径方向の係数 (``ixg``,).
     """
     ixg, jxg = dqq.shape
-    idrr = 1.0/drr
     idth = 1.0/dth
     for i in prange(margin, ixg - margin):
+        idrr = 1.0/drr[i]
         sc = scale[i]
         for j in range(margin, jxg - margin):
             dqq[i, j] -= sc*((ffr[i + 1, j] - ffr[i, j])*idrr
@@ -245,9 +255,13 @@ def add_flux_work(heat, ffr, ffth, uu, drr, dth, margin):
     **散逸の正値性が離散レベルで保証される**.
     """
     ixg, jxg = heat.shape
-    idrr = 1.0/drr
     idth = 1.0/dth
     for i in prange(margin, ixg - margin):
+        # 分母は **セル幅**. 面間隔ではない. こうすると
+        #   sum(heat * drr) = sum(F * du)
+        # という部分積分の離散版が厳密に成り立ち, 非一様格子でも
+        # 「散逸した運動エネルギー = エントロピーに入る熱」が保たれる.
+        idrr = 1.0/drr[i]
         for j in range(margin, jxg - margin):
             heat[i, j] -= 0.5*(
                 ffr[i, j]*(uu[i, j] - uu[i - 1, j])*idrr
@@ -266,17 +280,22 @@ def cell_integral(qq, drr, dth, margin):
 
     総和は Neumaier 補正付きで取り, 積分そのものの丸め誤差が
     離散化由来の保存誤差を覆い隠さないようにしている.
+    **並列化してはいけない** (加算順序が変わると機械精度が壊れる).
+
+    非一様格子ではセル幅 ``drr[i]`` を重みにする. 発散演算子が
+    ``(F[i+1]-F[i])/drr[i]`` なので, この重みでのみ telescoping が成立する.
     """
     ixg, jxg = qq.shape
     total = 0.0
     comp = 0.0
     for i in range(margin, ixg - margin):
+        dr = drr[i]
         for j in range(margin, jxg - margin):
-            x = qq[i, j]
+            x = qq[i, j]*dr
             t = total + x
             if abs(total) >= abs(x):
                 comp += (total - t) + x
             else:
                 comp += (x - t) + total
             total = t
-    return (total + comp) * drr * dth
+    return (total + comp) * dth

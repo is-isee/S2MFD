@@ -2,7 +2,7 @@ import numpy as np
 from numba import njit
 
 @njit
-def drr1(qq,drr,dir):
+def drr1(qq,hh,dir):
     '''
     To calculate 1st order accuracy derivative in r direction
 
@@ -10,8 +10,11 @@ def drr1(qq,drr,dir):
     ----------
     qq : numpy.ndarray, float
         Quantity to be differentiated (2D)
-    drr : float
-        Grid spacing in r direction
+    hh : numpy.ndarray
+        除数の 1D 配列。**出力インデックスで引く**。
+        ``dir='up'`` (面での勾配) では ``grid.drrm``、
+        ``dir='dw'`` (発散) では ``grid.drr`` を渡すこと。
+        一様格子ではどちらも同じ値なので従来と一致する。
     dir: string
         'up' or 'dw'
 
@@ -36,13 +39,14 @@ def drr1(qq,drr,dir):
     jnum = qq.shape[1]
     dqq = np.zeros_like(qq)
     for i in range(i1-i0):
+        h = hh[i+i0]
         for j in range(jnum):
-            dqq[i+i0,j] = (qq[i+1,j] - qq[i,j])/drr
+            dqq[i+i0,j] = (qq[i+1,j] - qq[i,j])/h
 
     return dqq
 
 @njit
-def drr2(qq,drr):
+def drr2(qq,drr2_):
     '''
     To calculate 2nd order accuracy derivative in r direction
    
@@ -50,8 +54,8 @@ def drr2(qq,drr):
     ----------
     qq: numpy.ndarray, float
         Quantity to be differentiated (2D)
-    drr: float
-        Grid spacing in r direction
+    drr2_: numpy.ndarray
+        ``rr[i+1]-rr[i-1]`` (``grid.drr2``, 1D)。一様格子なら 2*drr。
     Returns
     -------
         dqq: numpy.ndarray, float
@@ -62,8 +66,9 @@ def drr2(qq,drr):
     jnum = qq.shape[1]
     dqq = np.zeros_like(qq)
     for i in range(inum-2):
+        h = drr2_[i+1]
         for j in range(jnum):
-            dqq[i+1,j] = (qq[i+2,j] - qq[i,j])/drr*0.5
+            dqq[i+1,j] = (qq[i+2,j] - qq[i,j])/h
    
     return dqq
 

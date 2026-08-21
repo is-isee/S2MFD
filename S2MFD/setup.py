@@ -169,7 +169,7 @@ class Setup(NpzIO):
          self.om = cfg.omc + 0.5*(1 + erf(2*(grid.RR-cfg.rrc)/cfg.dh1))*(cfg.ome + cfg.a2*grid.cosTH**2 + cfg.a4*grid.cosTH**4 - cfg.omc)
       else:
          raise ValueError(f"unknown differential_type: {cfg.differential_type!r}")
-      self.omrr = drr2(self.om, grid.drr)
+      self.omrr = drr2(self.om, grid.drr2)
       self.omth = dth2(self.om, grid.dth)/grid.RR
 
    def build_diffusivity(self, cfg, grid):
@@ -188,7 +188,7 @@ class Setup(NpzIO):
                                    + fcz*(cfg.eta_cz - cfg.eta_bc))
       else:
          raise ValueError(f"unknown diffusive_type: {cfg.diffusive_type!r}")
-      self.etrr = drr2(self.et, grid.drr)
+      self.etrr = drr2(self.et, grid.drr2)
 
    def build_alpha(self, cfg, grid):
       """α効果 (ポロイダル場ソース) プロファイル so を構築する。
@@ -222,7 +222,7 @@ class Setup(NpzIO):
          hker = np.maximum(0.0, (grid.rr - cfg.r_h_bot)*(cfg.r_h_top - grid.rr))
          hker[:i0] = 0.0
          hker[i1:] = 0.0
-         norm = hker.sum()*grid.drr
+         norm = (hker*grid.drr).sum()
          self.alpha_kernel = hker/norm if norm > 0 else hker
       elif cfg.alpha_type == 'H10':
          self.so = cfg.so1*0.25 \

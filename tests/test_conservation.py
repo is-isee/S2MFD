@@ -109,7 +109,8 @@ def test_stratification_is_hydrostatic(setup_dynamic):
         s = Stratification(c, g)
         m = g.margin
         sl = slice(m + 1, g.ixg - m - 1)
-        dpdr = (s.pr0[m + 2:g.ixg - m] - s.pr0[m:g.ixg - m - 2])/(2*g.drr)
+        dpdr = ((s.pr0[m + 2:g.ixg - m] - s.pr0[m:g.ixg - m - 2])
+                / g.drr2[m + 1:g.ixg - m - 1])
         weight = np.abs(s.ro0[sl]*s.gr[sl]).max()
         return np.abs(dpdr + s.ro0[sl]*s.gr[sl]).max()/weight
 
@@ -153,11 +154,11 @@ def test_mass_conserved_to_machine_precision(setup_dynamic):
     for _ in range(2000):
         dq = np.zeros_like(q_ro)
         hydro.mass_rhs(dq, vrr, vth, strat.JV, strat.JVY, izeta2,
-                       grid.drr, grid.dth, m, work.ffr, work.ffth, work.cen)
+                       grid.drr, grid.wfm, grid.dth, m, work.ffr, work.ffth, work.cen)
         q1 = q_ro + dt*dq
         dq1 = np.zeros_like(q_ro)
         hydro.mass_rhs(dq1, vrr, vth, strat.JV, strat.JVY, izeta2,
-                       grid.drr, grid.dth, m, work.ffr, work.ffth, work.cen)
+                       grid.drr, grid.wfm, grid.dth, m, work.ffr, work.ffth, work.cen)
         q_ro = 0.5*(q_ro + q1 + dt*dq1)
 
     drift = abs(conserved_total(q_ro) - total0)/scale
@@ -180,7 +181,7 @@ def _angmom_step(q_om, om1, vrr, vth, bb, grid, strat, setup, cfg, dt, work,
             grid.RR, grid.RRm, grid.sinTH, grid.sinTHm,
             strat.ro0, strat.ro0m, setup.lam_rp, setup.lam_tp, cfg.om0,
             setup.nu_dif, setup.nu_dif_m, setup.nu_lam, setup.nu_lam_m,
-            grid.drr, grid.dth, m, magnetic,
+            grid.drr, grid.drrm, grid.wfm, grid.dth, m, magnetic,
             consistent, False, np.zeros_like(q), np.zeros_like(q),
             np.zeros(grid.jxg), work.ffr, work.ffth, work.cen)
         return dq
@@ -302,7 +303,7 @@ def test_perturbation_form_beats_total_form(setup_dynamic):
                 grid.sinTHm, strat.ro0, strat.ro0m,
                 setup.lam_rp, setup.lam_tp, cfg.om0,
                 setup.nu_dif, setup.nu_dif_m, setup.nu_lam, setup.nu_lam_m,
-                grid.drr, grid.dth, m, False,
+                grid.drr, grid.drrm, grid.wfm, grid.dth, m, False,
                 False, False, np.zeros((grid.ixg, grid.jxg)),
                 np.zeros((grid.ixg, grid.jxg)), np.zeros(grid.jxg),
                 work.ffr, work.ffth, work.cen)
@@ -361,10 +362,11 @@ def test_viscosity_always_dissipates_kinetic_energy(setup_dynamic, seed):
     hydro.viscous_meridional_rhs(dmr, dmt, vrr, vth, grid.rr, grid.sinTH,
                                  grid.cosTH, strat.ro0,
                                  setup.nu_dif, setup.nu_dif_m,
-                                 grid.drr, grid.dth, m, work_arr.ffr, work_arr.ffth)
+                                 grid.drr, grid.drrm, grid.drr2, grid.wfm, grid.dth, m,
+                                 work_arr.ffr, work_arr.ffth)
 
-    dkedt = (vrr[sl]*dmr[sl] + vth[sl]*dmt[sl]).sum()*grid.drr*grid.dth
-    ke = 0.5*(strat.JV[sl]*(vrr[sl]**2 + vth[sl]**2)).sum()*grid.drr*grid.dth
+    dkedt = (vrr[sl]*dmr[sl] + vth[sl]*dmt[sl]*grid.drr[sl[0], None]).sum()*grid.dth
+    ke = 0.5*(strat.JV[sl]*(vrr[sl]**2 + vth[sl]**2)*grid.drr[sl[0], None]).sum()*grid.dth
     assert dkedt < 0.0, f'粘性が運動エネルギーを増やしている: {dkedt:.3e}'
     # 桁が合っていることも見る (減衰時定数が拡散時間スケール程度)
     tau = ke/abs(dkedt)
@@ -394,7 +396,7 @@ def test_lorentz_force_matches_magnetic_pressure_scale(setup_dynamic):
     hydro.momentum_rhs(dmr, dmt, z, z, z, z, z, brr, bth, bph,
                        strat.JV, strat.JVY, strat.JM, strat.RSIN, grid.RR,
                        grid.sinTH, grid.cosTH, strat.ro0, strat.gr,
-                       cfg.om0, grid.drr, grid.dth, m, True,
+                       cfg.om0, grid.drr, grid.drr2, grid.wfm, grid.dth, m, True,
                        work_arr.ffr, work_arr.ffth, work_arr.cen)
 
     force = np.abs(dmr[sl]/strat.JM[sl]).max()
@@ -422,12 +424,13 @@ def test_momentum_rhs_is_finite(setup_dynamic):
     hydro.momentum_rhs(dmr, dmt, vrr, vth, om1, ro1, pr1, z, z, z,
                        strat.JV, strat.JVY, strat.JM, strat.RSIN, grid.RR,
                        grid.sinTH, grid.cosTH, strat.ro0, strat.gr,
-                       cfg.om0, grid.drr, grid.dth, m, False,
+                       cfg.om0, grid.drr, grid.drr2, grid.wfm, grid.dth, m, False,
                        work_arr.ffr, work_arr.ffth, work_arr.cen)
     hydro.viscous_meridional_rhs(dmr, dmt, vrr, vth, grid.rr, grid.sinTH,
                                  grid.cosTH, strat.ro0,
                                  setup.nu_dif, setup.nu_dif_m,
-                                 grid.drr, grid.dth, m, work_arr.ffr, work_arr.ffth)
+                                 grid.drr, grid.drrm, grid.drr2, grid.wfm, grid.dth, m,
+                                 work_arr.ffr, work_arr.ffth)
     assert np.all(np.isfinite(dmr)) and np.all(np.isfinite(dmt))
 
 
@@ -466,7 +469,7 @@ def test_sld_conserves_exactly(setup_dynamic):
     ffth = np.zeros_like(om1)
     dq = np.zeros_like(om1)
     artdif.sld_diffuse(dq, om1, jac_r, jac_th, csp, csp, 2.0, 2.0,
-                       grid.drr, grid.dth, m, ffr, ffth)
+                       grid.drr, grid.drrm, grid.dth, m, ffr, ffth)
 
     total = cons.cell_integral(dq, grid.drr, grid.dth, m)
     scale = cons.cell_integral(np.abs(dq), grid.drr, grid.dth, m)
@@ -491,10 +494,10 @@ def test_sld_always_dissipates(setup_dynamic, seed):
     ffth = np.zeros_like(om1)
     dq = np.zeros_like(om1)
     artdif.sld_diffuse(dq, om1, jac_r, jac_th, csp, csp, 2.0, 2.0,
-                       grid.drr, grid.dth, m, ffr, ffth)
+                       grid.drr, grid.drrm, grid.dth, m, ffr, ffth)
 
     sl = (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
-    dke = ((cfg.om0 + om1[sl])*dq[sl]).sum()*grid.drr*grid.dth
+    dke = ((cfg.om0 + om1[sl])*dq[sl]*grid.drr[sl[0], None]).sum()*grid.dth
     assert dke < 0.0, f'人工拡散がエネルギーを注入している: {dke:.3e}'
 
 
@@ -517,7 +520,7 @@ def test_sld_vanishes_exactly_for_linear_fields(setup_dynamic):
     # r 方向に完全に線形な場
     lin = np.ascontiguousarray(np.arange(grid.ixg, dtype=float)[:, None]
                                * np.ones((1, grid.jxg)))
-    artdif.sld_flux_r(lin, jac, csp, 2.0, 2.0, m, out)
+    artdif.sld_flux_r(lin, jac, csp, 2.0, 2.0, grid.drr, grid.drrm, m, out)
     assert np.abs(out[m + 1:grid.ixg - m, :]).max() == 0.0, (
         '線形場でフラックスが立っている')
 
@@ -525,7 +528,7 @@ def test_sld_vanishes_exactly_for_linear_fields(setup_dynamic):
     ii = np.arange(grid.ixg)[:, None]
     zig = np.ascontiguousarray(((-1.0)**ii)*np.ones((1, grid.jxg)))
     out[:] = 0.0
-    artdif.sld_flux_r(zig, jac, csp, 2.0, 2.0, m, out)
+    artdif.sld_flux_r(zig, jac, csp, 2.0, 2.0, grid.drr, grid.drrm, m, out)
     i = grid.ixg//2
     expected = -0.5*1.0e5*(zig[i, 0] - zig[i - 1, 0])
     assert abs(out[i, 0] - expected) < 1e-8*abs(expected), (
@@ -545,7 +548,8 @@ def test_sld_is_negligible_for_resolved_fields(setup_dynamic):
     def response(field):
         dq = np.zeros((grid.ixg, grid.jxg))
         artdif.sld_diffuse(dq, np.ascontiguousarray(field), jac_r, jac_th,
-                           csp, csp, 2.0, 2.0, grid.drr, grid.dth, m, ffr, ffth)
+                           csp, csp, 2.0, 2.0, grid.drr, grid.drrm, grid.dth,
+                           m, ffr, ffth)
         return cons.cell_integral(np.abs(dq), grid.drr, grid.dth, m)
 
     smooth = -0.05*cfg.om0*grid.cosTH**2*np.sin(
@@ -638,9 +642,10 @@ def test_flux_divergence_telescopes_exactly():
     cons.zero_boundary_faces_th(ffth, m)
 
     dq = np.zeros((ixg, jxg))
-    cons.add_flux_divergence(dq, ffr, ffth, 0.25, 0.125, m)
-    total = cons.cell_integral(dq, 0.25, 0.125, m)
-    scale = cons.cell_integral(np.abs(dq), 0.25, 0.125, m)
+    drr = np.full(ixg, 0.25)
+    cons.add_flux_divergence(dq, ffr, ffth, drr, 0.125, m)
+    total = cons.cell_integral(dq, drr, 0.125, m)
+    scale = cons.cell_integral(np.abs(dq), drr, 0.125, m)
     assert abs(total)/scale < 1e-15
 
 
@@ -831,7 +836,7 @@ def test_reynolds_stress_is_not_double_counted():
         grid.RR, grid.RRm, grid.sinTH, grid.sinTHm, strat.ro0, strat.ro0m,
         setup.lam_rp, setup.lam_tp, cfg.om0,
         setup.nu_dif, setup.nu_dif_m, setup.nu_lam, setup.nu_lam_m,
-        grid.drr, grid.dth, m, False, False, False,
+        grid.drr, grid.drrm, grid.wfm, grid.dth, m, False, False, False,
         dq_stress, np.zeros(shape), np.zeros(grid.jxg),
         work.ffr, work.ffth, work.cen)
 
@@ -875,7 +880,7 @@ def test_dynamic_mode_couples_to_existing_induction_kernel():
 
     for _ in range(50):
         bph, aph = time_marching(bph, aph, dt, cfg, grid, setup)
-        pm = poloidal_mag(aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+        pm = poloidal_mag(aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
         sol.set_magnetic_field(pm[0], pm[1], bph)
         sol.step(dt)
         sol.sync_to_induction()
@@ -891,7 +896,7 @@ def test_r06_alpha_kernel_is_normalised():
     cfg = make_cfg('parameters/rempel06.py', ix=64, jx=32)
     grid = make_grid(cfg)
     setup = S2MFD.Setup(cfg, grid)
-    integral = setup.alpha_kernel.sum()*grid.drr
+    integral = (setup.alpha_kernel*grid.drr).sum()
     assert abs(integral - 1.0) < 1e-10, f'規格化されていない: {integral}'
     # 0.71 - 0.76 RSUN の外ではゼロ
     outside = (grid.rr < cfg.r_h_bot) | (grid.rr > cfg.r_h_top)
@@ -955,7 +960,7 @@ def test_sld_meridional_has_spherical_geometry_terms(setup_dynamic):
     dmr = np.zeros(shape)
     dmt = np.zeros(shape)
     artdif.sld_diffuse_meridional(dmr, dmt, vrr, vth, jac_r, jac_th, csp, csp,
-                                  2.0, 2.0, grid.drr, grid.dth, m, *ff)
+                                  2.0, 2.0, grid.drr, grid.drrm, grid.dth, m, *ff)
 
     # 幾何項なしの参照 (各成分を独立にスカラー拡散)
     r_mr = np.zeros(shape)
@@ -963,9 +968,9 @@ def test_sld_meridional_has_spherical_geometry_terms(setup_dynamic):
     g1 = [np.zeros(shape) for _ in range(2)]
     g2 = [np.zeros(shape) for _ in range(2)]
     artdif.sld_diffuse(r_mr, vrr, jac_r, jac_th, csp, csp, 2.0, 2.0,
-                       grid.drr, grid.dth, m, *g1)
+                       grid.drr, grid.drrm, grid.dth, m, *g1)
     artdif.sld_diffuse(r_mt, vth, jac_r, jac_th, csp, csp, 2.0, 2.0,
-                       grid.drr, grid.dth, m, *g2)
+                       grid.drr, grid.drrm, grid.dth, m, *g2)
 
     sl = (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
     # 差が θ 面フラックスのセル中心平均に一致すること
@@ -1080,7 +1085,8 @@ def test_magnetic_buoyancy_switch_removes_radial_magnetic_pressure(setup_dynamic
         hydro.momentum_rhs(dmr, dmt, z, z, z, z, z, brr, bth, bph,
                            strat.JV, strat.JVY, strat.JM, strat.RSIN,
                            grid.RR, grid.sinTH, grid.cosTH, strat.ro0,
-                           strat.gr, cfg.om0, grid.drr, grid.dth, m,
+                           strat.gr, cfg.om0, grid.drr, grid.drr2, grid.wfm,
+                           grid.dth, m,
                            True, w.ffr, w.ffth, w.cen, mb)
         out[key] = (dmr, dmt)
 
@@ -1091,9 +1097,122 @@ def test_magnetic_buoyancy_switch_removes_radial_magnetic_pressure(setup_dynamic
     # r 成分の差は grad_r (B^2/8pi) の中心差分そのもの
     bsq = brr**2 + bth**2 + bph**2
     dpmag = np.zeros(shape)
-    dpmag[1:-1, :] = 0.5*(bsq[2:, :] - bsq[:-2, :])/grid.drr/(8.0*np.pi)
+    dpmag[1:-1, :] = ((bsq[2:, :] - bsq[:-2, :])
+                      / grid.drr2[1:-1, None]/(8.0*np.pi))
     expect = -strat.JM[sl]*dpmag[sl]
     diff = out['on'][0][sl] - out['off'][0][sl]
     assert np.allclose(diff, expect, rtol=1e-12, atol=1e-12*np.abs(expect).max())
     # 実際に無視できない大きさであること (テストが空回りしていない保証)
     assert np.abs(diff).max() > 0.1*np.abs(out['on'][0][sl]).max()
+
+
+# ===========================================================================
+# 非一様格子 (動径方向の伸縮)
+# ===========================================================================
+def _stretched(cfg, stretch):
+    return S2MFD.Grid(
+        ix=cfg.ix, jx=cfg.jx, margin=cfg.margin,
+        rrmin=cfg.rrmin, rrmax=cfg.rrmax,
+        thmin=cfg.thmin, thmax=cfg.thmax,
+        stretch=stretch, stretch_center=0.715*cfg.RSUN)
+
+
+def test_uniform_grid_is_bit_identical_when_stretch_is_zero():
+    """``stretch=0`` は従来の一様格子とビット単位で一致すること.
+
+    非一様格子の実装は既存の全結果を動かしてはいけない。丸めの最終桁が
+    動くだけでも回帰テストのゴールデン値が壊れるので、``stretch == 0``
+    のときは意図的に旧式 (``rrmin + drr*(i + 0.5 - margin)``) を使う分岐を
+    残してある。この分岐を「整理」して消すとここで落ちる。
+    """
+    cfg = make_cfg('parameters/rempel06.py', ix=48, jx=32)
+    g = _stretched(cfg, 0.0)
+    dxi = (cfg.rrmax - cfg.rrmin)/cfg.ix
+    rr_old = cfg.rrmin + dxi*(0.5 - cfg.margin) + dxi*np.arange(g.ixg)
+    assert np.array_equal(g.rr, rr_old)
+    assert len(set(g.drr.tolist())) == 1
+    assert np.array_equal(g.drrm, g.drr)
+    assert np.array_equal(g.drr2, 2.0*g.drr)
+    assert np.all(g.wfm == 0.5)
+
+
+def test_stretched_grid_geometry_is_consistent():
+    """伸縮格子でも面・セル幅・補間重みが整合すること."""
+    cfg = make_cfg('parameters/rempel06.py', ix=64, jx=32)
+    g = _stretched(cfg, 2.5)
+    m = cfg.margin
+    # 物理境界に面がぴったり乗る
+    assert abs(g.rrm[m] - cfg.rrmin) < 1e-6
+    assert abs(g.rrm[g.ixg - m] - cfg.rrmax) < 1e-6
+    # セル幅の総和が領域幅
+    assert abs(g.drr[m:g.ixg - m].sum() - (cfg.rrmax - cfg.rrmin)) < 1e-3
+    # セル中心は面の中点
+    assert np.allclose(g.rr, 0.5*(g.rrm[:-1] + g.rrm[1:]))
+    # 補間重みは面の位置を厳密に当てる (線形関数で誤差ゼロ)
+    lin = 3.0*g.rr + 1.0
+    face = g.wfm[1:]*lin[:-1] + (1.0 - g.wfm[1:])*lin[1:]
+    assert np.allclose(face, 3.0*g.rrm[1:g.ixg] + 1.0, rtol=1e-14)
+    # 実際に集中していること
+    i_tacho = np.argmin(np.abs(g.rr - 0.715*cfg.RSUN))
+    assert g.drr[i_tacho] < 0.6*g.drr[g.ixg - m - 1]
+
+
+@pytest.mark.parametrize('stretch', [0.0, 2.5])
+def test_conservation_holds_on_stretched_grid(stretch):
+    """伸縮格子でも角運動量・質量が machine precision で保存すること.
+
+    保存はフラックスの telescoping で決まるので、面値をどう補間しても
+    (等重みでも距離重みでも) 成り立つ。**ただし体積積分の重みが
+    ``drr[i]`` になっていることが必要**で、``cell_integral`` を
+    「一様格子だから」とスカラー化すると即座に壊れる。
+    """
+    cfg = make_cfg('parameters/rempel06.py', ix=48, jx=48, dynamics='hydro',
+                   angmom_bottom_bc='stress_free')
+    grid = _stretched(cfg, stretch)
+    strat = Stratification(cfg, grid)
+    setup = S2MFD.Setup(cfg, grid)
+    sol = dynamic.DynamicSolver(cfg, grid, strat, setup)
+    m = grid.margin
+    sol.om1[:] = 1.0e-3*cfg.om0*np.sin(2*grid.TH)*np.exp(
+        -((grid.RR - 0.8*cfg.RSUN)/(0.1*cfg.RSUN))**2)
+    sol.set_primitive_from_conserved(sol.conserved())
+    z2 = strat.zeta**2
+
+    def angmom():
+        return cons.cell_integral(strat.JL*sol.om1, grid.drr, grid.dth, m)
+
+    def mass():
+        return cons.cell_integral(strat.JM*sol.ro1*z2[:, None],
+                                  grid.drr, grid.dth, m)
+
+    l0, m0 = angmom(), mass()
+    sl = cons.cell_integral(np.abs(strat.JL*cfg.om0), grid.drr, grid.dth, m)
+    sm = cons.cell_integral(np.abs(strat.JM*strat.ro0[:, None]),
+                            grid.drr, grid.dth, m)
+    dt = sol.cfl_dt()
+    for _ in range(300):
+        sol.step(dt)
+    assert np.all(np.isfinite(sol.om1))
+    assert abs(angmom() - l0)/sl < 1e-15
+    assert abs(mass() - m0)/sm < 1e-15
+
+
+def test_sld_stays_off_for_linear_field_on_stretched_grid():
+    """伸縮格子でも線形な場に人工拡散が乗らないこと.
+
+    生の差分を minmod に渡すと、線形な場でも**セル幅の違いだけで**
+    リミタが発動して滑らかな解を削ってしまう。単位長さあたりの傾きで
+    再構成しているのはこのため。
+    """
+    cfg = make_cfg('parameters/rempel06.py', ix=64, jx=16)
+    grid = _stretched(cfg, 2.5)
+    m = grid.margin
+    shape = (grid.ixg, grid.jxg)
+    csp = np.full(shape, 1.0e5)
+    jac = np.ones(shape)
+    out = np.zeros(shape)
+    lin = np.ascontiguousarray(2.0*grid.RR/cfg.RSUN + 1.0)
+    artdif.sld_flux_r(lin, jac, csp, 2.0, 2.0, grid.drr, grid.drrm, m, out)
+    amp = np.abs(lin).max()
+    assert np.abs(out[m + 1:grid.ixg - m, :]).max() < 1e-12*amp*1.0e5, (
+        '伸縮格子で線形場に人工拡散が乗っている')

@@ -28,14 +28,14 @@ def _linear_th(nx=5, ny=8, a=2.0, b=1.0, d=0.1):
 class TestDrr1:
     def test_up_is_backward_difference(self):
         qq, d = _linear_r()
-        dqq = drr1(qq, d, 'up')
+        dqq = drr1(qq, np.full(qq.shape[0], d), 'up')
         # i=0 は 0 のまま、i>=1 に (qq[i]-qq[i-1])/d
         assert np.allclose(dqq[0, :], 0.0)
         assert np.allclose(dqq[1:, :], 2.0)
 
     def test_dw_is_forward_difference(self):
         qq, d = _linear_r()
-        dqq = drr1(qq, d, 'dw')
+        dqq = drr1(qq, np.full(qq.shape[0], d), 'dw')
         # i=N-1 は 0 のまま、i<=N-2 に (qq[i+1]-qq[i])/d
         assert np.allclose(dqq[-1, :], 0.0)
         assert np.allclose(dqq[:-1, :], 2.0)
@@ -45,7 +45,8 @@ class TestDrr1:
         nx, d = 32, 0.05
         r = np.arange(nx) * d
         qq = np.sin(r)[:, None] * np.ones((nx, 3))
-        lap = drr1(drr1(qq, d, 'up'), d, 'dw')
+        hh = np.full(nx, d)
+        lap = drr1(drr1(qq, hh, 'up'), hh, 'dw')
         expected = (qq[2:, :] - 2 * qq[1:-1, :] + qq[:-2, :]) / d**2
         assert np.allclose(lap[1:-1, :], expected)
 
@@ -55,7 +56,7 @@ class TestDrr2:
         nx, d = 16, 0.1
         r = np.arange(nx) * d
         qq = (3.0 * r**2 + 2.0 * r + 1.0)[:, None] * np.ones((nx, 4))
-        dqq = drr2(qq, d)
+        dqq = drr2(qq, np.full(nx, 2.0*d))
         expected = (6.0 * r + 2.0)[1:-1]
         assert np.allclose(dqq[1:-1, :], expected[:, None])
         # 端は 0 のまま
@@ -68,7 +69,7 @@ class TestDrr2:
             d = 1.0 / nx
             r = np.arange(nx) * d
             qq = np.sin(2 * np.pi * r)[:, None] * np.ones((nx, 2))
-            dqq = drr2(qq, d)
+            dqq = drr2(qq, np.full(nx, 2.0*d))
             expected = 2 * np.pi * np.cos(2 * np.pi * r)
             errors.append(np.max(np.abs(dqq[1:-1, 0] - expected[1:-1])))
         # 格子を半分にすると誤差 ~1/4

@@ -171,18 +171,25 @@ def _sld_face_flux(q_dwn, q_upp, dq_dwn, dq_upp, fh, cc, jac):
 
 
 @kernel()
-def sld_flux_r(uu, jac_face, cspeed, fh, ep, margin, out):
-    """r 方向の SLD フラックス. 面 ``i`` はセル ``i-1`` と ``i`` の境界."""
+def sld_flux_r(uu, jac_face, cspeed, fh, ep, drr, drrm, margin, out):
+    """r 方向の SLD フラックス. 面 ``i`` はセル ``i-1`` と ``i`` の境界.
+
+    非一様格子では**単位長さあたりの傾き**で再構成する。生の差分のままだと
+    線形な場でもセル幅の違いだけで minmod がリミタを発動し、**滑らかな場に
+    人工拡散が乗ってしまう**。一様格子では ``drr == drrm`` なので
+    従来の式と代数的に同一。
+    """
     ixg, jxg = uu.shape
     for j in prange(jxg):
         for i in range(margin, ixg - margin + 1):
             # セル i-1 と i の再構成傾き
             im2 = i - 2 if i - 2 >= 0 else i - 1
             ip1 = i + 1 if i + 1 < ixg else i
-            dq_dwn = _minmod3(uu[i - 1, j] - uu[im2, j],
-                              uu[i, j] - uu[i - 1, j], ep)
-            dq_upp = _minmod3(uu[i, j] - uu[i - 1, j],
-                              uu[ip1, j] - uu[i, j], ep)
+            gm2 = (uu[i - 1, j] - uu[im2, j])/drrm[i - 1]
+            gm1 = (uu[i, j] - uu[i - 1, j])/drrm[i]
+            gp1 = (uu[ip1, j] - uu[i, j])/drrm[ip1]
+            dq_dwn = drr[i - 1]*_minmod3(gm2, gm1, ep)
+            dq_upp = drr[i]*_minmod3(gm1, gp1, ep)
             out[i, j] = _sld_face_flux(uu[i - 1, j], uu[i, j], dq_dwn, dq_upp,
                                        fh, cspeed[i, j], jac_face[i, j])
 
@@ -205,14 +212,14 @@ def sld_flux_th(uu, jac_face, cspeed, fh, ep, margin, out):
 
 @njit(fastmath=False)
 def sld_diffuse(dqq, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
-                drr, dth, margin, ffr, ffth):
+                drr, drrm, dth, margin, ffr, ffth):
     """プリミティブ変数 ``uu`` に人工拡散を掛け, 保存量の時間微分に加算する.
 
     境界面のフラックスはリテラル 0.0 に落とすので, 人工拡散を通じて
     保存量が境界から出入りすることはない (ユーザー要求
     「境界から保存量が出ていかないように。人工粘性も物理も」).
     """
-    sld_flux_r(uu, jac_r, csp_r, fh, ep, margin, ffr)
+    sld_flux_r(uu, jac_r, csp_r, fh, ep, drr, drrm, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
     sld_flux_th(uu, jac_th, csp_th, fh, ep, margin, ffth)
     zero_boundary_faces_th(ffth, margin)
@@ -221,7 +228,7 @@ def sld_diffuse(dqq, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
 
 @njit(fastmath=False)
 def sld_diffuse_work(dqq, heat, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
-                     drr, dth, margin, ffr, ffth):
+                     drr, drrm, dth, margin, ffr, ffth):
     """:func:`sld_diffuse` に加えて, 局所的な散逸率を ``heat`` に積む.
 
     角運動量に掛けるときはこちらを使う. :math:`\\Omega_0` は
@@ -229,7 +236,7 @@ def sld_diffuse_work(dqq, heat, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
     :math:`\\Omega_0/\\Omega_1` 倍に化ける問題を避けられる
     (:func:`S2MFD.physics.conservative.add_flux_work` の説明を参照).
     """
-    sld_flux_r(uu, jac_r, csp_r, fh, ep, margin, ffr)
+    sld_flux_r(uu, jac_r, csp_r, fh, ep, drr, drrm, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
     sld_flux_th(uu, jac_th, csp_th, fh, ep, margin, ffth)
     zero_boundary_faces_th(ffth, margin)
@@ -239,14 +246,14 @@ def sld_diffuse_work(dqq, heat, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
 
 @njit(fastmath=False)
 def sld_diffuse_scaled(dqq, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
-                       drr, dth, margin, scale, ffr, ffth):
+                       drr, drrm, dth, margin, scale, ffr, ffth):
     """発散に動径依存の係数が掛かる版 (密度に使う).
 
     音速抑制法では保存量が :math:`\\int\\xi_s^2\\rho_1\\,dV` なので,
     連続の式と同じく :math:`\\xi_s^{-2}` を発散全体に掛けないと質量保存が
     壊れる (:math:`\\xi_s` が動径に依存する場合).
     """
-    sld_flux_r(uu, jac_r, csp_r, fh, ep, margin, ffr)
+    sld_flux_r(uu, jac_r, csp_r, fh, ep, drr, drrm, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
     sld_flux_th(uu, jac_th, csp_th, fh, ep, margin, ffth)
     zero_boundary_faces_th(ffth, margin)
@@ -255,21 +262,21 @@ def sld_diffuse_scaled(dqq, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
 
 @kernel()
 def sld_diffuse_primitive(duu, uu, jac_r, jac_th, ijac, csp_r, csp_th, fh, ep,
-                          drr, dth, margin, ffr, ffth):
+                          drr, drrm, dth, margin, ffr, ffth):
     """保存形ではなく直接解いているプリミティブ変数に人工拡散を掛ける.
 
     エントロピーのように保存量として持っていない変数に使う.
     フラックスは保存形と同じヤコビアン付きで作り, 最後にセル中心の
     ヤコビアンで割って :math:`\\partial u/\\partial t` に変換する.
     """
-    sld_flux_r(uu, jac_r, csp_r, fh, ep, margin, ffr)
+    sld_flux_r(uu, jac_r, csp_r, fh, ep, drr, drrm, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
     sld_flux_th(uu, jac_th, csp_th, fh, ep, margin, ffth)
     zero_boundary_faces_th(ffth, margin)
     ixg, jxg = duu.shape
-    idrr = 1.0/drr
     idth = 1.0/dth
     for i in prange(margin, ixg - margin):
+        idrr = 1.0/drr[i]
         for j in range(margin, jxg - margin):
             duu[i, j] -= ((ffr[i + 1, j] - ffr[i, j])*idrr
                           + (ffth[i, j + 1] - ffth[i, j])*idth)*ijac[i, j]
@@ -286,7 +293,7 @@ def sld_diffusivity_max(csp_r, csp_th, drr, dth, rr, margin):
     ixg, jxg = csp_r.shape
     kmax = 0.0
     for i in range(margin, ixg - margin):
-        dl = drr if drr < rr[i]*dth else rr[i]*dth
+        dl = drr[i] if drr[i] < rr[i]*dth else rr[i]*dth
         for j in range(margin, jxg - margin):
             c = csp_r[i, j] if csp_r[i, j] > csp_th[i, j] else csp_th[i, j]
             k = 0.5*c*dl
@@ -297,7 +304,7 @@ def sld_diffusivity_max(csp_r, csp_th, drr, dth, rr, margin):
 
 @kernel()
 def sld_diffuse_meridional(dq_mr, dq_mt, vrr, vth, jac_r, jac_th,
-                           csp_r, csp_th, fh, ep, drr, dth, margin,
+                           csp_r, csp_th, fh, ep, drr, drrm, dth, margin,
                            ffr1, ffth1, ffr2, ffth2):
     """子午面速度 :math:`(v_r, v_\\theta)` に人工拡散を掛ける (幾何項つき).
 
@@ -327,14 +334,14 @@ def sld_diffuse_meridional(dq_mr, dq_mt, vrr, vth, jac_r, jac_th,
     そもそも不要.
     """
     # --- v_r ---------------------------------------------------------------
-    sld_flux_r(vrr, jac_r, csp_r, fh, ep, margin, ffr1)
+    sld_flux_r(vrr, jac_r, csp_r, fh, ep, drr, drrm, margin, ffr1)
     zero_boundary_faces_r(ffr1, margin)
     sld_flux_th(vrr, jac_th, csp_th, fh, ep, margin, ffth1)
     zero_boundary_faces_th(ffth1, margin)
     add_flux_divergence(dq_mr, ffr1, ffth1, drr, dth, margin)
 
     # --- v_theta -----------------------------------------------------------
-    sld_flux_r(vth, jac_r, csp_r, fh, ep, margin, ffr2)
+    sld_flux_r(vth, jac_r, csp_r, fh, ep, drr, drrm, margin, ffr2)
     zero_boundary_faces_r(ffr2, margin)
     sld_flux_th(vth, jac_th, csp_th, fh, ep, margin, ffth2)
     zero_boundary_faces_th(ffth2, margin)
@@ -418,8 +425,8 @@ def hyper_diffuse_r_primitive(duu, uu, jac_r, ijac, vadv_r, h4, drr, margin, ffr
     hyper_flux_r(uu, jac_r, vadv_r, h4, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
     ixg, jxg = duu.shape
-    idrr = 1.0/drr
     for i in prange(margin, ixg - margin):
+        idrr = 1.0/drr[i]
         for j in range(margin, jxg - margin):
             duu[i, j] -= (ffr[i + 1, j] - ffr[i, j])*idrr*ijac[i, j]
 
@@ -442,7 +449,8 @@ def _mean_profile(uu, jac, margin, wsum, prof):
 
 
 @njit(fastmath=False)
-def mean_profile_diffuse_r(dqq, uu, jac, kappa, drr, margin, wsum, prof, dq1):
+def mean_profile_diffuse_r(dqq, uu, jac, kappa, drr, drrm, margin,
+                           wsum, prof, dq1):
     """**theta 方向に平均した動径プロファイルにだけ**拡散をかける.
 
     なぜこれが要るか
@@ -481,7 +489,6 @@ def mean_profile_diffuse_r(dqq, uu, jac, kappa, drr, margin, wsum, prof, dq1):
     """
     ixg, jxg = dqq.shape
     _mean_profile(uu, jac, margin, wsum, prof)
-    idrr = 1.0/drr
     # 面フラックス (境界面はゼロのまま) -> セルの変化率
     for i in range(margin, ixg - margin):
         dq1[i] = 0.0
@@ -489,10 +496,12 @@ def mean_profile_diffuse_r(dqq, uu, jac, kappa, drr, margin, wsum, prof, dq1):
         fl = 0.0
         fu = 0.0
         if i > margin:
-            fl = -kappa*0.5*(wsum[i] + wsum[i - 1])*(prof[i] - prof[i - 1])*idrr
+            fl = (-kappa*0.5*(wsum[i] + wsum[i - 1])
+                  * (prof[i] - prof[i - 1])/drrm[i])
         if i < ixg - margin - 1:
-            fu = -kappa*0.5*(wsum[i + 1] + wsum[i])*(prof[i + 1] - prof[i])*idrr
-        dq1[i] = -(fu - fl)*idrr
+            fu = (-kappa*0.5*(wsum[i + 1] + wsum[i])
+                  * (prof[i + 1] - prof[i])/drrm[i + 1])
+        dq1[i] = -(fu - fl)/drr[i]
     # 質量重みで各緯度へ配分 (プリミティブ量では theta によらず一定の変化)
     for i in range(margin, ixg - margin):
         w = wsum[i]
@@ -504,20 +513,22 @@ def mean_profile_diffuse_r(dqq, uu, jac, kappa, drr, margin, wsum, prof, dq1):
 
 
 @njit(fastmath=False)
-def mean_profile_diffuse_r_primitive(duu, uu, jac, ijac, kappa, drr, margin,
+def mean_profile_diffuse_r_primitive(duu, uu, jac, ijac, kappa, drr, drrm,
+                                     margin,
                                      wsum, prof, dq1):
     """保存形で持っていないプリミティブ変数版 (エントロピーなど)."""
     ixg, jxg = duu.shape
     _mean_profile(uu, jac, margin, wsum, prof)
-    idrr = 1.0/drr
     for i in range(margin, ixg - margin):
         fl = 0.0
         fu = 0.0
         if i > margin:
-            fl = -kappa*0.5*(wsum[i] + wsum[i - 1])*(prof[i] - prof[i - 1])*idrr
+            fl = (-kappa*0.5*(wsum[i] + wsum[i - 1])
+                  * (prof[i] - prof[i - 1])/drrm[i])
         if i < ixg - margin - 1:
-            fu = -kappa*0.5*(wsum[i + 1] + wsum[i])*(prof[i + 1] - prof[i])*idrr
-        dq1[i] = -(fu - fl)*idrr
+            fu = (-kappa*0.5*(wsum[i + 1] + wsum[i])
+                  * (prof[i + 1] - prof[i])/drrm[i + 1])
+        dq1[i] = -(fu - fl)/drr[i]
     for i in range(margin, ixg - margin):
         w = wsum[i]
         if w == 0.0:

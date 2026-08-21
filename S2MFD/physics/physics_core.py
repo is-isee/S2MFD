@@ -4,7 +4,7 @@ from S2MFD.tools import drr1, drr2, dth1, dth2
 from numba import njit
 
 @njit
-def poloidal_mag(Aph, RR, sinTH, drr, dth):
+def poloidal_mag(Aph, RR, sinTH, drr2_, dth):
    """
    Calculate the poloidal magnetic field.
 
@@ -28,12 +28,12 @@ def poloidal_mag(Aph, RR, sinTH, drr, dth):
          
    """
    Brr = + dth2(sinTH*Aph,dth)/RR/sinTH
-   Bth = - drr2(   RR*Aph,drr)/RR
+   Bth = - drr2(   RR*Aph,drr2_)/RR
    
    return Brr, Bth
 
 @njit
-def advection(Bph, Aph, RR, sinTH, urr,uth,drr,dth):
+def advection(Bph, Aph, RR, sinTH, urr,uth,drr2_,dth):
    """
    Calculate the advection terms of the magnetic field.
 
@@ -67,16 +67,16 @@ def advection(Bph, Aph, RR, sinTH, urr,uth,drr,dth):
    # Bph_adrr = - drr2(Bph/RR   ,drr)*urr*RR #  動径方向の移流(Bph)
    # Bph_adth = - dth2(Bph/sinTH,dth)*uth*sinTH/RR #  緯度方向の移流(Bph)
 
-   Bph_adrr = - drr2(Bph*urr*RR,drr)/RR #  動径方向の移流(Bph)
+   Bph_adrr = - drr2(Bph*urr*RR,drr2_)/RR #  動径方向の移流(Bph)
    Bph_adth = - dth2(Bph*uth   ,dth)/RR #  緯度方向の移流(Bph)
    
-   Aph_adrr = - drr2(Aph*RR   ,drr)*urr/RR       # 動径方向の移流(Aph)
+   Aph_adrr = - drr2(Aph*RR   ,drr2_)*urr/RR       # 動径方向の移流(Aph)
    Aph_adth = - dth2(Aph*sinTH,dth)*uth/sinTH/RR # 緯度方向の移流(Aph)
 
    return Bph_adrr, Bph_adth, Aph_adrr, Aph_adth
 
 @njit
-def diffusion(Bph, Aph, RR, sinTH, RRm, sinTHm, drr, dth, et, etrr):
+def diffusion(Bph, Aph, RR, sinTH, RRm, sinTHm, drr, drrm, drr2_, dth, et, etrr):
    """
    Calculate the diffusion terms of the magnetic field.
 
@@ -111,9 +111,9 @@ def diffusion(Bph, Aph, RR, sinTH, RRm, sinTHm, drr, dth, et, etrr):
       
    """   
    # magnetic derivative
-   Bphrr = drr1(Bph,drr,'up')
+   Bphrr = drr1(Bph,drrm,'up')
    Bphth = dth1(Bph,dth,'up')
-   Aphrr = drr1(Aph,drr,'up')
+   Aphrr = drr1(Aph,drrm,'up')
    Aphth = dth1(Aph,dth,'up')
    
    Bph_dfrr = + et*drr1(RRm**2*Bphrr,drr,'dw')/RR**2
@@ -125,7 +125,7 @@ def diffusion(Bph, Aph, RR, sinTH, RRm, sinTHm, drr, dth, et, etrr):
    Aph_dfex = - et*Aph/RR**2/sinTH**2
    
    # diffusivity gradient influence
-   Bph_dfrrg = etrr*drr2(RR*Bph,drr)/RR
+   Bph_dfrrg = etrr*drr2(RR*Bph,drr2_)/RR
    
    return Bph_dfrr, Bph_dfth, Bph_dfex, Bph_dfrrg, Aph_dfrr, Aph_dfth, Aph_dfex
 
@@ -216,17 +216,22 @@ def _make_time_marching_kernel(fast, nonlocal_alpha, separable=False):
    """
 
    @njit(fastmath=fast, boundscheck=False)
-   def kernel(Bph, Aph, dt, rr, sth, rrm, sthm, drr, dth,
+   def kernel(Bph, Aph, dt, rr, sth, rrm, sthm, drr, drrm, drr2_, dth,
               urr, uth, et, etrr, omrr, omth, so, ibase, alpha_code,
               inv_rr, inv_rr2, inv_sth, inv_sth2, alpha_fac, Bphm, Aphm,
               urr_u, urr_v, uth_u, uth_v, et_u, et_v, etrr_u, etrr_v,
               omth_u, omth_v, so_u, so_v):
       ixg, jxg = Bph.shape
-      idrr = 1.0/drr
       idth = 1.0/dth
 
       # --- 内部セル: 分岐なし・除算なし (fast=True 時) ---
       for i in range(1, ixg - 1):
+         # 非一様格子: 中心差分は 2 セル幅、面勾配はセル中心間距離、
+         # 発散はセル幅で割る
+         idrr2 = 1.0/drr2_[i]
+         idrrm_i = 1.0/drrm[i]
+         idrrm_ip = 1.0/drrm[i + 1]
+         idrr = 1.0/drr[i]
          rr_i = rr[i]
          rr_im = rr[i - 1]
          rr_ip = rr[i + 1]
@@ -288,18 +293,18 @@ def _make_time_marching_kernel(fast, nonlocal_alpha, separable=False):
 
             if fast:
                Brr = (sth_jp*aph_jp - sth_jm*aph_jm)*idth*0.5*irr*isth
-               Bth = -((rr_ip*aph_ip - rr_im*aph_im)*idrr*0.5*irr)
+               Bth = -((rr_ip*aph_ip - rr_im*aph_im)*idrr2*irr)
                Bph_adrr = -((bph_ip*urr_ip_c*rr_ip
-                             - bph_im*urr_im_c*rr_im)*idrr*0.5*irr)
+                             - bph_im*urr_im_c*rr_im)*idrr2*irr)
                Bph_adth = -((bph_jp*uth_jp_c
                              - bph_jm*uth_jm_c)*idth*0.5*irr)
-               Aph_adrr = -((aph_ip*rr_ip - aph_im*rr_im)*idrr*0.5*urr_c*irr)
+               Aph_adrr = -((aph_ip*rr_ip - aph_im*rr_im)*idrr2*urr_c*irr)
                Aph_adth = -((aph_jp*sth_jp - aph_jm*sth_jm)
                             * idth*0.5*uth_c*isth*irr)
-               div_b_rr = (rrm_ip2*((bph_ip - bph_c)*idrr)
-                           - rrm_i2*((bph_c - bph_im)*idrr))*idrr
-               div_a_rr = (rrm_ip2*((aph_ip - aph_c)*idrr)
-                           - rrm_i2*((aph_c - aph_im)*idrr))*idrr
+               div_b_rr = (rrm_ip2*((bph_ip - bph_c)*idrrm_ip)
+                           - rrm_i2*((bph_c - bph_im)*idrrm_i))*idrr
+               div_a_rr = (rrm_ip2*((aph_ip - aph_c)*idrrm_ip)
+                           - rrm_i2*((aph_c - aph_im)*idrrm_i))*idrr
                div_b_th = (sthm_jp*((bph_jp - bph_c)*idth)
                            - sthm_j*((bph_c - bph_jm)*idth))*idth
                div_a_th = (sthm_jp*((aph_jp - aph_c)*idth)
@@ -311,7 +316,7 @@ def _make_time_marching_kernel(fast, nonlocal_alpha, separable=False):
                Aph_dfth = et_c*div_a_th*irr2*isth
                Aph_dfex = -(et_c*aph_c*irr2*isth2)
                Bph_dfrrg = etrr_c*((rr_ip*bph_ip
-                                        - rr_im*bph_im)*idrr*0.5)*irr
+                                        - rr_im*bph_im)*idrr2)*irr
                if nonlocal_alpha:
                   # 非局所 (BL/H10): b/(1+b^2) は j のみに依存 → 事前計算済み
                   Aph_sour = so_c*alpha_fac[j]
@@ -320,18 +325,18 @@ def _make_time_marching_kernel(fast, nonlocal_alpha, separable=False):
                   Aph_sour = so_c*bph_c/(1 + bph_c**2)
             else:
                Brr = (sth_jp*aph_jp - sth_jm*aph_jm)/dth*0.5/rr_i/sth_j
-               Bth = -((rr_ip*aph_ip - rr_im*aph_im)/drr*0.5/rr_i)
+               Bth = -((rr_ip*aph_ip - rr_im*aph_im)/drr2_[i]/rr_i)
                Bph_adrr = -((bph_ip*urr[i+1, j]*rr_ip
-                             - bph_im*urr[i-1, j]*rr_im)/drr*0.5/rr_i)
+                             - bph_im*urr[i-1, j]*rr_im)/drr2_[i]/rr_i)
                Bph_adth = -((bph_jp*uth[i, j+1]
                              - bph_jm*uth[i, j-1])/dth*0.5/rr_i)
-               Aph_adrr = -((aph_ip*rr_ip - aph_im*rr_im)/drr*0.5*urr_c/rr_i)
+               Aph_adrr = -((aph_ip*rr_ip - aph_im*rr_im)/drr2_[i]*urr_c/rr_i)
                Aph_adth = -((aph_jp*sth_jp - aph_jm*sth_jm)
                             / dth*0.5*uth_c/sth_j/rr_i)
-               div_b_rr = (rrm_ip2*((bph_ip - bph_c)/drr)
-                           - rrm_i2*((bph_c - bph_im)/drr))/drr
-               div_a_rr = (rrm_ip2*((aph_ip - aph_c)/drr)
-                           - rrm_i2*((aph_c - aph_im)/drr))/drr
+               div_b_rr = (rrm_ip2*((bph_ip - bph_c)/drrm[i+1])
+                           - rrm_i2*((bph_c - bph_im)/drrm[i]))/drr[i]
+               div_a_rr = (rrm_ip2*((aph_ip - aph_c)/drrm[i+1])
+                           - rrm_i2*((aph_c - aph_im)/drrm[i]))/drr[i]
                div_b_th = (sthm_jp*((bph_jp - bph_c)/dth)
                            - sthm_j*((bph_c - bph_jm)/dth))/dth
                div_a_th = (sthm_jp*((aph_jp - aph_c)/dth)
@@ -343,7 +348,7 @@ def _make_time_marching_kernel(fast, nonlocal_alpha, separable=False):
                Aph_dfth = et_c*div_a_th/rr2/sth_j
                Aph_dfex = -(et_c*aph_c/rr2/sth_j**2)
                Bph_dfrrg = etrr_c*((rr_ip*bph_ip
-                                        - rr_im*bph_im)/drr*0.5)/rr_i
+                                        - rr_im*bph_im)/drr2_[i])/rr_i
                if nonlocal_alpha:
                   b_src = Bph[ibase, j]
                else:
@@ -402,11 +407,12 @@ def _make_time_marching_kernel(fast, nonlocal_alpha, separable=False):
             d_asth = 0.0
 
          if inner_i:
-            d_rr_aph = (rr[i+1]*Aph[i+1, j] - rr[i-1]*Aph[i-1, j])/drr*0.5
-            d_bur = (Bph[i+1, j]*urr[i+1, j]*rr[i+1]
-                     - Bph[i-1, j]*urr[i-1, j]*rr[i-1])/drr*0.5
-            d_ar = (Aph[i+1, j]*rr[i+1] - Aph[i-1, j]*rr[i-1])/drr*0.5
-            d_rb = (rr[i+1]*Bph[i+1, j] - rr[i-1]*Bph[i-1, j])/drr*0.5
+            d_rr_aph = ((rr[i+1]*Aph[i+1, j]
+                         - rr[i-1]*Aph[i-1, j])/drr2_[i])
+            d_bur = ((Bph[i+1, j]*urr[i+1, j]*rr[i+1]
+                      - Bph[i-1, j]*urr[i-1, j]*rr[i-1])/drr2_[i])
+            d_ar = (Aph[i+1, j]*rr[i+1] - Aph[i-1, j]*rr[i-1])/drr2_[i]
+            d_rb = (rr[i+1]*Bph[i+1, j] - rr[i-1]*Bph[i-1, j])/drr2_[i]
          else:
             d_rr_aph = 0.0
             d_bur = 0.0
@@ -421,16 +427,16 @@ def _make_time_marching_kernel(fast, nonlocal_alpha, separable=False):
          Aph_adth = -(d_asth*uth[i, j]/sth_c/rr_c)
 
          if has_ip1:
-            tb_ip = rrm[i+1]**2*((Bph[i+1, j] - bph_c)/drr)
-            ta_ip = rrm[i+1]**2*((Aph[i+1, j] - aph_c)/drr)
+            tb_ip = rrm[i+1]**2*((Bph[i+1, j] - bph_c)/drrm[i+1])
+            ta_ip = rrm[i+1]**2*((Aph[i+1, j] - aph_c)/drrm[i+1])
             if has_im1:
-               tb_i = rrm[i]**2*((bph_c - Bph[i-1, j])/drr)
-               ta_i = rrm[i]**2*((aph_c - Aph[i-1, j])/drr)
+               tb_i = rrm[i]**2*((bph_c - Bph[i-1, j])/drrm[i])
+               ta_i = rrm[i]**2*((aph_c - Aph[i-1, j])/drrm[i])
             else:
                tb_i = rrm[i]**2*0.0
                ta_i = rrm[i]**2*0.0
-            div_b_rr = (tb_ip - tb_i)/drr
-            div_a_rr = (ta_ip - ta_i)/drr
+            div_b_rr = (tb_ip - tb_i)/drr[i]
+            div_a_rr = (ta_ip - ta_i)/drr[i]
          else:
             div_b_rr = 0.0
             div_a_rr = 0.0
@@ -564,7 +570,8 @@ def _grid_1d(grid):
    メモリトラフィックを減らす。逆数も併せて返す。
    格子は実行中変わらないので、格子形状をキーにキャッシュする。
    """
-   key = (grid.ixg, grid.jxg, float(grid.drr), float(grid.dth),
+   key = (grid.ixg, grid.jxg, float(grid.drr[0]), float(grid.drr[-1]),
+          float(grid.dth),
           float(grid.rr[0]), float(grid.th[0]))
    cached = _GRID_1D_CACHE.get(key)
    if cached is not None:
@@ -636,7 +643,8 @@ def time_marching(Bph, Aph, dt, cfg, grid, setup):
          # Rempel (2006) 式 (19): 0.71-0.76 RSUN の放物線カーネルで
          # B_phi を動径平均する (BL のように 1 点を取るのではない)。
          # クエンチングは B_eq = 1 T = 1e4 G (CGS)。
-         b_src = (setup.alpha_kernel[:, None]*Bph).sum(axis=0)*grid.drr
+         b_src = (setup.alpha_kernel[:, None]*Bph
+                  * grid.drr[:, None]).sum(axis=0)
          beq = getattr(cfg, 'alpha_b_eq', 1.0e4)
          alpha_fac = b_src/(1 + (b_src/beq)**2)
       else:
@@ -653,7 +661,8 @@ def time_marching(Bph, Aph, dt, cfg, grid, setup):
    # (毎回作り直すことになり、かつ 2 次元場は一般に rank-1 でない)
    sep = sep and fast and getattr(cfg, 'dynamics', 'kinematic') == 'kinematic'
    kernel = get_time_marching_kernel(fast, alpha_code == 0, sep)
-   return kernel(Bph, Aph, dt, rr, sth, rrm, sthm, grid.drr, grid.dth,
+   return kernel(Bph, Aph, dt, rr, sth, rrm, sthm,
+                 grid.drr, grid.drrm, grid.drr2, grid.dth,
                  setup.urr, setup.uth, setup.et, setup.etrr,
                  setup.omrr, setup.omth, setup.so, setup.ibase, alpha_code,
                  inv_rr, inv_rr2, inv_sth, inv_sth2, alpha_fac,
@@ -670,15 +679,16 @@ def time_marching_reference(Bph, Aph, dt, cfg, grid, setup):
    Parameters / Returns は time_marching() と同じ。
    """
    # calculate poloidal magnetic field
-   Brr, Bth = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+   Brr, Bth = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
    
    # advection term
    Bph_adrr, Bph_adth, Aph_adrr, Aph_adth \
-        = advection(Bph, Aph, grid.RR, grid.sinTH, setup.urr, setup.uth, grid.drr, grid.dth)
+        = advection(Bph, Aph, grid.RR, grid.sinTH, setup.urr, setup.uth, grid.drr2, grid.dth)
         
    # diffusion term
    Bph_dfrr, Bph_dfth, Bph_dfex, Bph_dfrrg, Aph_dfrr, Aph_dfth, Aph_dfex \
-          = diffusion(Bph, Aph, grid.RR, grid.sinTH, grid.RRm, grid.sinTHm, grid.drr, grid.dth, setup.et, setup.etrr)   
+          = diffusion(Bph, Aph, grid.RR, grid.sinTH, grid.RRm, grid.sinTHm,
+                      grid.drr, grid.drrm, grid.drr2, grid.dth, setup.et, setup.etrr)
    # Omega effect
    Bph_omrr, Bph_omth = omega_effect(Brr, Bth, grid.RR, grid.sinTH, setup.omrr, setup.omth)
    

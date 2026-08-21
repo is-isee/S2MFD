@@ -74,7 +74,7 @@ def _make_advance(fast, nonlocal_alpha, bc_code, separable):
     bc = _make_bc(bc_code)
 
     @njit(boundscheck=False)
-    def advance(Bph, Aph, time, dt, t_stop, rr, sth, rrm, sthm, drr, dth,
+    def advance(Bph, Aph, time, dt, t_stop, rr, sth, rrm, sthm, drr, drrm, drr2_, dth,
                 urr, uth, et, etrr, omrr, omth, so, ibase, alpha_code,
                 inv_rr, inv_rr2, inv_sth, inv_sth2, margin, potential_operator,
                 urr_u, urr_v, uth_u, uth_v, et_u, et_v, etrr_u, etrr_v,
@@ -93,7 +93,7 @@ def _make_advance(fast, nonlocal_alpha, bc_code, separable):
                     b = Bph[ibase, j]
                     alpha_fac[j] = b/(1 + b**2)
 
-            march(Bph, Aph, dt, rr, sth, rrm, sthm, drr, dth,
+            march(Bph, Aph, dt, rr, sth, rrm, sthm, drr, drrm, drr2_, dth,
                                urr, uth, et, etrr, omrr, omth, so, ibase,
                   alpha_code, inv_rr, inv_rr2, inv_sth, inv_sth2,
                   alpha_fac, Bphm, Aphm,
@@ -105,7 +105,7 @@ def _make_advance(fast, nonlocal_alpha, bc_code, separable):
                 for j in range(Bph.shape[1]):
                     b = Bphm[ibase, j]
                     alpha_fac[j] = b/(1 + b**2)
-            march(Bphm, Aphm, dt, rr, sth, rrm, sthm, drr, dth,
+            march(Bphm, Aphm, dt, rr, sth, rrm, sthm, drr, drrm, drr2_, dth,
                   urr, uth, et, etrr, omrr, omth, so, ibase,
                   alpha_code, inv_rr, inv_rr2, inv_sth, inv_sth2,
                   alpha_fac, Bphn, Aphn,
@@ -171,7 +171,7 @@ def advance_to(sim, t_stop):
     fn = get_advance(fast, alpha_code == 0, bc_code, sep)
     Bph, Aph, time, n = fn(
         sim.Bph, sim.Aph, float(sim.time), float(sim.dt), float(t_stop),
-        rr, sth, rrm, sthm, grid.drr, grid.dth,
+        rr, sth, rrm, sthm, grid.drr, grid.drrm, grid.drr2, grid.dth,
         setup.urr, setup.uth, setup.et, setup.etrr,
         setup.omrr, setup.omth, setup.so, setup.ibase, alpha_code,
         inv_rr, inv_rr2, inv_sth, inv_sth2, grid.margin, pot_op, *factors)
@@ -188,7 +188,7 @@ def _make_advance_min(fast, nonlocal_alpha, bc_code, separable):
     bc = _make_bc(bc_code)
 
     @njit(boundscheck=False)
-    def advance_min(Bph, Aph, time, dt, t_limit, rr, sth, rrm, sthm, drr, dth,
+    def advance_min(Bph, Aph, time, dt, t_limit, rr, sth, rrm, sthm, drr, drrm, drr2_, dth,
                     urr, uth, et, etrr, omrr, omth, so, ibase, alpha_code,
                     inv_rr, inv_rr2, inv_sth, inv_sth2, margin,
                     potential_operator, base, loca, gamma, sn0, sn1, sn2,
@@ -210,7 +210,7 @@ def _make_advance_min(fast, nonlocal_alpha, bc_code, separable):
                 for j in range(Bph.shape[1]):
                     b = Bph[ibase, j]
                     alpha_fac[j] = b/(1 + b**2)
-            march(Bph, Aph, dt, rr, sth, rrm, sthm, drr, dth,
+            march(Bph, Aph, dt, rr, sth, rrm, sthm, drr, drrm, drr2_, dth,
                   urr, uth, et, etrr, omrr, omth, so, ibase,
                   alpha_code, inv_rr, inv_rr2, inv_sth, inv_sth2,
                   alpha_fac, Bphm, Aphm,
@@ -221,7 +221,7 @@ def _make_advance_min(fast, nonlocal_alpha, bc_code, separable):
                 for j in range(Bph.shape[1]):
                     b = Bphm[ibase, j]
                     alpha_fac[j] = b/(1 + b**2)
-            march(Bphm, Aphm, dt, rr, sth, rrm, sthm, drr, dth,
+            march(Bphm, Aphm, dt, rr, sth, rrm, sthm, drr, drrm, drr2_, dth,
                   urr, uth, et, etrr, omrr, omth, so, ibase,
                   alpha_code, inv_rr, inv_rr2, inv_sth, inv_sth2,
                   alpha_fac, Bphn, Aphn,
@@ -265,7 +265,7 @@ def _pack_args(sim):
     pot_op = getattr(sim.legendre, 'potential_operator', None)
     if pot_op is None:
         pot_op = np.zeros((grid.margin, grid.jx, grid.jx))
-    return (rr, sth, rrm, sthm, grid.drr, grid.dth,
+    return (rr, sth, rrm, sthm, grid.drr, grid.drrm, grid.drr2, grid.dth,
             setup.urr, setup.uth, setup.et, setup.etrr,
             setup.omrr, setup.omth, setup.so, setup.ibase,
             inv_rr, inv_rr2, inv_sth, inv_sth2, grid.margin, pot_op)
@@ -287,11 +287,11 @@ def advance_until_minimum(sim, t_limit, sn_history, base, loca, gamma):
     if fn is None:
         fn = _make_advance_min(*key)
         _ADVANCE_MIN[key] = fn
-    (rr, sth, rrm, sthm, drr, dth, urr, uth, et, etrr, omrr, omth, so, ibase,
+    (rr, sth, rrm, sthm, drr, drrm, drr2_, dth, urr, uth, et, etrr, omrr, omth, so, ibase,
      inv_rr, inv_rr2, inv_sth, inv_sth2, margin, pot_op) = _pack_args(sim)
     Bph, Aph, time, n, ok, s0, s1, s2 = fn(
         sim.Bph, sim.Aph, float(sim.time), float(sim.dt), float(t_limit),
-        rr, sth, rrm, sthm, drr, dth, urr, uth, et, etrr, omrr, omth, so,
+        rr, sth, rrm, sthm, drr, drrm, drr2_, dth, urr, uth, et, etrr, omrr, omth, so,
         ibase, alpha_code, inv_rr, inv_rr2, inv_sth, inv_sth2, margin, pot_op,
         base, loca, gamma, sn_history[0], sn_history[1], sn_history[2],
         *factors)

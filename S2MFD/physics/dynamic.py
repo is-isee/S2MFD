@@ -343,14 +343,15 @@ class DynamicSolver:
 
         # --- 質量 --------------------------------------------------------
         hydro.mass_rhs(dq_ro, self.vrr, self.vth, s.JV, s.JVY, self.izeta2,
-                       grid.drr, grid.dth, m, w.ffr, w.ffth, w.cen)
+                       grid.drr, grid.wfm, grid.dth, m, w.ffr, w.ffth, w.cen)
 
         # --- 子午面運動量 (移流 + 幾何源項 + 圧力 + 浮力 + ローレンツ) ----
         hydro.momentum_rhs(dq_mr, dq_mt, self.vrr, self.vth, self.om1,
                            self.ro1, self.pr1, self.brr, self.bth, self.bph,
                            s.JV, s.JVY, s.JM, s.RSIN, grid.RR, grid.sinTH,
                            grid.cosTH, s.ro0, s.gr, cfg.om0,
-                           grid.drr, grid.dth, m, self.magnetic,
+                           grid.drr, grid.drr2, grid.wfm, grid.dth, m,
+                           self.magnetic,
                            w.ffr, w.ffth, w.cen, self.magnetic_buoyancy)
 
         # --- 角運動量 (移流 + Maxwell、および分離したレイノルズ応力) ------
@@ -361,7 +362,7 @@ class DynamicSolver:
             grid.sinTH, grid.sinTHm, s.ro0, s.ro0m,
             st.lam_rp, st.lam_tp, cfg.om0,
             st.nu_dif, st.nu_dif_m, st.nu_lam, st.nu_lam_m,
-            grid.drr, grid.dth, m, self.magnetic,
+            grid.drr, grid.drrm, grid.wfm, grid.dth, m, self.magnetic,
             self.consistent_advection, self.om1_bottom_dirichlet,
             ds_om, heat, self._bflux, w.ffr, w.ffth, w.cen)
 
@@ -369,7 +370,8 @@ class DynamicSolver:
         hydro.viscous_meridional_rhs(ds_mr, ds_mt, self.vrr, self.vth,
                                      grid.rr, grid.sinTH, grid.cosTH, s.ro0,
                                      st.nu_dif, st.nu_dif_m,
-                                     grid.drr, grid.dth, m, w.ffr, w.ffth)
+                                     grid.drr, grid.drrm, grid.drr2, grid.wfm,
+                                     grid.dth, m, w.ffr, w.ffth)
 
         # --- 人工拡散 (これも散逸項) -------------------------------------
         if self.use_artdif:
@@ -379,20 +381,21 @@ class DynamicSolver:
                                     self.jacL_r, self.jacL_th,
                                     self.csp_r, self.csp_th,
                                self.sld_fh, self.sld_ep,
-                                    grid.drr, grid.dth, m, w.ffr, w.ffth)
+                                    grid.drr, grid.drrm, grid.dth, m,
+                                    w.ffr, w.ffth)
             # 子午面速度はベクトル成分なので、theta 掃引で基底が回る分の
             # 幾何項が要る (v_r と v_theta が混ざる)
             artdif.sld_diffuse_meridional(
                 ds_mr, ds_mt, self.vrr, self.vth,
                 self.jacV_r, self.jacV_th, self.csp_r, self.csp_th,
-                self.sld_fh, self.sld_ep, grid.drr, grid.dth, m,
+                self.sld_fh, self.sld_ep, grid.drr, grid.drrm, grid.dth, m,
                 w.ffr, w.ffth, w.ffr2, w.ffth2)
             # 密度にも掛ける (音波の格子スケール振動を抑える)。保存量は
             # ∫ζ²ρ1 dV なので、連続の式と同じく発散に 1/ζ² を掛ける
             artdif.sld_diffuse_scaled(dq_ro, self.ro1, self.jacM_r,
                                       self.jacM_th, self.csp_r, self.csp_th,
                                       self.sld_fh, self.sld_ep,
-                                      grid.drr, grid.dth, m,
+                                      grid.drr, grid.drrm, grid.dth, m,
                                       self.izeta2, w.ffr, w.ffth)
 
             # 人工拡散が角運動量から抜いたエネルギーを記録する (診断用)。
@@ -401,8 +404,8 @@ class DynamicSolver:
             # その体積積分がそのまま散逸率。q_L はヤコビアンを吸収済みなので
             # sum * drr * dth に方位角の 2pi を掛ければ体積積分になる。
             self.artificial_dissipation = 2.0*np.pi*float(
-                (heat - heat_before)[m:grid.ixg - m,
-                                     m:grid.jxg - m].sum())*grid.drr*grid.dth
+                ((heat - heat_before)[m:grid.ixg - m, m:grid.jxg - m]
+                 * grid.drr[m:grid.ixg - m, None]).sum())*grid.dth
 
             # エントロピーにも掛ける。ここを忘れると s1 の格子ノイズが
             # 減衰せず、p1 = p0(gamma*rho1/rho0 + s1) を通して rho0 の小さい
@@ -411,7 +414,8 @@ class DynamicSolver:
                                          self.jacM_th, self.iJM,
                                          self.csp_r, self.csp_th,
                                          self.sld_fh, self.sld_ep,
-                                         grid.drr, grid.dth, m, w.ffr, w.ffth)
+                                         grid.drr, grid.drrm, grid.dth, m,
+                                         w.ffr, w.ffth)
 
             # --- 4 次ハイパー拡散 (Rempel 2014) ---------------------------
             # 背景勾配があると SLD のリミタが「単調」と判断してしまい、
@@ -423,16 +427,16 @@ class DynamicSolver:
             if self.mean_diff_frac > 0.0:
                 kap = self.mean_diff_frac*float(np.max(st.nu_dif))
                 artdif.mean_profile_diffuse_r(
-                    ds_mr, self.vrr, s.JV, kap, grid.drr, m,
+                    ds_mr, self.vrr, s.JV, kap, grid.drr, grid.drrm, m,
                     self._w1, self._p1, self._d1)
                 artdif.mean_profile_diffuse_r_primitive(
-                    dse1, self.se1, s.JM, s.iJM, kap, grid.drr, m,
+                    dse1, self.se1, s.JM, s.iJM, kap, grid.drr, grid.drrm, m,
                     self._w1, self._p1, self._d1)
 
             if self.hyper_h4 > 0.0:
                 artdif.hyper_diffuse_r(ds_mr, self.vrr, self.jacV_r,
                                        self.vadv_r, self.hyper_h4,
-                                       grid.drr, grid.dth, m, w.ffr, w.ffth)
+                                       grid.drr, grid.drrm, grid.dth, m, w.ffr, w.ffth)
                 artdif.hyper_diffuse_r_primitive(
                     dse1, self.se1, self.jacM_r, self.iJM, self.vadv_r,
                     self.hyper_h4, grid.drr, m, w.ffr)
@@ -451,7 +455,8 @@ class DynamicSolver:
         hydro.entropy_rhs(dse1, self.se1, self.vrr, self.vth, s.ro0, s.tm0,
                           s.pr0, s.hp, s.delta, st.kappa_t, st.kappa_t_m,
                           s.JM, s.iJM, grid.rr, grid.sinTH, grid.sinTHm,
-                          s.gamma, grid.drr, grid.dth, m, w.ffr, w.ffth)
+                          s.gamma, grid.drr, grid.drrm, grid.drr2, grid.wfm,
+                          grid.dth, m, w.ffr, w.ffth)
         # 散逸したエネルギーをエントロピーに戻す (係数はちょうど 1)
         hydro.add_dissipative_heating(dse1, heat, ds_mr, ds_mt,
                                       self.vrr, self.vth,
@@ -459,7 +464,7 @@ class DynamicSolver:
         if self.magnetic:
             hydro.add_ohmic_heating(dse1, self.brr, self.bth, self.bph,
                                     st.et, s.pr0, grid.RR, grid.sinTH,
-                                    s.gamma, grid.drr, grid.dth, m)
+                                    s.gamma, grid.drr2, grid.dth, m)
 
         # --- 散逸項を本体に合流 ------------------------------------------
         dq_mr += ds_mr
@@ -514,7 +519,7 @@ class DynamicSolver:
         st.uth = self.vth
         om = self.cfg.om0 + self.om1
         st.om = om
-        st.omrr = drr2(om, grid.drr)
+        st.omrr = drr2(om, grid.drr2)
         st.omth = dth2(om, grid.dth)/grid.RR
 
     def magnetic_filter(self, bph, aph, dt):

@@ -38,6 +38,9 @@ class Simulation(S2MFD.Data):
                 ix=cfg.ix, jx=cfg.jx, margin=cfg.margin
                ,rrmin=cfg.rrmin, rrmax=cfg.rrmax
                ,thmin=cfg.thmin, thmax=cfg.thmax
+               ,stretch=getattr(cfg, 'grid_stretch', 0.0)
+               ,stretch_center=getattr(cfg, 'grid_stretch_center',
+                                       0.5*(cfg.rrmin + cfg.rrmax))
                )
         if setup is None:
             setup = S2MFD.Setup(cfg, grid)
@@ -124,7 +127,7 @@ class Simulation(S2MFD.Data):
         c_cfl = 0.8
         m = grid.margin
         rr = grid.rr[m:grid.ixg - m, None]
-        cell = np.minimum(grid.drr, rr * grid.dth)
+        cell = np.minimum(grid.drr[m:grid.ixg - m, None], rr * grid.dth)
         urr = setup.urr[m:grid.ixg - m, m:grid.jxg - m]
         uth = setup.uth[m:grid.ixg - m, m:grid.jxg - m]
         et = setup.et[m:grid.ixg - m, m:grid.jxg - m]

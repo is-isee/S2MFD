@@ -20,7 +20,7 @@ class TestPoloidalMag:
         RR = grid.RR / cfg.RSUN
         Aph = grid.sinTH / RR**2
         Brr, Bth = poloidal_mag(Aph, RR, grid.sinTH,
-                                grid.drr / cfg.RSUN, grid.dth)
+                                grid.drr2 / cfg.RSUN, grid.dth)
         interior = np.s_[2:-2, 2:-2]
         assert np.allclose(Brr[interior], (2 * grid.cosTH / RR**3)[interior], rtol=5e-3)
         assert np.allclose(Bth[interior], (grid.sinTH / RR**3)[interior], rtol=5e-3)
@@ -28,7 +28,7 @@ class TestPoloidalMag:
     def test_zero_potential_gives_zero_field(self):
         cfg, grid = _grid(ix=16, jx=16)
         Aph = np.zeros((grid.ixg, grid.jxg))
-        Brr, Bth = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+        Brr, Bth = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
         assert np.all(Brr == 0)
         assert np.all(Bth == 0)
 
@@ -43,7 +43,7 @@ class TestAdvection:
         urr = np.full_like(Bph, u0)
         uth = np.zeros_like(Bph)
         Bph_adrr, Bph_adth, Aph_adrr, Aph_adth = advection(
-            Bph, Aph, grid.RR, grid.sinTH, urr, uth, grid.drr, grid.dth)
+            Bph, Aph, grid.RR, grid.sinTH, urr, uth, grid.drr2, grid.dth)
         interior = np.s_[1:-1, :]
         # drr2(B u r) = B u (r は線形なので中心差分は厳密)
         assert np.allclose(Bph_adrr[interior], (-B0 * u0 / grid.RR)[interior])

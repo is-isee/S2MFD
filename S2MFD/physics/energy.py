@@ -73,13 +73,14 @@ class EnergyBudget:
         self.sl = (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
         # 体積要素. 全球 [0, pi] を解くので方位角の 2pi を掛ける
         # (Rempel は北半球のみなので 4pi を掛けている. 対称解なら同じ値).
-        self.dV = 2.0*np.pi*grid.RR**2*grid.sinTH*grid.drr*grid.dth
+        self.dV = (2.0*np.pi*grid.RR**2*grid.sinTH
+                   * grid.drr[:, None]*grid.dth)
         self.varpi = strat.RSIN
 
     # -- 微分 (中心差分) --------------------------------------------------
     def _ddr(self, qq):
         out = np.zeros_like(qq)
-        out[1:-1] = (qq[2:] - qq[:-2])/(2.0*self.grid.drr)
+        out[1:-1] = (qq[2:] - qq[:-2])/self.grid.drr2[1:-1, None]
         return out
 
     def _ddth(self, qq):

@@ -131,7 +131,7 @@ def cfl_dt(vrr, vth, brr, bth, bph, ro0, ro1, cs_eff, rr, drr, dth,
     ixg, jxg = vrr.shape
     dt = 1.0e30
     for i in range(margin, ixg - margin):
-        dl = drr if drr < rr[i]*dth else rr[i]*dth
+        dl = drr[i] if drr[i] < rr[i]*dth else rr[i]*dth
         cs2 = cs_eff[i]*cs_eff[i]
         for j in range(margin, jxg - margin):
             vv = np.sqrt(vrr[i, j]*vrr[i, j] + vth[i, j]*vth[i, j])
@@ -150,7 +150,7 @@ def cfl_dt(vrr, vth, brr, bth, bph, ro0, ro1, cs_eff, rr, drr, dth,
     if diffusivity > 0.0:
         dl_min = 1.0e30
         for i in range(margin, ixg - margin):
-            dl = drr if drr < rr[i]*dth else rr[i]*dth
+            dl = drr[i] if drr[i] < rr[i]*dth else rr[i]*dth
             if dl < dl_min:
                 dl_min = dl
         # 安全率は移流側と同じものを掛ける。ここを忘れると拡散が
@@ -165,7 +165,8 @@ def cfl_dt(vrr, vth, brr, bth, bph, ro0, ro1, cs_eff, rr, drr, dth,
 # 質量保存 (音速抑制法)
 # ---------------------------------------------------------------------------
 @kernel()
-def mass_rhs(dq_ro, vrr, vth, JV, JVY, izeta2, drr, dth, margin, ffr, ffth, cen):
+def mass_rhs(dq_ro, vrr, vth, JV, JVY, izeta2, drr, wfm, dth, margin,
+             ffr, ffth, cen):
     """連続の式の右辺を ``dq_ro`` に加算する.
 
     .. math::
@@ -199,7 +200,7 @@ def mass_rhs(dq_ro, vrr, vth, JV, JVY, izeta2, drr, dth, margin, ffr, ffth, cen)
     for i in prange(ixg):
         for j in range(jxg):
             cen[i, j] = JV[i, j]*vrr[i, j]
-    face_average_r(cen, margin, ffr)
+    face_average_r(cen, wfm, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
 
     # --- theta 方向 -------------------------------------------------------
@@ -210,9 +211,9 @@ def mass_rhs(dq_ro, vrr, vth, JV, JVY, izeta2, drr, dth, margin, ffr, ffth, cen)
     zero_boundary_faces_th(ffth, margin)
 
     # --- 発散 (RSST 係数は発散全体に掛ける) -------------------------------
-    idrr = 1.0/drr
     idth = 1.0/dth
     for i in prange(margin, ixg - margin):
+        idrr = 1.0/drr[i]
         iz2 = izeta2[i]
         for j in range(margin, jxg - margin):
             dq_ro[i, j] -= iz2*((ffr[i + 1, j] - ffr[i, j])*idrr
@@ -226,7 +227,8 @@ def mass_rhs(dq_ro, vrr, vth, JV, JVY, izeta2, drr, dth, margin, ffr, ffth, cen)
 def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
                          JL, JLY, JV, JVY, W2, RR, RRm, sinTH, sinTHm,
                          ro0, ro0m, lam_rp, lam_tp, om0,
-                         nu_dif, nu_dif_m, nu_lam, nu_lam_m, drr, dth, margin,
+                         nu_dif, nu_dif_m, nu_lam, nu_lam_m,
+                         drr, drrm, wfm, dth, margin,
                          magnetic, consistent_advection, open_bottom,
                          dq_stress, heat, bflux, ffr, ffth, cen):
     """角運動量方程式の右辺を ``dq_om`` に加算する.
@@ -310,22 +312,23 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
         for i in range(ixg):
             for j in range(jxg):
                 cen[i, j] = JV[i, j]*vrr[i, j]
-        face_average_r(cen, margin, ffr)
+        face_average_r(cen, wfm, margin, ffr)
         for i in range(ixg):
             for j in range(jxg):
                 cen[i, j] = W2[i, j]*(om0 + om1[i, j])
         for i in range(margin, ixg - margin + 1):
+            w = wfm[i]
+            w1 = 1.0 - w
             for j in range(jxg):
-                ffr[i, j] *= 0.5*(cen[i, j] + cen[i - 1, j])
+                ffr[i, j] *= w*cen[i - 1, j] + w1*cen[i, j]
     else:
         # 齋藤 (2024) と同じ: 積をセル中心で作ってから面平均する
         for i in range(ixg):
             for j in range(jxg):
                 cen[i, j] = JL[i, j]*(om0 + om1[i, j])*vrr[i, j]
-        face_average_r(cen, margin, ffr)
+        face_average_r(cen, wfm, margin, ffr)
 
     # --- 粘性 + Lambda 効果 + Maxwell 応力を同じ面配列に足し込む ---------
-    idrr = 1.0/drr
     if magnetic:
         for i in range(ixg):
             for j in range(jxg):
@@ -333,8 +336,10 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
                 r = RR[i, j]
                 cen[i, j] = -r*r*r*s*s*brr[i, j]*bph[i, j]/FOUR_PI
         for i in range(margin, ixg - margin + 1):
+            w = wfm[i]
+            w1 = 1.0 - w
             for j in range(jxg):
-                ffr[i, j] += 0.5*(cen[i, j] + cen[i - 1, j])
+                ffr[i, j] += w*cen[i - 1, j] + w1*cen[i, j]
 
     zero_boundary_faces_r(ffr, margin)
 
@@ -391,14 +396,18 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
         rm4 = rm3*rm
         cvis = -nu_dif_m[i]*ro0m[i]*rm4
         clam = -nu_lam_m[i]*ro0m[i]*rm3
+        # 面での勾配なので **セル中心間距離** で割る (セル幅ではない)
+        idrrm = 1.0/drrm[i]
+        w = wfm[i]
+        w1 = 1.0 - w
         for j in range(jxg):
             sn = sinTH[i, j]
             sn2 = sn*sn
             sn3 = sn2*sn
             # 粘性: 面上の勾配をそのまま使う (2 セルで共有される)
             # Lambda 効果: セル中心の値を面へ平均
-            ffr[i, j] = (cvis*sn3*(om1[i, j] - om1[i - 1, j])*idrr
-                         + clam*sn2*0.5*(lam_rp[i, j] + lam_rp[i - 1, j]))
+            ffr[i, j] = (cvis*sn3*(om1[i, j] - om1[i - 1, j])*idrrm
+                         + clam*sn2*(w*lam_rp[i - 1, j] + w1*lam_rp[i, j]))
     if open_bottom:
         # Rempel 2005/2006 の下部境界 (Omega1 = 0 の剛体回転リザーバ) では
         # 粘性フラックスが境界を通る。これがタコクラインを形成するトルクで、
@@ -410,7 +419,7 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
             rm4 = rm*rm*rm*rm
             sn = sinTH[margin, j]
             bflux[j] = (-nu_dif_m[margin]*ro0m[margin]*rm4*sn*sn*sn
-                        * (om1[margin, j] - om1[margin - 1, j])*idrr)
+                        * (om1[margin, j] - om1[margin - 1, j])/drrm[margin])
             ffr[margin, j] = bflux[j]
             ffr[ixg - margin, j] = 0.0
     else:
@@ -446,7 +455,7 @@ def angular_momentum_rhs(dq_om, om1, vrr, vth, brr, bth, bph,
 @kernel()
 def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
                  JV, JVY, JM, RSIN, RR, sinTH, cosTH, ro0, gr,
-                 om0, drr, dth, margin, magnetic, ffr, ffth, cen,
+                 om0, drr, drr2, wfm, dth, margin, magnetic, ffr, ffth, cen,
                  magnetic_buoyancy=True):
     """動径・子午面運動量の右辺を加算する.
 
@@ -488,7 +497,6 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
     摂動だけである (well-balanced).
     """
     ixg, jxg = dq_mr.shape
-    idrr = 1.0/drr
     idth = 1.0/dth
 
     # =====================================================================
@@ -497,7 +505,7 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
     for i in prange(ixg):
         for j in range(jxg):
             cen[i, j] = JV[i, j]*vrr[i, j]*vrr[i, j]
-    face_average_r(cen, margin, ffr)
+    face_average_r(cen, wfm, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
     for i in prange(ixg):
         for j in range(jxg):
@@ -512,7 +520,7 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
     for i in prange(ixg):
         for j in range(jxg):
             cen[i, j] = JV[i, j]*vth[i, j]*vrr[i, j]
-    face_average_r(cen, margin, ffr)
+    face_average_r(cen, wfm, margin, ffr)
     zero_boundary_faces_r(ffr, margin)
     for i in prange(ixg):
         for j in range(jxg):
@@ -525,6 +533,8 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
     # 幾何学的源項 + 圧力勾配 + 浮力
     # =====================================================================
     for i in prange(margin, ixg - margin):
+        # セル中心の 2 セル幅中心差分なので rr[i+1]-rr[i-1] で割る
+        idrr2 = 1.0/drr2[i]
         for j in range(margin, jxg - margin):
             o1 = om1[i, j]
             cent = 2.0*om0*o1 + o1*o1          # (Om0+Om1)^2 - Om0^2
@@ -533,7 +543,7 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
             vt = vth[i, j]
 
             # 圧力勾配 (面平均した p1 の差分 = 2 セル幅の中心差分)
-            dprr = 0.5*(pr1[i + 1, j] - pr1[i - 1, j])*idrr
+            dprr = (pr1[i + 1, j] - pr1[i - 1, j])*idrr2
             dprt = 0.5*(pr1[i, j + 1] - pr1[i, j - 1])*idth
 
             dq_mr[i, j] += (JVY[i, j]*(vt*vt + rs*rs*cent)
@@ -547,6 +557,7 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
     # =====================================================================
     if magnetic:
         for i in range(margin, ixg - margin):
+            idrr2 = 1.0/drr2[i]
             for j in range(margin, jxg - margin):
                 r = RR[i, j]
                 s = sinTH[i, j]
@@ -555,9 +566,9 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
                                - sinTH[i, j - 1]*bph[i, j - 1])
                       * 0.5*idth)/(r*s)
                 jt = -(RR[i + 1, j]*bph[i + 1, j]
-                       - RR[i - 1, j]*bph[i - 1, j])*0.5*idrr/r
+                       - RR[i - 1, j]*bph[i - 1, j])*idrr2/r
                 jp = ((RR[i + 1, j]*bth[i + 1, j]
-                       - RR[i - 1, j]*bth[i - 1, j])*0.5*idrr
+                       - RR[i - 1, j]*bth[i - 1, j])*idrr2
                       - (brr[i, j + 1] - brr[i, j - 1])*0.5*idth)/r
                 fl_r = (jt*bph[i, j] - jp*bth[i, j])/FOUR_PI
                 fl_t = (jp*brr[i, j] - jr*bph[i, j])/FOUR_PI
@@ -571,7 +582,7 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
                              + bph[i + 1, j]**2)
                     bsq_m = (brr[i - 1, j]**2 + bth[i - 1, j]**2
                              + bph[i - 1, j]**2)
-                    fl_r += 0.5*(bsq_p - bsq_m)*idrr/(2.0*FOUR_PI)
+                    fl_r += (bsq_p - bsq_m)*idrr2/(2.0*FOUR_PI)
                 dq_mr[i, j] += JM[i, j]*fl_r
                 dq_mt[i, j] += JM[i, j]*fl_t
 
@@ -581,7 +592,8 @@ def momentum_rhs(dq_mr, dq_mt, vrr, vth, om1, ro1, pr1, brr, bth, bph,
 # ---------------------------------------------------------------------------
 @kernel()
 def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
-                           nu_dif, nu_dif_m, drr, dth, margin, ffr, ffth):
+                           nu_dif, nu_dif_m, drr, drrm, drr2, wfm, dth,
+                           margin, ffr, ffth):
     """子午面運動量に働く粘性力を加算する.
 
     圧縮性の粘性応力テンソル
@@ -604,7 +616,6 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
     おく (人工粘性を足したときに同じ枠組みで扱えるようにするため).
     """
     ixg, jxg = dq_mr.shape
-    idrr = 1.0/drr
     idth = 1.0/dth
     c43 = 4.0/3.0
     c23 = 2.0/3.0
@@ -614,11 +625,14 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
     # =====================================================================
     # --- r 面フラックス ---------------------------------------------------
     for i in prange(margin, ixg - margin + 1):
-        rop3 = 0.5*(ro0[i]*rr[i]**3 + ro0[i - 1]*rr[i - 1]**3)
+        w = wfm[i]
+        w1 = 1.0 - w
+        idrrm = 1.0/drrm[i]          # 面での勾配 = セル中心間距離で割る
+        rop3 = w*ro0[i - 1]*rr[i - 1]**3 + w1*ro0[i]*rr[i]**3
         rop1a = ro0[i]*rr[i]
         rop1b = ro0[i - 1]*rr[i - 1]
         for j in range(margin, jxg - margin):
-            dvr = (vrr[i, j]/rr[i] - vrr[i - 1, j]/rr[i - 1])*idrr
+            dvr = (vrr[i, j]/rr[i] - vrr[i - 1, j]/rr[i - 1])*idrrm
             div_a = (sinTH[i, j + 1]*vth[i, j + 1]
                      - sinTH[i, j - 1]*vth[i, j - 1])*0.5*idth
             div_b = (sinTH[i - 1, j + 1]*vth[i - 1, j + 1]
@@ -630,11 +644,12 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
     # --- theta 面フラックス ----------------------------------------------
     for i in prange(margin, ixg - margin):
         r2 = rr[i]*rr[i]
+        idrr2 = 1.0/drr2[i]
         for j in range(margin, jxg - margin + 1):
             sh_a = sinTH[i, j]*(vth[i + 1, j]/rr[i + 1]
-                                - vth[i - 1, j]/rr[i - 1])*0.5*idrr
+                                - vth[i - 1, j]/rr[i - 1])*idrr2
             sh_b = sinTH[i, j - 1]*(vth[i + 1, j - 1]/rr[i + 1]
-                                    - vth[i - 1, j - 1]/rr[i - 1])*0.5*idrr
+                                    - vth[i - 1, j - 1]/rr[i - 1])*idrr2
             ffth[i, j] = -nu_dif[i]*ro0[i]*(
                 r2*0.5*(sh_a + sh_b)
                 + 0.5*(sinTH[i, j] + sinTH[i, j - 1])*(vrr[i, j] - vrr[i, j - 1])*idth)
@@ -645,8 +660,9 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
     # --- 幾何因子による源項 ----------------------------------------------
     for i in prange(margin, ixg - margin):
         r2 = rr[i]*rr[i]
+        idrr2 = 1.0/drr2[i]
         for j in range(margin, jxg - margin):
-            dvr = (vrr[i + 1, j]/rr[i + 1] - vrr[i - 1, j]/rr[i - 1])*0.5*idrr
+            dvr = (vrr[i + 1, j]/rr[i + 1] - vrr[i - 1, j]/rr[i - 1])*idrr2
             dsv = (sinTH[i, j + 1]*vth[i, j + 1]
                    - sinTH[i, j - 1]*vth[i, j - 1])*0.5*idth
             dq_mr[i, j] += -nu_dif[i]*ro0[i]*(-c43*r2*sinTH[i, j]*dvr + c23*dsv)
@@ -655,11 +671,14 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
     # theta 方向運動量
     # =====================================================================
     for i in prange(margin, ixg - margin + 1):
-        rop3 = 0.5*(ro0[i]*rr[i]**3 + ro0[i - 1]*rr[i - 1]**3)
+        w = wfm[i]
+        w1 = 1.0 - w
+        idrrm = 1.0/drrm[i]
+        rop3 = w*ro0[i - 1]*rr[i - 1]**3 + w1*ro0[i]*rr[i]**3
         rop1a = ro0[i]*rr[i]
         rop1b = ro0[i - 1]*rr[i - 1]
         for j in range(margin, jxg - margin):
-            dvt = (vth[i, j]/rr[i] - vth[i - 1, j]/rr[i - 1])*idrr
+            dvt = (vth[i, j]/rr[i] - vth[i - 1, j]/rr[i - 1])*idrrm
             dva = (vrr[i, j + 1] - vrr[i, j - 1])*0.5*idth
             dvb = (vrr[i - 1, j + 1] - vrr[i - 1, j - 1])*0.5*idth
             ffr[i, j] = -nu_dif_m[i]*sinTH[i, j]*(rop3*dvt
@@ -668,11 +687,12 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
 
     for i in prange(margin, ixg - margin):
         r2 = rr[i]*rr[i]
+        idrr2 = 1.0/drr2[i]
         for j in range(margin, jxg - margin + 1):
             sh_a = sinTH[i, j]*(vrr[i + 1, j]/rr[i + 1]
-                                - vrr[i - 1, j]/rr[i - 1])*0.5*idrr
+                                - vrr[i - 1, j]/rr[i - 1])*idrr2
             sh_b = sinTH[i, j - 1]*(vrr[i + 1, j - 1]/rr[i + 1]
-                                    - vrr[i - 1, j - 1]/rr[i - 1])*0.5*idrr
+                                    - vrr[i - 1, j - 1]/rr[i - 1])*idrr2
             ffth[i, j] = -nu_dif[i]*ro0[i]*(
                 -c23*r2*0.5*(sh_a + sh_b)
                 + c43*0.5*(sinTH[i, j] + sinTH[i, j - 1])*(vth[i, j] - vth[i, j - 1])*idth
@@ -683,11 +703,12 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
 
     for i in prange(margin, ixg - margin):
         r2 = rr[i]*rr[i]
+        idrr2 = 1.0/drr2[i]
         for j in range(margin, jxg - margin):
             s = sinTH[i, j]
             c = cosTH[i, j]
-            dvt_r = (vth[i + 1, j]/rr[i + 1] - vth[i - 1, j]/rr[i - 1])*0.5*idrr
-            dvr_r = (vrr[i + 1, j]/rr[i + 1] - vrr[i - 1, j]/rr[i - 1])*0.5*idrr
+            dvt_r = (vth[i + 1, j]/rr[i + 1] - vth[i - 1, j]/rr[i - 1])*idrr2
+            dvr_r = (vrr[i + 1, j]/rr[i + 1] - vrr[i - 1, j]/rr[i - 1])*idrr2
             dvr_t = (vrr[i, j + 1] - vrr[i, j - 1])*0.5*idth
             dvt_t = (vth[i, j + 1] - vth[i, j - 1])*0.5*idth
             dq_mt[i, j] += nu_dif[i]*ro0[i]*(
@@ -701,7 +722,8 @@ def viscous_meridional_rhs(dq_mr, dq_mt, vrr, vth, rr, sinTH, cosTH, ro0,
 # ---------------------------------------------------------------------------
 @kernel()
 def entropy_rhs(dse1, se1, vrr, vth, ro0, tm0, pr0, hp, delta, kappa, kappa_m,
-                JM, iJM, rr, sinTH, sinTHm, gamma, drr, dth, margin, ffr, ffth):
+                JM, iJM, rr, sinTH, sinTHm, gamma, drr, drrm, drr2, wfm,
+                dth, margin, ffr, ffth):
     """エントロピー方程式の右辺を ``dse1`` に加算する (Rempel 2006 式 5).
 
     .. math::
@@ -738,16 +760,19 @@ def entropy_rhs(dse1, se1, vrr, vth, ro0, tm0, pr0, hp, delta, kappa, kappa_m,
     エントロピーは保存量ではない (散逸で生成される) ので, 移流形でよい.
     """
     ixg, jxg = dse1.shape
-    idrr = 1.0/drr
     idth = 1.0/dth
 
     # --- 熱伝導フラックス (面で1回だけ計算) ------------------------------
     for i in prange(margin, ixg - margin + 1):
         # 面上の kappa*rho0*T0. 隣接2セルで同じ値を使う
-        c = kappa_m[i]*0.5*(ro0[i]*tm0[i] + ro0[i - 1]*tm0[i - 1])
-        rm2 = 0.25*(rr[i] + rr[i - 1])*(rr[i] + rr[i - 1])
+        w = wfm[i]
+        w1 = 1.0 - w
+        idrrm = 1.0/drrm[i]          # 面での勾配
+        c = kappa_m[i]*(w*ro0[i - 1]*tm0[i - 1] + w1*ro0[i]*tm0[i])
+        rmf = w*rr[i - 1] + w1*rr[i]
+        rm2 = rmf*rmf
         for j in range(jxg):
-            ffr[i, j] = -c*rm2*sinTH[i, j]*(se1[i, j] - se1[i - 1, j])*idrr
+            ffr[i, j] = -c*rm2*sinTH[i, j]*(se1[i, j] - se1[i - 1, j])*idrrm
     zero_boundary_faces_r(ffr, margin)
 
     for i in prange(ixg):
@@ -758,8 +783,10 @@ def entropy_rhs(dse1, se1, vrr, vth, ro0, tm0, pr0, hp, delta, kappa, kappa_m,
 
     # --- 移流 + 背景勾配 + 熱伝導 ----------------------------------------
     for i in prange(margin, ixg - margin):
+        idrr = 1.0/drr[i]            # 発散はセル幅
+        idrr2 = 1.0/drr2[i]          # 移流の中心差分は 2 セル幅
         for j in range(margin, jxg - margin):
-            dsdr = (se1[i + 1, j] - se1[i - 1, j])*0.5*idrr
+            dsdr = (se1[i + 1, j] - se1[i - 1, j])*idrr2
             dsdt = (se1[i, j + 1] - se1[i, j - 1])*0.5*idth
             cond = -((ffr[i + 1, j] - ffr[i, j])*idrr
                      + (ffth[i, j + 1] - ffth[i, j])*idth)
@@ -810,7 +837,7 @@ def add_dissipative_heating(dse1, heat, dq_mr, dq_mt, vrr, vth,
 
 @kernel()
 def add_ohmic_heating(dse1, brr, bth, bph, eta, pr0, RR, sinTH,
-                      gamma, drr, dth, margin):
+                      gamma, drr2, dth, margin):
     """オーム散逸をエントロピーに加える (Rempel 2006 式 5 の最終項).
 
     .. math::
@@ -824,9 +851,9 @@ def add_ohmic_heating(dse1, brr, bth, bph, eta, pr0, RR, sinTH,
     詳細は ``doc/dev_records/2026-08-19_rempel_equations.md`` §11.
     """
     ixg, jxg = dse1.shape
-    idrr = 1.0/drr
     idth = 1.0/dth
     for i in prange(margin, ixg - margin):
+        idrr2 = 1.0/drr2[i]
         c = (gamma - 1.0)/pr0[i]/FOUR_PI
         for j in range(margin, jxg - margin):
             r = RR[i, j]
@@ -834,9 +861,9 @@ def add_ohmic_heating(dse1, brr, bth, bph, eta, pr0, RR, sinTH,
             jr = (sinTH[i, j + 1]*bph[i, j + 1]
                   - sinTH[i, j - 1]*bph[i, j - 1])*0.5*idth/(r*s)
             jt = -(RR[i + 1, j]*bph[i + 1, j]
-                   - RR[i - 1, j]*bph[i - 1, j])*0.5*idrr/r
+                   - RR[i - 1, j]*bph[i - 1, j])*idrr2/r
             jp = ((RR[i + 1, j]*bth[i + 1, j]
-                   - RR[i - 1, j]*bth[i - 1, j])*0.5*idrr
+                   - RR[i - 1, j]*bth[i - 1, j])*idrr2
                   - (brr[i, j + 1] - brr[i, j - 1])*0.5*idth)/r
             dse1[i, j] += c*eta[i, j]*(jr*jr + jt*jt + jp*jp)
 

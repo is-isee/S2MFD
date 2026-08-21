@@ -1,5 +1,8 @@
 from dataclasses import dataclass, field
 import numpy as np
+from scipy.special import erf
+
+_SQRT_PI_2 = 0.5*np.sqrt(np.pi)
 
 from S2MFD.npz_io import NpzIO
 
@@ -43,8 +46,10 @@ class Grid(NpzIO):
    stretch : float
       動径方向の格子集中度。0 で一様。>0 で ``stretch_center`` 付近に
       点を集める (点の密度が ``1 + stretch*exp(-((r-rc)/w)^2)`` に比例)。
-   stretch_center, stretch_width : float
-      集中させる半径とその幅 [cm]。
+   stretch_center, stretch_width : float or sequence
+      集中させる半径とその幅 [cm]。``stretch_width = 0`` で自動
+      (領域幅の 15%)。配列にすると複数箇所に同時に集中できる
+      (例: タコクラインと表面)。
    rr : numpy.ndarray
       Array of radial grid points.
    th : numpy.ndarray
@@ -77,9 +82,9 @@ class Grid(NpzIO):
    rrmax: float
    thmin: float
    thmax: float
-   stretch: float = 0.0
-   stretch_center: float = 0.0
-   stretch_width: float = 1.0
+   stretch: object = 0.0
+   stretch_center: object = 0.0
+   stretch_width: object = 0.0
    drr: np.ndarray = field(init=False)
    drrm: np.ndarray = field(init=False)
    drr2: np.ndarray = field(init=False)
@@ -102,17 +107,29 @@ class Grid(NpzIO):
    def _face_positions(self):
       """セル境界 (面) の半径を ixg+1 個返す。
 
-      計算座標 :math:`s = k/ix` を一様に取り、**解析的な** sinh 写像で
-      物理半径に移す。
+      点の密度を **物理半径 :math:`r` の関数**として与え、その積分
+      :math:`k(r)` を Newton 法で逆に引く。
 
       .. math::
-         r(s) = r_{\\min} + L\\,
-            \\frac{\\sinh[b(s-s_0)] + \\sinh(b s_0)}
-                 {\\sinh[b(1-s_0)] + \\sinh(b s_0)}
+         \\rho(r) = 1 + \\sum_i a_i
+             \\exp\\!\\left[-\\left(\\frac{r-r_i}{w_i}\\right)^2\\right],
+         \\qquad
+         k(r) = C\\!\\int_{r_{\\min}}^{r}\\!\\rho(r')\\,dr'
 
-      :math:`b>0` で :math:`s=s_0` の付近に点が集まる。
-      ``stretch`` が :math:`b`、``stretch_center`` が集中させたい半径で、
-      :math:`s_0` はそこから決める。
+      積分は誤差関数で**解析的に**書ける:
+
+      .. math::
+         \\int \\exp\\!\\left[-\\left(\\frac{r-r_i}{w_i}\\right)^2\\right] dr
+         = \\frac{w_i\\sqrt{\\pi}}{2}\\,{\\rm erf}\\!
+           \\left(\\frac{r-r_i}{w_i}\\right)
+
+      ので :math:`k(r)` は :math:`C^\\infty`。逆写像は Newton 法
+      (:math:`k'=C\\rho` も解析的) で機械精度まで収束させるため、
+      **格子生成に補間を一切使わない**。
+
+      ``stretch`` / ``stretch_center`` / ``stretch_width`` はスカラーでも
+      配列でもよい。配列にすると複数の領域 (タコクラインと表面など) に
+      同時に点を集められる。
 
       なぜ解析的な写像でなければならないか
       ------------------------------------
@@ -130,15 +147,46 @@ class Grid(NpzIO):
       """
       dxi = (self.rrmax - self.rrmin)/self.ix
       k = np.arange(self.ixg + 1) - self.margin
-      if self.stretch == 0.0:
+      amp = np.atleast_1d(np.asarray(self.stretch, dtype=float))
+      if not np.any(amp != 0.0):
          return self.rrmin + dxi*k
 
-      L = self.rrmax - self.rrmin
-      b = self.stretch
-      s0 = (self.stretch_center - self.rrmin)/L
-      s = k/self.ix
-      den = np.sinh(b*(1.0 - s0)) + np.sinh(b*s0)
-      return self.rrmin + L*(np.sinh(b*(s - s0)) + np.sinh(b*s0))/den
+      cen = np.atleast_1d(np.asarray(self.stretch_center, dtype=float))
+      wid = np.atleast_1d(np.asarray(self.stretch_width, dtype=float)).copy()
+      # 幅 0 は「自動」= 領域幅の 15%
+      wid = np.where(wid <= 0.0, 0.15*(self.rrmax - self.rrmin), wid)
+      cen = np.broadcast_to(cen, amp.shape)
+      wid = np.broadcast_to(wid, amp.shape)
+
+      def density(r):
+         out = np.ones_like(np.asarray(r, dtype=float))
+         for a, c, w in zip(amp, cen, wid):
+            out = out + a*np.exp(-((r - c)/w)**2)
+         return out
+
+      def kk(r):
+         out = np.asarray(r, dtype=float) - self.rrmin
+         for a, c, w in zip(amp, cen, wid):
+            out = out + a*w*_SQRT_PI_2*(erf((r - c)/w)
+                                        - erf((self.rrmin - c)/w))
+         return out
+
+      norm = self.ix/kk(self.rrmax)
+      target = k/norm                      # k(r) = target を解く
+      # Newton 法。k は単調増加 (density > 0) なので必ず収束する。
+      r = self.rrmin + dxi*k               # 一様格子を初期推定に使う
+      for _ in range(60):
+         dr = (kk(r) - target)/density(r)
+         r = r - dr
+         if np.max(np.abs(dr)) < 1.0e-12*(self.rrmax - self.rrmin):
+            break
+      # ゴーストセルは端の間隔で線形に延長する (領域外まで密度関数を
+      # 使うと、集中点の裾で間隔が不自然に変わることがある)
+      h0 = 1.0/(norm*density(self.rrmin))
+      h1 = 1.0/(norm*density(self.rrmax))
+      r = np.where(k < 0.0, self.rrmin + h0*k, r)
+      r = np.where(k > self.ix, self.rrmax + h1*(k - self.ix), r)
+      return r
 
    def __post_init__(self):
       # dr,dθの設定
@@ -156,7 +204,7 @@ class Grid(NpzIO):
       # で決める。rho は点の密度で、stretch = 0 なら rho = 1 となり
       # **一様格子と厳密に一致する** (回帰の安全弁)。
       self.rrm = self._face_positions()
-      if self.stretch == 0.0:
+      if not np.any(np.atleast_1d(self.stretch) != 0.0):
          # 一様格子は従来の式をそのまま使う。面の差を取ると丸めで最終桁が
          # 動き、既存結果とのビット一致が壊れるため。
          dxi = (self.rrmax - self.rrmin)/self.ix
@@ -179,7 +227,7 @@ class Grid(NpzIO):
       # 面への線形補間の重み: q_face[i] = wm[i]*q[i-1] + (1-wm[i])*q[i]
       # 一様格子では厳密に 0.5 になる (ビット一致の保証)。
       self.wfm = np.full(self.ixg, 0.5)
-      if self.stretch != 0.0:
+      if np.any(np.atleast_1d(self.stretch) != 0.0):
          self.wfm[1:] = (self.rr[1:] - self.rrm[1:self.ixg])/self.drrm[1:]
 
       #座標thの設定
@@ -193,7 +241,7 @@ class Grid(NpzIO):
       # 面の位置は「セル中心の平均」ではなく **本物の面**を入れる。
       # 一様格子では代数的には両者が一致するので、丸めまで含めて従来と
       # 同じ値になるよう旧式をそのまま使う (ビット一致の保証)。
-      if self.stretch == 0.0:
+      if not np.any(np.atleast_1d(self.stretch) != 0.0):
          self.RRm[1:self.ixg,:] = 0.5*(self.RR[1:self.ixg,:]
                                        + self.RR[0:self.ixg-1,:])
       else:

@@ -180,3 +180,4 @@ magnetic_buoyancy = True
 # 既定は一様のままにしてある (論文の格子と揃えるため)。
 grid_stretch = 0.0
 grid_stretch_center = 0.715*RSUN
+grid_stretch_width = 0.05*RSUN

@@ -41,6 +41,7 @@ class Simulation(S2MFD.Data):
                ,stretch=getattr(cfg, 'grid_stretch', 0.0)
                ,stretch_center=getattr(cfg, 'grid_stretch_center',
                                        0.5*(cfg.rrmin + cfg.rrmax))
+               ,stretch_width=getattr(cfg, 'grid_stretch_width', 0.0)
                )
         if setup is None:
             setup = S2MFD.Setup(cfg, grid)

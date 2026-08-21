@@ -74,6 +74,7 @@ magnetic_buoyancy = True
 # セル数が 17 -> 27 になり、表面は 2.2 倍粗くなる。
 grid_stretch = 0.0
 grid_stretch_center = 0.0
+grid_stretch_width = 0.0   # 0 で自動 (領域幅の 15%)
 
 # Flag for continuation
 cont_flag = True

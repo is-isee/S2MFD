@@ -1114,7 +1114,8 @@ def _stretched(cfg, stretch):
         ix=cfg.ix, jx=cfg.jx, margin=cfg.margin,
         rrmin=cfg.rrmin, rrmax=cfg.rrmax,
         thmin=cfg.thmin, thmax=cfg.thmax,
-        stretch=stretch, stretch_center=0.715*cfg.RSUN)
+        stretch=stretch, stretch_center=0.715*cfg.RSUN,
+        stretch_width=0.05*cfg.RSUN)
 
 
 def test_uniform_grid_is_bit_identical_when_stretch_is_zero():

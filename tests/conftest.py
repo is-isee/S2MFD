@@ -34,6 +34,7 @@ def make_grid(cfg):
         stretch=getattr(cfg, 'grid_stretch', 0.0),
         stretch_center=getattr(cfg, 'grid_stretch_center',
                                0.5*(cfg.rrmin + cfg.rrmax)),
+        stretch_width=getattr(cfg, 'grid_stretch_width', 0.0),
     )
 
 

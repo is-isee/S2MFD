@@ -33,6 +33,37 @@ __all__ = ['DynamicSolver', 'apply_radial_bc', 'apply_polar_bc']
 
 
 # ---------------------------------------------------------------------------
+# RK2 の配列演算
+# ---------------------------------------------------------------------------
+# numpy の ``a + dt*b`` は毎 substep で一時配列を作る。1 step あたり
+# 10 本 (保存量 5 つ x 2 substep) になり、108x144 で 1.5 ms/step = 12% を
+# 占めていた。演算順序は numpy と同じ (dt*b を作ってから足す) なので
+# **結果はビット単位で一致する** (tests で固定)。
+@njit(fastmath=False)
+def _rk_predictor(out, a, b, dt):
+    ixg, jxg = out.shape
+    for i in range(ixg):
+        for j in range(jxg):
+            out[i, j] = a[i, j] + dt*b[i, j]
+
+
+@njit(fastmath=False)
+def _rk_corrector(out, a, b, c, dt):
+    ixg, jxg = out.shape
+    for i in range(ixg):
+        for j in range(jxg):
+            out[i, j] = 0.5*(a[i, j] + b[i, j] + dt*c[i, j])
+
+
+@njit(fastmath=False)
+def _mul_into(out, a, b):
+    ixg, jxg = out.shape
+    for i in range(ixg):
+        for j in range(jxg):
+            out[i, j] = a[i, j]*b[i, j]
+
+
+# ---------------------------------------------------------------------------
 # 境界条件
 # ---------------------------------------------------------------------------
 @njit(fastmath=False)
@@ -224,6 +255,10 @@ class DynamicSolver:
         # rhs の作業配列 (毎回確保せず使い回す)
         self._rhs_bufs = tuple(np.zeros(shape) for _ in range(9))
         self._zero = np.zeros(shape)
+        # 時間積分の作業配列 (保存量 5 つ x 3 段)
+        self._q0 = tuple(np.zeros(shape) for _ in range(5))
+        self._q1 = tuple(np.zeros(shape) for _ in range(5))
+        self._qn = tuple(np.zeros(shape) for _ in range(5))
 
         # 診断用の累積量
         # 下部境界を通って流入した角運動量の時間積分 [erg s]。
@@ -329,11 +364,21 @@ class DynamicSolver:
         self.cspB_th[:, 1:] = 0.5*(vv[:, 1:] + vv[:, :-1])
 
     # -- 状態の変換 -------------------------------------------------------
-    def conserved(self):
-        """現在のプリミティブ変数から保存量を作る."""
+    def conserved(self, out=None):
+        """現在のプリミティブ変数から保存量を作る.
+
+        ``out`` に配列の組を渡すとその場に書き込む (時間積分で使い回す).
+        """
         s = self.strat
-        return (s.JM*self.ro1, s.JV*self.vrr, s.JV*self.vth, s.JL*self.om1,
-                self.se1.copy())
+        if out is None:
+            return (s.JM*self.ro1, s.JV*self.vrr, s.JV*self.vth,
+                    s.JL*self.om1, self.se1.copy())
+        _mul_into(out[0], s.JM, self.ro1)
+        _mul_into(out[1], s.JV, self.vrr)
+        _mul_into(out[2], s.JV, self.vth)
+        _mul_into(out[3], s.JL, self.om1)
+        out[4][:] = self.se1
+        return out
 
     def set_primitive_from_conserved(self, qq):
         """保存量からプリミティブ変数を復元し, 境界条件を適用する."""
@@ -513,16 +558,20 @@ class DynamicSolver:
         machine precision で成り立つ (境界が開いている設定でも
         「漏れているが勘定は合っている」ことを検証できる).
         """
-        q0 = self.conserved()
+        q0 = self.conserved(self._q0)
         k1 = self.rhs()
         # 物理セルの範囲だけ足す (ゴーストセルは発散に寄与しない)
         j0, j1 = self.m, self.grid.jxg - self.m
         f1 = self._bflux[j0:j1].sum()*self.grid.dth
-        q1 = tuple(a + dt*b for a, b in zip(q0, k1))
+        q1 = self._q1
+        for a, b, o in zip(q0, k1, q1):
+            _rk_predictor(o, a, b, dt)
         self.set_primitive_from_conserved(q1)
         k2 = self.rhs()
         f2 = self._bflux[j0:j1].sum()*self.grid.dth
-        qn = tuple(0.5*(a + b + dt*c) for a, b, c in zip(q0, q1, k2))
+        qn = self._qn
+        for a, b, c, o in zip(q0, q1, k2, qn):
+            _rk_corrector(o, a, b, c, dt)
         self.set_primitive_from_conserved(qn)
         # 面フラックスは「流出」向きが正なので、流入分は符号を反転して積算
         self.boundary_angmom_flux += dt*0.5*(f1 + f2)

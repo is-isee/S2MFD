@@ -1286,3 +1286,41 @@ def test_magnetic_path_runs_end_to_end():
     for name in ('om1', 'vrr', 'vth', 'ro1', 'se1'):
         assert np.all(np.isfinite(getattr(sol, name))), f'{name} が有限でない'
     assert np.all(np.isfinite(bph)) and np.all(np.isfinite(aph))
+
+
+def test_step_is_bit_identical_to_numpy_reference():
+    """時間積分の njit 化が numpy 版とビット単位で一致すること.
+
+    RK2 の ``a + dt*b`` を njit ループに置き換えたが、演算順序が同じ
+    (``dt*b`` を作ってから足す) なので結果は完全に一致するはず。
+    ここが崩れると、過去の全結果と再現性がなくなる。
+    """
+    cfg = make_cfg('parameters/rempel06.py', ix=32, jx=32, dynamics='hydro')
+    grid = make_grid(cfg)
+    strat = Stratification(cfg, grid)
+    setup = S2MFD.Setup(cfg, grid)
+
+    def run(use_numpy):
+        sol = dynamic.DynamicSolver(cfg, grid, strat, setup)
+        rng = np.random.default_rng(7)
+        sol.om1[:] = 1.0e-3*cfg.om0*rng.standard_normal(sol.om1.shape)
+        sol.se1[:] = 1.0e-9*rng.standard_normal(sol.se1.shape)
+        sol.set_primitive_from_conserved(sol.conserved())
+        dt = sol.cfl_dt()
+        for _ in range(12):
+            if use_numpy:
+                q0 = sol.conserved()
+                k1 = sol.rhs()
+                q1 = tuple(a + dt*b for a, b in zip(q0, k1))
+                sol.set_primitive_from_conserved(q1)
+                k2 = sol.rhs()
+                qn = tuple(0.5*(a + b + dt*c) for a, b, c in zip(q0, q1, k2))
+                sol.set_primitive_from_conserved(qn)
+            else:
+                sol.step(dt)
+        return tuple(getattr(sol, k).copy()
+                     for k in ('ro1', 'vrr', 'vth', 'om1', 'se1'))
+
+    for a, b, name in zip(run(True), run(False),
+                          ('ro1', 'vrr', 'vth', 'om1', 'se1')):
+        assert np.array_equal(a, b), f'{name} がビット一致しない'

@@ -72,6 +72,10 @@ magnetic_buoyancy = True
 # 点を集める (sinh 写像)。対流層/放射層境界のように、領域幅に対して薄い
 # 境界層が解を支配する問題で効く。b=2.5 でタコクライン (0.05 R_sun) の
 # セル数が 17 -> 27 になり、表面は 2.2 倍粗くなる。
+# 上下境界で v_r ではなく質量フラックス rho_0 r^2 v_r を反対称にする。
+# False にすると旧来の v_r 反対称 (比較用)。
+mass_flux_bc = True
+
 grid_stretch = 0.0
 grid_stretch_center = 0.0
 grid_stretch_width = 0.0   # 0 で自動 (領域幅の 15%)

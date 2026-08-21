@@ -61,14 +61,15 @@ def _mirror_th(qq, margin, sign):
 
 
 @njit(fastmath=False)
-def apply_radial_bc(ro1, vrr, vth, om1, se1, rr, margin, om1_bottom_dirichlet):
+def apply_radial_bc(ro1, vrr, vth, om1, se1, rr, ro0, margin,
+                    om1_bottom_dirichlet, mass_flux_bc):
     """動径境界の条件を適用する (Rempel 2005 §2.6).
 
     ==========  =========================  ================================
     変数        条件                       実装
     ==========  =========================  ================================
     ``ro1``     対称                       :math:`\\rho_1` の鏡像
-    ``vrr``     閉境界 :math:`v_r=0`       反対称
+    ``vrr``     閉境界 :math:`v_r=0`       質量フラックスを反対称
     ``vth``     stress-free                :math:`v_\\theta/r` を対称にする
     ``om1``     下: 剛体回転 or stress-free  反対称 or 対称
                 上: stress-free            対称
@@ -93,8 +94,35 @@ def apply_radial_bc(ro1, vrr, vth, om1, se1, rr, margin, om1_bottom_dirichlet):
     machine precision で保存する (齋藤 2024 と同じ).
     """
     _mirror_r(ro1, margin, 1.0, 1.0)
-    _mirror_r(vrr, margin, -1.0, -1.0)
     _mirror_r(se1, margin, 1.0, 1.0)
+
+    # v_r: 反対称にするのは **速度ではなく質量フラックス**
+    # rho_0 r^2 v_r. 境界を横切る質量流束をゼロにするのが条件なので、
+    # 保存量 q_mr = r^2 sin(theta) rho_0 v_r の鏡像を取るのが正しい。
+    #
+    # v_r をそのまま反対称にすると、rho_0 が 1 セルで e^(-dr/H_p) 倍
+    # 変わる分だけ質量流束が合わなくなる。この不整合は **rho_0 の変化が
+    # 最も急な上部境界に集中**し、そこから格子スケールの境界層を生やす。
+    # 実測 (2026-08-21): v_r の 2 セル振動が境界に向かって単調に増え、
+    # 最外セルで滑らかな成分の 1.8 倍に達していた。解像度を上げても
+    # 4 次ハイパー拡散を入れても取れなかったのはこれが理由。
+    ixg, jxg = vrr.shape
+    if mass_flux_bc:
+        for k in range(margin):
+            i_in = margin + k
+            i_gh = margin - 1 - k
+            f = (ro0[i_in]*rr[i_in]*rr[i_in]
+                 / (ro0[i_gh]*rr[i_gh]*rr[i_gh]))
+            for j in range(jxg):
+                vrr[i_gh, j] = -vrr[i_in, j]*f
+            i_in = ixg - margin - 1 - k
+            i_gh = ixg - margin + k
+            f = (ro0[i_in]*rr[i_in]*rr[i_in]
+                 / (ro0[i_gh]*rr[i_gh]*rr[i_gh]))
+            for j in range(jxg):
+                vrr[i_gh, j] = -vrr[i_in, j]*f
+    else:
+        _mirror_r(vrr, margin, -1.0, -1.0)
     _mirror_r(om1, margin, -1.0 if om1_bottom_dirichlet else 1.0, 1.0)
 
     # v_theta は v_theta/r を対称にする
@@ -170,6 +198,9 @@ class DynamicSolver:
         # いるので弱くてよく、物理的な緯度平均 v_r はほぼゼロなので解を削らない。
         self.mean_diff_frac = getattr(cfg, 'mean_profile_diffusion', 0.0)
         self.consistent_advection = getattr(cfg, 'consistent_advection', False)
+        #: 上下境界で v_r ではなく **質量フラックス rho_0 r^2 v_r** を
+        #: 反対称にするか。既定 True。False にすると旧来の v_r 反対称。
+        self.mass_flux_bc = bool(getattr(cfg, 'mass_flux_bc', True))
 
         # プリミティブ変数
         self.ro1 = np.zeros(shape)
@@ -316,7 +347,8 @@ class DynamicSolver:
         self.om1[sl] = (q_om*s.iJL)[sl]
         self.se1[:] = se1
         apply_radial_bc(self.ro1, self.vrr, self.vth, self.om1, self.se1,
-                        self.grid.rr, m, self.om1_bottom_dirichlet)
+                        self.grid.rr, s.ro0, m, self.om1_bottom_dirichlet,
+                        self.mass_flux_bc)
         apply_polar_bc(self.ro1, self.vrr, self.vth, self.om1, self.se1, m)
         self.pr1[:] = s.pressure_perturbation(self.ro1, self.se1)
 
@@ -571,7 +603,7 @@ class DynamicSolver:
             artdif.sld_diffuse_primitive(
                 d, np.ascontiguousarray(fld), self.jacB_r, self.jacB_th,
                 self.iJB, self.cspB_r, self.cspB_th, self.sld_fh, self.sld_ep,
-                grid.drr, grid.dth, m, w.ffr, w.ffth)
+                grid.drr, grid.drrm, grid.dth, m, w.ffr, w.ffth)
             fld += dt*d
         return bph, aph
 

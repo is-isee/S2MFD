@@ -1250,3 +1250,39 @@ def test_optional_diffusion_paths_actually_run(opts):
         sol.step(dt)
     for name in ('om1', 'vrr', 'vth', 'ro1', 'se1'):
         assert np.all(np.isfinite(getattr(sol, name))), f'{name} が有限でない'
+
+
+def test_magnetic_path_runs_end_to_end():
+    """磁場ありの経路 (ローレンツ力・オーム散逸・磁場フィルタ) を実際に踏むこと.
+
+    ``dynamics='dynamic'`` にして磁場を入れないと、``momentum_rhs`` の
+    ローレンツ力ブロック、``add_ohmic_heating``、``magnetic_filter`` が
+    一度も実行されない。非一様格子のリファクタで ``magnetic_filter`` 内の
+    ``sld_diffuse_primitive`` に引数を渡し忘れたまま 160 テストが通って
+    しまったので、ここで塞ぐ。
+    """
+    from S2MFD.physics import poloidal_mag
+    cfg = make_cfg('parameters/rempel06.py', ix=32, jx=32, dynamics='dynamic')
+    grid = make_grid(cfg)
+    strat = Stratification(cfg, grid)
+    setup = S2MFD.Setup(cfg, grid)
+    sol = dynamic.DynamicSolver(cfg, grid, strat, setup)
+    assert sol.magnetic
+    rng = np.random.default_rng(2)
+    shape = (grid.ixg, grid.jxg)
+    bph = np.ascontiguousarray(1.0e3*np.sin(2*grid.TH)
+                               * np.exp(-((grid.RR - 0.72*cfg.RSUN)
+                                          / (0.05*cfg.RSUN))**2))
+    aph = np.ascontiguousarray(1.0*rng.standard_normal(shape))
+    pm = poloidal_mag(aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
+    sol.set_magnetic_field(pm[0], pm[1], bph)
+    sol.om1[:] = 1.0e-3*cfg.om0*np.sin(grid.TH)**2
+    sol.set_primitive_from_conserved(sol.conserved())
+    dt = sol.cfl_dt()
+    assert np.isfinite(dt) and dt > 0.0
+    for _ in range(3):
+        bph, aph = sol.magnetic_filter(bph, aph, dt)
+        sol.step(dt)
+    for name in ('om1', 'vrr', 'vth', 'ro1', 'se1'):
+        assert np.all(np.isfinite(getattr(sol, name))), f'{name} が有限でない'
+    assert np.all(np.isfinite(bph)) and np.all(np.isfinite(aph))

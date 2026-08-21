@@ -191,6 +191,12 @@ magnetic_buoyancy = True
 # 差動回転は対流層/放射層境界の動径解像度で決まる (2026-08-21 の実験で
 # 解像度依存性の 84% が動径方向だった)。ここに点を集めると効率がよい。
 # 既定は一様のままにしてある (論文の格子と揃えるため)。
+# grid_stretch は配列にすると複数箇所に同時集中できる。
+# rrmax = 0.985 RSUN のときは タコクライン + 表面 の 2 点集中が有効:
+#   grid_stretch        = [2.0, 3.0]
+#   grid_stretch_center = [0.715*RSUN, 0.985*RSUN]
+#   grid_stretch_width  = [0.05*RSUN, 0.03*RSUN]
+# これで dr/Hp が表面で 0.41 -> 0.18 になる (2026-08-21 の測定)。
 grid_stretch = 0.0
 grid_stretch_center = 0.715*RSUN
 grid_stretch_width = 0.05*RSUN

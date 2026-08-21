@@ -1324,3 +1324,108 @@ def test_step_is_bit_identical_to_numpy_reference():
     for a, b, name in zip(run(True), run(False),
                           ('ro1', 'vrr', 'vth', 'om1', 'se1')):
         assert np.array_equal(a, b), f'{name} がビット一致しない'
+
+
+# ===========================================================================
+# 境界条件の整合性
+# ===========================================================================
+def test_conservation_does_not_depend_on_ghost_cells():
+    """保存則はゴーストセルの中身に一切依存しないこと.
+
+    **これは「良い性質」の確認ではなく、「保存テストは境界条件を検証
+    できない」ことの記録である。**
+
+    ``zero_boundary_faces_r`` が境界面のフラックスをリテラル 0.0 で
+    上書きするので、テレスコープ和 ``F_N - F_0`` は両端が厳密にゼロに
+    なり、ゴーストに何が入っていても総和は変わらない。
+
+    したがって「質量が machine precision で保存している」ことは
+    **境界条件が正しいことを何も意味しない**。実際、v_r をそのまま
+    反対称にしていた頃は、ゴーストから作った境界面の質量流束が 10% も
+    残っていた (それを 0 で潰していた)。
+
+    境界条件の整合性は
+    :func:`test_mass_flux_bc_makes_boundary_face_flux_vanish` で別に見る。
+    """
+    def run(wreck):
+        cfg = make_cfg('parameters/rempel06.py', ix=32, jx=32,
+                       dynamics='hydro', angmom_bottom_bc='stress_free')
+        grid = make_grid(cfg)
+        strat = Stratification(cfg, grid)
+        setup = S2MFD.Setup(cfg, grid)
+        sol = dynamic.DynamicSolver(cfg, grid, strat, setup)
+        m = grid.margin
+        rng = np.random.default_rng(3)
+        sol.om1[:] = 1.0e-3*cfg.om0*np.sin(2*grid.TH)
+        sol.vrr[:] = 1.0e2*rng.standard_normal(sol.vrr.shape)
+        sol.set_primitive_from_conserved(sol.conserved())
+        z2 = strat.zeta**2
+        m0 = cons.cell_integral(strat.JM*sol.ro1*z2[:, None],
+                                grid.drr, grid.dth, m)
+        l0 = cons.cell_integral(strat.JL*sol.om1, grid.drr, grid.dth, m)
+        sm = cons.cell_integral(np.abs(strat.JM*strat.ro0[:, None]),
+                                grid.drr, grid.dth, m)
+        sl_ = cons.cell_integral(np.abs(strat.JL*cfg.om0),
+                                 grid.drr, grid.dth, m)
+        dt = sol.cfl_dt()
+        for _ in range(60):
+            sol.step(dt)
+            if wreck:
+                # ゴーストセルを毎ステップ「物理的にありえない」値で潰す
+                sol.vrr[:m, :] = 1.0e4*rng.standard_normal((m, grid.jxg))
+                sol.vrr[grid.ixg - m:, :] = 1.0e4*rng.standard_normal(
+                    (m, grid.jxg))
+                sol.om1[:m, :] = 1.0e-2*cfg.om0
+                sol.om1[grid.ixg - m:, :] = 1.0e-2*cfg.om0
+        mm = cons.cell_integral(strat.JM*sol.ro1*z2[:, None],
+                                grid.drr, grid.dth, m)
+        ll = cons.cell_integral(strat.JL*sol.om1, grid.drr, grid.dth, m)
+        return abs(mm - m0)/sm, abs(ll - l0)/sl_
+
+    clean = run(False)
+    wrecked = run(True)
+    for a, b, name in zip(clean, wrecked, ('質量', '角運動量')):
+        assert a < 1e-15, f'{name}が保存していない (通常時): {a:.2e}'
+        assert b < 1e-15, (
+            f'{name}がゴースト破壊時に保存していない: {b:.2e}\n'
+            'zero_boundary_faces が効いていない可能性がある')
+
+
+@pytest.mark.parametrize('mass_flux_bc,expect_small', [(False, False),
+                                                       (True, True)])
+def test_mass_flux_bc_makes_boundary_face_flux_vanish(mass_flux_bc,
+                                                      expect_small):
+    """境界面の質量流束が、ゴーストから作った時点でゼロになること.
+
+    保存はフラックスを 0.0 で潰すことで担保されているので、ゴーストが
+    整合していなくても保存テストは通ってしまう。ここでは **潰す前の値**
+    を直接見て、境界条件がそれ自体で整合しているかを測る。
+
+    ``JV = r^2 sin(theta) rho_0`` なので、ゴーストを
+    ``v[m-1] = -v[m] rho_0[m] r[m]^2 / (rho_0[m-1] r[m-1]^2)`` と置くと
+    ``JV[m-1] v[m-1] = -JV[m] v[m]`` となり面平均が厳密にゼロになる。
+    v_r をそのまま反対称にすると、rho_0 の 1 セル分の変化だけずれる。
+    """
+    cfg = make_cfg('parameters/rempel06.py', ix=48, jx=48, dynamics='hydro',
+                   mass_flux_bc=mass_flux_bc)
+    grid = make_grid(cfg)
+    strat = Stratification(cfg, grid)
+    setup = S2MFD.Setup(cfg, grid)
+    sol = dynamic.DynamicSolver(cfg, grid, strat, setup)
+    m = grid.margin
+    sol.vrr[:] = 1.0e2*np.cos(grid.TH)*np.exp(
+        -((grid.RR - 0.85*cfg.RSUN)/(0.1*cfg.RSUN))**2)
+    sol.set_primitive_from_conserved(sol.conserved())
+    j = grid.jxg//2
+    worst = 0.0
+    for i in (m, grid.ixg - m):          # 下端と上端の境界面
+        w = grid.wfm[i]
+        face = (w*strat.JV[i - 1, j]*sol.vrr[i - 1, j]
+                + (1.0 - w)*strat.JV[i, j]*sol.vrr[i, j])
+        scale = abs(strat.JV[i - 1, j]*sol.vrr[i - 1, j]) + 1e-300
+        worst = max(worst, abs(face)/scale)
+    if expect_small:
+        assert worst < 1e-14, f'質量流束が境界面で消えていない: {worst:.2e}'
+    else:
+        # 旧来の v_r 反対称では有意に残る (この不整合が境界層を作る)
+        assert worst > 1e-3, f'旧BCなのに不整合が小さい: {worst:.2e}'

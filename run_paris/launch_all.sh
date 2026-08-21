@@ -13,15 +13,19 @@ run () {  # tag years nx ny extra...
       "$@" > results_rempel/$tag.log 2>&1 < /dev/null &
   echo "  $tag (pid $!)"
 }
+# 安全率は von Neumann の中立点 S0 以下に取る (線形安定に走らせる)。
+#   cs <= 0.15 -> S0 = 0.314    (危険モードが 4-8 セルで SLD が効かない)
+#   cs = 0.20  -> S0 = 0.394
+#   cs = 0.30  -> S0 = 0.531
 echo "本ラン (40 年):"
-run relax_cs030 40 108 72 sld_cs_factor=0.30
-run relax_cs010 40 108 72 sld_cs_factor=0.10
+run relax_cs030 40 108 72 sld_cs_factor=0.30 cfl_safety=0.50
+run relax_cs010 40 108 72 sld_cs_factor=0.10 cfl_safety=0.30
 echo "人工拡散スキャン (25 年):"
-run cs002 25 108 72 sld_cs_factor=0.02
-run cs005 25 108 72 sld_cs_factor=0.05
-run cs015 25 108 72 sld_cs_factor=0.15
-run cs020 25 108 72 sld_cs_factor=0.20
+run cs002 25 108 72 sld_cs_factor=0.02 cfl_safety=0.30
+run cs005 25 108 72 sld_cs_factor=0.05 cfl_safety=0.30
+run cs015 25 108 72 sld_cs_factor=0.15 cfl_safety=0.30
+run cs020 25 108 72 sld_cs_factor=0.20 cfl_safety=0.38
 echo "解像度スキャン (25 年, cs_factor=0.10):"
-run res72x48   25 72  48 sld_cs_factor=0.10
-run res144x96  25 144 96 sld_cs_factor=0.10
-run res216x144 25 216 144 sld_cs_factor=0.10
+run res72x48   25 72  48 sld_cs_factor=0.10 cfl_safety=0.30
+run res144x96  25 144 96 sld_cs_factor=0.10 cfl_safety=0.30
+run res216x144 25 216 144 sld_cs_factor=0.10 cfl_safety=0.30

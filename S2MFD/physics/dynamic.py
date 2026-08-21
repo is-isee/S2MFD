@@ -28,7 +28,7 @@ import warnings
 import numpy as np
 from numba import njit
 
-from S2MFD.physics import hydro, artdif
+from S2MFD.physics import hydro, artdif, stability
 from S2MFD.physics import conservative as cons
 
 __all__ = ['DynamicSolver', 'apply_radial_bc', 'apply_polar_bc']
@@ -684,6 +684,31 @@ class DynamicSolver:
         thmax = getattr(self.cfg, 'thmax', np.pi)
         return abs(thmax - 0.5*np.pi) > 1.0e-9
 
+    def linear_stability(self, dt=None):
+        """現在の設定での max ln|G| と最悪半径を返す.
+
+        0 以下なら線形安定. 正なら非線形リミタの助けに頼っている
+        (:mod:`S2MFD.physics.stability` の docstring 参照).
+        """
+        if dt is None:
+            dt = self.cfl_dt()
+        return stability.max_log_growth(self.cfg, self.grid, self.strat,
+                                        self.setup, dt)
+
+    def neutral_cfl_safety(self):
+        """線形安定に保てる ``cfl_safety`` の上限を返す."""
+        cfg = self.cfg
+        saved = getattr(cfg, 'cfl_safety', 0.2)
+
+        def dt_of(S):
+            cfg.cfl_safety = S
+            return self.cfl_dt()
+        try:
+            return stability.neutral_cfl_safety(cfg, self.grid, self.strat,
+                                                self.setup, dt_of)
+        finally:
+            cfg.cfl_safety = saved
+
     def cfl_dt(self):
         """CFL 条件から許容タイムステップを返す.
 
@@ -727,7 +752,41 @@ class DynamicSolver:
         if self.magnetic:
             kappa_max = max(kappa_max,
                             float(np.max(st.et)) + k_sld_b)    # 誘導
-        return hydro.cfl_dt(self.vrr, self.vth, self.brr, self.bth, self.bph,
-                            s.ro0, self.ro1, s.cs_eff, self.grid.rr,
-                            self.grid.drr, self.grid.dth, kappa_max, self.m,
-                            getattr(cfg, 'cfl_safety', 0.2), self.magnetic)
+        dt = hydro.cfl_dt(self.vrr, self.vth, self.brr, self.bth, self.bph,
+                          s.ro0, self.ro1, s.cs_eff, self.grid.rr,
+                          self.grid.drr, self.grid.dth, kappa_max, self.m,
+                          getattr(cfg, 'cfl_safety', 0.2), self.magnetic)
+        self._warn_if_linearly_unstable(dt)
+        return dt
+
+    def _warn_if_linearly_unstable(self, dt):
+        """線形不安定な設定なら 1 度だけ警告する.
+
+        中央差分 + SSP-RK2 は拡散がないと**無条件不安定**なので、人工拡散を
+        弱めたまま安全率を上げると非線形リミタの助けに頼ることになる
+        (:mod:`S2MFD.physics.stability` の docstring 参照)。
+        """
+        if getattr(self, '_stability_checked', False):
+            return
+        self._stability_checked = True
+        if not self.use_artdif:
+            return
+        cfg = self.cfg
+        try:
+            g, r = self.linear_stability(dt)
+        except Exception:                     # 診断なので失敗しても止めない
+            return
+        if g <= 0.0:
+            return
+        try:
+            S0 = self.neutral_cfl_safety()
+        except Exception:
+            S0 = float('nan')
+        warnings.warn(
+            f"線形不安定な設定です (max ln|G| = {g:+.2e}, 最悪半径 {r:.4f} R)。"
+            f"sld_cs_factor={getattr(cfg, 'sld_cs_factor', 0.3)} なら "
+            f"cfl_safety <= {S0:.3f} にしてください "
+            f"(現在 {getattr(cfg, 'cfl_safety', 0.2)})。"
+            "中央差分 + SSP-RK2 は拡散がないと無条件不安定なので、"
+            "人工拡散を弱めるときは安全率も下げる必要があります。",
+            UserWarning, stacklevel=3)

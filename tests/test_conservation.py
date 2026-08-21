@@ -1675,3 +1675,59 @@ class TestDiffusiveCFLUsesSum:
         assert hi / lo < 1.02, (
             "拡散律速の範囲で余裕がばらついている: "
             + ", ".join(f"{k}:{v:.2f}" for k, v in sorted(margins.items())))
+
+
+class TestLinearStability:
+    """von Neumann 解析 (中央差分 + SSP-RK2 は拡散がないと無条件不安定)。"""
+
+    def _solver(self, cs, S):
+        import S2MFD
+        from S2MFD.stratification import Stratification
+        from S2MFD.physics.dynamic import DynamicSolver
+        cfg = make_cfg('parameters/rempel06_paper.py', ix=108, jx=72,
+                       sld_cs_factor=cs, cfl_safety=S)
+        grid = make_grid(cfg)
+        strat = Stratification(cfg, grid)
+        setup = S2MFD.Setup(cfg, grid)
+        sol = DynamicSolver(cfg, grid, strat, setup)
+        sol.set_primitive_from_conserved(sol.conserved())
+        return sol
+
+    def test_sld_ignores_long_wavelengths(self):
+        """SLD は 6 セル以上の波長を見ない (設計どおり滑らかな解を削らない)。
+
+        裏を返すと 4-8 セルのモードを抑えるのは物理拡散だけになる。
+        """
+        from S2MFD.physics.stability import sld_wavenumber_response
+        th, resp = sld_wavenumber_response()
+        def at(L): return resp[np.argmin(abs(th - 2*np.pi/L))]
+        assert at(2) == pytest.approx(1.0, abs=1e-3)
+        assert at(3) > 0.5
+        assert at(4) < 0.2
+        assert at(6) < 1e-3
+        assert at(8) < 1e-6
+
+    def test_neutral_safety_grows_with_artificial_diffusion(self):
+        """人工拡散を強くすると許される安全率が上がる。
+
+        cs <= 0.10 では最悪半径 (0.71 R) の危険モードが 4-8 セルにあり、
+        そこは SLD が効かないので S0 が cs によらず一定になる。
+        """
+        S0 = {cs: self._solver(cs, 0.5).neutral_cfl_safety()
+              for cs in (0.05, 0.10, 0.20, 0.30, 0.50)}
+        assert S0[0.05] == pytest.approx(S0[0.10], rel=0.02), \
+            f"SLD が効かない領域では S0 は cs によらないはず: {S0}"
+        assert S0[0.10] < S0[0.20] < S0[0.30] < S0[0.50], f"単調でない: {S0}"
+
+    def test_default_safety_is_linearly_stable_at_default_diffusion(self):
+        """既定 (cs=0.30, S=0.5) は線形安定であること。"""
+        g, _ = self._solver(0.30, 0.5).linear_stability()
+        assert g <= 0.0, f"既定設定が線形不安定 (max ln|G| = {g:.2e})"
+
+    def test_weak_diffusion_at_default_safety_is_flagged(self):
+        """人工拡散を弱めたまま S=0.5 で走らせると線形不安定になる (記録)。
+
+        実測でも cs=0.05 は発散し、cs=0.10 は 121 m/s まで跳ねて回復した。
+        """
+        g, _ = self._solver(0.05, 0.5).linear_stability()
+        assert g > 0.0

@@ -1217,3 +1217,36 @@ def test_sld_stays_off_for_linear_field_on_stretched_grid():
     amp = np.abs(lin).max()
     assert np.abs(out[m + 1:grid.ixg - m, :]).max() < 1e-12*amp*1.0e5, (
         '伸縮格子で線形場に人工拡散が乗っている')
+
+
+@pytest.mark.parametrize('opts', [
+    {'hyper_h4': 0.05},
+    {'mean_profile_diffusion': 0.02},
+    {'hyper_h4': 0.05, 'mean_profile_diffusion': 0.02},
+])
+def test_optional_diffusion_paths_actually_run(opts):
+    """既定オフのハイパー拡散・緯度平均拡散を実際に踏むこと.
+
+    これらは ``cfg`` で有効にしないと一度も実行されないので、引数の
+    数を間違えても通常のテストでは気づけない (実際、非一様格子の
+    リファクタで ``hyper_diffuse_r`` に余計な引数を渡したまま
+    157 テストが通ってしまった)。ここで両方のパスを 1 ステップ以上
+    走らせて、呼び出し規約が合っていることと解が有限であることを見る。
+    """
+    cfg = make_cfg('parameters/rempel06.py', ix=32, jx=32, dynamics='hydro',
+                   **opts)
+    grid = make_grid(cfg)
+    strat = Stratification(cfg, grid)
+    setup = S2MFD.Setup(cfg, grid)
+    sol = dynamic.DynamicSolver(cfg, grid, strat, setup)
+    assert sol.hyper_h4 == opts.get('hyper_h4', 0.0)
+    assert sol.mean_diff_frac == opts.get('mean_profile_diffusion', 0.0)
+    rng = np.random.default_rng(0)
+    sol.om1[:] = 1.0e-4*cfg.om0*rng.standard_normal(sol.om1.shape)
+    sol.vrr[:] = 1.0e2*rng.standard_normal(sol.vrr.shape)
+    sol.set_primitive_from_conserved(sol.conserved())
+    dt = sol.cfl_dt()
+    for _ in range(5):
+        sol.step(dt)
+    for name in ('om1', 'vrr', 'vth', 'ro1', 'se1'):
+        assert np.all(np.isfinite(getattr(sol, name))), f'{name} が有限でない'

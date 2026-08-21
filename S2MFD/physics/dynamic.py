@@ -436,7 +436,7 @@ class DynamicSolver:
             if self.hyper_h4 > 0.0:
                 artdif.hyper_diffuse_r(ds_mr, self.vrr, self.jacV_r,
                                        self.vadv_r, self.hyper_h4,
-                                       grid.drr, grid.drrm, grid.dth, m, w.ffr, w.ffth)
+                                       grid.drr, grid.dth, m, w.ffr, w.ffth)
                 artdif.hyper_diffuse_r_primitive(
                     dse1, self.se1, self.jacM_r, self.iJM, self.vadv_r,
                     self.hyper_h4, grid.drr, m, w.ffr)

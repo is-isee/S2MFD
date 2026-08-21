@@ -1614,3 +1614,64 @@ class TestHemisphereEquivalence:
             else:
                 assert d > 0.0, "margin=1 でも一致してしまった (期待と違う)"
 
+
+
+class TestDiffusiveCFLUsesSum:
+    """拡散 CFL は物理拡散と人工拡散の**和**で決めなければならない。
+
+    運動量方程式には ``viscous_meridional_rhs`` の nu_dif と
+    ``sld_diffuse_meridional`` の人工拡散が**同時に**効くので、実効拡散係数は
+    その和になる。``max`` で取ると過小評価になり、両者が同程度の大きさに
+    なる領域 (sld_cs_factor ~ 0.2) で安定余裕が落ちる。
+
+    実測 (論文設定 108x72): sld_cs_factor = 0.20 だけが発散し、より拡散の
+    弱い 0.15 と強い 0.30 は安定という非単調な結果になっていた。
+    dt を決める制約が cs <= 0.2 では音波、cs >= 0.3 では SLD 拡散に
+    切り替わるため、安定余裕が 0.20 で最小になっていたのが原因。
+    """
+
+    def _margin(self, cs):
+        """生の拡散安定限界 / 採用 dt を返す (大きいほど余裕がある)。"""
+        import S2MFD
+        from S2MFD.stratification import Stratification
+        from S2MFD.physics import artdif
+        from S2MFD.physics.dynamic import DynamicSolver
+        cfg = make_cfg('parameters/rempel06_paper.py', ix=108, jx=72,
+                       sld_cs_factor=cs)
+        grid = make_grid(cfg)
+        strat = Stratification(cfg, grid)
+        setup = S2MFD.Setup(cfg, grid)
+        sol = DynamicSolver(cfg, grid, strat, setup)
+        sol.set_primitive_from_conserved(sol.conserved())
+        sol._update_characteristic_speed()
+        m = grid.margin
+        kS = artdif.sld_diffusivity_max(sol.csp_r, sol.csp_th,
+                                        grid.drr, grid.dth, grid.rr, m)
+        k_sum = float(np.max(setup.nu_dif)) + kS
+        dr = grid.drr[m:grid.ixg - m]
+        rdth = grid.rr[m:grid.ixg - m] * grid.dth
+        raw = (1.0 / (1.0 / dr ** 2 + 1.0 / rdth ** 2)).min() / (2.0 * k_sum)
+        return raw / sol.cfl_dt()
+
+    def test_margin_never_falls_below_the_safety_factor(self):
+        """どの sld_cs_factor でも安全率どおりの余裕が残ること。
+
+        cfl_safety = 0.5 なら、生の拡散限界に対して 1/0.5 = 2 倍の余裕が
+        あるはず (2 次元補正で 0.92-1.0 倍されるので下限は ~1.9)。
+
+        和ではなく max で取っていたときは 0.20 で 1.46 まで落ち、実際に
+        発散していた。和にすると拡散が律速の範囲 (0.15-0.50) で 1.99 に
+        揃う。0.10 以下は音波 CFL が先に効くので余裕はさらに大きくなる
+        (より安全側なので問題ない)。
+        """
+        margins = {cs: self._margin(cs) for cs in (0.05, 0.10, 0.15, 0.20, 0.30, 0.50)}
+        detail = ", ".join(f"{k}:{v:.2f}" for k, v in sorted(margins.items()))
+        assert min(margins.values()) >= 1.9, f"拡散 CFL の余裕が足りない: {detail}"
+
+    def test_diffusion_limited_range_is_uniform(self):
+        """拡散が律速の範囲では余裕が一定になること。"""
+        margins = {cs: self._margin(cs) for cs in (0.15, 0.20, 0.30, 0.50)}
+        lo, hi = min(margins.values()), max(margins.values())
+        assert hi / lo < 1.02, (
+            "拡散律速の範囲で余裕がばらついている: "
+            + ", ".join(f"{k}:{v:.2f}" for k, v in sorted(margins.items())))

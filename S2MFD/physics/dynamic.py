@@ -685,17 +685,48 @@ class DynamicSolver:
         return abs(thmax - 0.5*np.pi) > 1.0e-9
 
     def cfl_dt(self):
-        """CFL 条件から許容タイムステップを返す."""
+        """CFL 条件から許容タイムステップを返す.
+
+        拡散の安定条件は「方程式ごとに、その方程式に効く拡散係数を**足して**
+        から、方程式間で max を取る」
+        -------------------------------------------------------------------
+        運動量方程式には :func:`~S2MFD.physics.hydro.viscous_meridional_rhs`
+        の :math:`\\nu_{\\rm dif}` と
+        :func:`~S2MFD.physics.artdif.sld_diffuse_meridional` の人工拡散が
+        **同じステップで同時に**効くので, 実効拡散係数はその**和**になる.
+        エントロピーは :math:`\\kappa_t` + 人工拡散, 誘導方程式は
+        :math:`\\eta_t` + 磁場フィルタの人工拡散.
+
+        全部まとめて ``max`` を取ると過小評価になり, 物理拡散と人工拡散が
+        同程度の大きさになる領域で安定余裕が落ちる. 実測 (論文設定 108x72)
+        では ``sld_cs_factor = 0.20`` だけが発散し, より拡散の弱い 0.15 と
+        強い 0.30 は安定という非単調な結果になっていた. dt を決める制約が
+        cs <= 0.2 では音波, cs >= 0.3 では SLD 拡散に切り替わるため, 安全
+        余裕が 0.20 で最小になっていたのが原因
+        (``doc/dev_records/2026-08-22_cfl_safety_vs_artdif.md``).
+
+        磁場フィルタの特性速度は**流れだけ**なので (音速もアルヴェン速度も
+        入れない — :meth:`magnetic_filter` 参照), 誘導方程式側の人工拡散は
+        流体側より小さくなる. 別々に評価する.
+        """
         cfg, s, st = self.cfg, self.strat, self.setup
-        kappa_max = max(float(np.max(st.nu_dif)), float(np.max(st.kappa_t)))
-        if self.magnetic:
-            kappa_max = max(kappa_max, float(np.max(st.et)))
+        k_sld = k_sld_b = 0.0
         if self.use_artdif:
             # 人工拡散も陽解法なので安定条件に入れる
             self._update_characteristic_speed()
-            kappa_max = max(kappa_max, artdif.sld_diffusivity_max(
+            k_sld = artdif.sld_diffusivity_max(
                 self.csp_r, self.csp_th,
-                self.grid.drr, self.grid.dth, self.grid.rr, self.m))
+                self.grid.drr, self.grid.dth, self.grid.rr, self.m)
+            if self.magnetic:
+                k_sld_b = artdif.sld_diffusivity_max(
+                    self.cspB_r, self.cspB_th,
+                    self.grid.drr, self.grid.dth, self.grid.rr, self.m)
+        # 方程式ごとに和を取ってから max
+        kappa_max = max(float(np.max(st.nu_dif)) + k_sld,      # 運動量
+                        float(np.max(st.kappa_t)) + k_sld)     # エントロピー
+        if self.magnetic:
+            kappa_max = max(kappa_max,
+                            float(np.max(st.et)) + k_sld_b)    # 誘導
         return hydro.cfl_dt(self.vrr, self.vth, self.brr, self.bth, self.bph,
                             s.ro0, self.ro1, s.cs_eff, self.grid.rr,
                             self.grid.drr, self.grid.dth, kappa_max, self.m,

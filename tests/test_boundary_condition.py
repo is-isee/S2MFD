@@ -140,3 +140,97 @@ class TestEquatorBC:
             q[:, m:jxg - m] = np.arange(1, jxg - 2 * m + 1)
             _mirror_th(q, m, sign)
             assert np.allclose(q[:, -1], sign * q[:, -2])
+
+
+class TestCornerGhosts:
+    """4 隅のゴーストも埋めること。
+
+    ``boundary_condition`` の緯度ループは長く
+    ``rows = margin:ixg-margin`` に限定されていたため、**4 隅が一度も
+    書かれず**古い値が残っていた (実測で 9 T、物理セルの最大は 1.5 T)。
+
+    5 点ステンシルは角を参照しないので一見無害に見えるが、実測すると
+    3 ステップ後の v_theta が相対 4.2e-4 変わる。ローレンツ力や人工拡散が
+    動径ゴースト経由で角の情報を拾うため。
+
+    流体側 (``_mirror_r`` / ``_mirror_th``) は全 i / 全 j を走るので
+    角も埋まる。磁場側だけの問題だった。
+
+    正しい角の値は「動径の鏡像符号 x 緯度の鏡像符号 x 対角の物理セル」。
+    動径パスを先に (物理 j の範囲で) かけ、緯度パスを**全 i** でかければ
+    自動的にそうなる。
+    """
+
+    def _apply(self, **over):
+        cfg = make_cfg(ix=16, jx=16, boundary_condition_type='vertical', **over)
+        grid = make_grid(cfg)
+        Bph, Aph = _random_fields(grid)
+        return cfg, grid, boundary_condition(Bph.copy(), Aph.copy(), cfg, grid, None)
+
+    def test_corners_are_filled(self):
+        """角が「動径符号 x 緯度符号 x 対角の物理セル」になること。"""
+        cfg, grid, (Bph, Aph) = self._apply()
+        m = grid.margin
+        # 'vertical' の上端: Bph 反対称、下端: Aph 反対称。緯度は両端とも
+        # 極なので Bph も Aph も反対称。したがって角は (-1)*(-1) = +1 倍。
+        # 下端 x 極側の角 (i=0, j=0) は 物理セル (2m-1, 2m-1) の
+        #   Aph: (-1)*(-1) = +1、Bph: (+r 比)*(-1)
+        assert np.isclose(Aph[0, 0], Aph[2*m-1, 2*m-1]), \
+            "下端x極 の角が埋まっていない"
+        assert np.isclose(Aph[0, -1], Aph[2*m-1, grid.jxg-2*m]), \
+            "下端x反対側 の角が埋まっていない"
+        # 上端は d(r A)/dr = 0 なので r*A が保たれ (符号 +1)、極で -1 倍。
+        assert np.isclose(Aph[-1, 0] * grid.rr[-1],
+                          -Aph[grid.ixg-2*m, 2*m-1] * grid.rr[grid.ixg-2*m]), \
+            "上端x極 の角が埋まっていない"
+
+    def test_solution_does_not_depend_on_stale_corners(self):
+        """角に何が入っていても、境界条件を通せば同じ結果になること。"""
+        cfg = make_cfg(ix=16, jx=16, boundary_condition_type='vertical')
+        grid = make_grid(cfg)
+        m = grid.margin
+        base_B, base_A = _random_fields(grid)
+        out = []
+        for poison in (0.0, 1.0e6):
+            B, A = base_B.copy(), base_A.copy()
+            for a in (B, A):
+                a[:m, :m] = poison; a[:m, -m:] = poison
+                a[-m:, :m] = poison; a[-m:, -m:] = poison
+            out.append(boundary_condition(B, A, cfg, grid, None))
+        assert np.array_equal(out[0][0], out[1][0]), "Bph が角の初期値に依存する"
+        assert np.array_equal(out[0][1], out[1][1]), "Aph が角の初期値に依存する"
+
+
+class TestBCImplementationsAgree:
+    """磁場の境界条件は 2 箇所に重複実装されている。食い違わせないこと。
+
+    * ``S2MFD/physics/boundary_condition.py`` — Python 版。DynamicSolver と
+      Rempel 2006 のドライバ (dynamo7.py) が使う。
+    * ``S2MFD/physics/stepping.py`` の njit ``bc`` — numba バッチ経路
+      ``advance_to`` 用。既存の運動学的ダイナモが使う。
+
+    2026-08-23 に前者だけ角ゴーストの修正を入れたところ、
+    test_kernel_equivalence の「バッチと手動ループが一致すること」が
+    **角セルだけで**落ちた (物理セルは厳密一致)。どちらかを触ったら
+    必ずもう一方も直すこと。このテストはその見張り。
+    """
+
+    @pytest.mark.parametrize('bc_type', ['vertical', 'potential'])
+    def test_two_implementations_give_same_ghosts(self, bc_type):
+        from S2MFD.physics.stepping import _make_bc, BC_CODE
+        cfg = make_cfg(ix=16, jx=16, boundary_condition_type=bc_type)
+        grid = make_grid(cfg)
+        legendre = S2MFD.Legendre(grid) if bc_type == 'potential' else None
+        B0, A0 = _random_fields(grid, seed=3)
+
+        Bp, Ap = boundary_condition(B0.copy(), A0.copy(), cfg, grid, legendre)
+
+        bc = _make_bc(BC_CODE[bc_type])
+        op = (legendre.potential_operator if legendre is not None
+              else np.zeros((grid.margin, 1, 1)))
+        Bn, An = bc(B0.copy(), A0.copy(), grid.rr, grid.margin, op)
+
+        assert np.allclose(Bp, Bn, rtol=1e-12, atol=0), \
+            f"{bc_type}: Bph のゴーストが 2 実装で違う"
+        assert np.allclose(Ap, An, rtol=1e-12, atol=0), \
+            f"{bc_type}: Aph のゴーストが 2 実装で違う"

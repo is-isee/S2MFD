@@ -57,8 +57,23 @@ def _make_bc(bc_code):
                 Bph[i, j] = Bph[2*margin-i-1, j]/rr[i]*rr[2*margin-i-1]
 
         # 極 (θ=0, π): 反対称
+        #
+        # **i は全域を走る (動径のゴーストも含む)。**
+        # 長く range(margin, ixg-margin) に限定していたため、動径と緯度の
+        # 両方がゴーストになる **4 隅が一度も書かれず**古い値が残っていた。
+        # 動径パスを先に (物理 j の範囲で) かけてあるので、ここで全 i を
+        # 走れば角は「動径の鏡像符号 x 緯度の鏡像符号 x 対角の物理セル」に
+        # 落ち着く。
+        #
+        # ここは ``S2MFD/physics/boundary_condition.py`` の同じ処理の**重複
+        # 実装**である (こちらは numba バッチ経路 advance_to 用)。片方だけ
+        # 直すと 2 つの経路で角の値が食い違う。実際 2026-08-23 に
+        # boundary_condition.py だけ直したところ、
+        # test_kernel_equivalence の「バッチと手動ループが一致すること」が
+        # 角セルだけで落ちた (物理セルは厳密一致していた)。
+        # **どちらかを触ったら必ずもう一方も直すこと。**
         for j in range(margin):
-            for i in range(margin, ixg - margin):
+            for i in range(ixg):
                 Bph[i, j] = -Bph[i, 2*margin-j-1]
                 Aph[i, j] = -Aph[i, 2*margin-j-1]
                 Bph[i, jxg-j-1] = -Bph[i, jxg-2*margin+j]

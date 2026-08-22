@@ -92,7 +92,19 @@ def boundary_condition(Bph, Aph, cfg, grid, legendre):
    # 上端が赤道かどうかは thmax で決まる (theta = pi/2 が赤道)。
    # cfg.equator_top_bc を明示すれば上書きできる。
    aph_top_sign = -1.0 if _pole_at_top(cfg, grid) else +1.0
-   rows = slice(grid.margin, grid.ixg-grid.margin)
+   # **全 i を走る (動径のゴーストも含む)。**
+   # 長く rows = margin:ixg-margin に限定していたため、動径と緯度の両方が
+   # ゴーストになる **4 隅が一度も書かれず**、古い値が残っていた
+   # (実測 9 T、物理セルの最大は 1.5 T)。5 点ステンシルは角を参照しないので
+   # 一見無害だが、ローレンツ力や人工拡散が動径ゴースト経由で角の情報を拾う
+   # ため、3 ステップ後の v_theta が相対 4.2e-4 変わることを実測した。
+   #
+   # 動径パスを先に (物理 j の範囲で) かけてあるので、ここで全 i を走れば
+   # 角は「動径の鏡像符号 x 緯度の鏡像符号 x 対角の物理セル」に落ち着く。
+   # 流体側の _mirror_r / _mirror_th はもともと全 i / 全 j を走っており、
+   # 角も埋まっていた。磁場側だけの問題だった。
+   # 検証: tests/test_boundary_condition.py の TestCornerGhosts
+   rows = slice(None)
    for j in range(0, grid.margin):
       # 下端 (theta = thmin) は常に極
       Bph[rows,j]  = -Bph[rows,2*grid.margin-j-1]

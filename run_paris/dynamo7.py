@@ -50,6 +50,9 @@ th=grid.th[m:grid.jxg-m]; rr=grid.rr[m:grid.ixg-m]
 eq=np.argmin(abs(th-np.pi/2)); po=0
 i735=np.argmin(abs(rr-0.735*cfg.RSUN)); isurf=len(rr)-1
 lat60=np.argmin(abs(th-np.radians(30)))   # 緯度60度 = 余緯度30度
+# hist の列: 0=t 1=|Bph|max 2=|Br|surf 3=Bph@0.735eq 4=DR
+#   5=dOm(pole) 6=dOm(lat60) 7=E_B 8=Om1(pole)raw 9=Om1(lat60)raw
+#   10 以降が QKEYS
 QKEYS=['Q_Lambda','Q_nu_Omega','Q_C','Q_L_Omega','Q_nu_M','Q_B','Q_L_M','Q_eta']
 
 print(f"[{tag}] alpha_quenching={getattr(cfg,'alpha_quenching',True)} "
@@ -94,6 +97,14 @@ for n in range(1,ns+1):
 np.savez(f'{outdir}/relaxed.npz', om1=sol.om1, vrr=sol.vrr, vth=sol.vth,
          ro1=sol.ro1, se1=sol.se1, t=t)
 
+# 磁場の初期値。init に Bph/Aph が入っていればそこから**再開**する
+# (final_state.npz を渡せば続きが回せる)。入っていなければ種磁場から始める。
+_resume = None
+if init:
+    _d = np.load(init)
+    if 'Bph' in _d and 'Aph' in _d:
+        _resume = _d
+
 # --- トーショナル振動の基準 Omega_bar ---------------------------------------
 # Rempel (2006) 表 1 の量は max(Omega - Omega_bar) で、Omega_bar は**時間平均**
 # (表 1 の注: "The maximum of Omega - Omega_bar and B_r is evaluated at
@@ -102,16 +113,26 @@ np.savez(f'{outdir}/relaxed.npz', om1=sol.om1, vrr=sol.vrr, vth=sol.vth,
 # **永年的な減少**(表 1: 0.27 -> 0.21 -> 0.15 -> 0.10)がそのまま
 # 「振動振幅」として計上され、一桁過大になる。
 # ここでは指数移動平均で走る時間平均を作る。時定数は 1 サイクル (18 年)。
-om_bar = sol.om1.copy()
+om_bar = (np.ascontiguousarray(_resume['om_bar'])
+          if (_resume is not None and 'om_bar' in _resume) else sol.om1.copy())
 om_bar_tau = om_bar_tau_yr*3.156e7
 
 # --- 第2段階: 磁場を入れてダイナモ ----------------------------------------
 sol.magnetic = not kinematic
 legendre=S2MFD.Legendre(cfg,grid) if cfg.boundary_condition_type=='potential' else None
-prof=np.exp(-((grid.RR-0.72*cfg.RSUN)/(0.05*cfg.RSUN))**2)
-bseed=float(bseed_arg)
-Bph=np.ascontiguousarray(bseed*prof*np.sin(2*grid.TH))  # 種磁場 [G]
-Aph=np.zeros_like(Bph)
+if _resume is not None:
+    Bph = np.ascontiguousarray(_resume['Bph'])
+    Aph = np.ascontiguousarray(_resume['Aph'])
+    # 表示は物理セルだけで取る。ゴーストの**角**セルは境界条件のループが
+    # 書かないので古い値が残っており (実測 9 T)、全体の max を出すと誤解する。
+    # ステンシルは角を使わないので実害はない。
+    print(f"[{tag}] 磁場も {init} から再開 "
+          f"(max|Bph|={np.abs(Bph[sl]).max()*1e-4:.4f}T)", flush=True)
+else:
+    prof=np.exp(-((grid.RR-0.72*cfg.RSUN)/(0.05*cfg.RSUN))**2)
+    bseed=float(bseed_arg)
+    Bph=np.ascontiguousarray(bseed*prof*np.sin(2*grid.TH))  # 種磁場 [G]
+    Aph=np.zeros_like(Bph)
 sol.sync_to_induction()
 pm=poloidal_mag(Aph,grid.RR,grid.sinTH,grid.drr,grid.dth)
 sol.set_magnetic_field(pm[0],pm[1],Bph)
@@ -138,7 +159,11 @@ for n in range(1,ns+1):
         hist.append([t, np.abs(B).max()*1e-4, np.abs(Br[isurf]).max()*1e-4,
                      B[i735,eq], (om[-1,eq]-om[-1,po])/cfg.om0,
                      (om[-1,po]-om_bar[sl][-1,po])/(2*np.pi)*1e9,
-                     (om[-1,lat60]-om_bar[sl][-1,lat60])/(2*np.pi)*1e9, e[2]]
+                     (om[-1,lat60]-om_bar[sl][-1,lat60])/(2*np.pi)*1e9, e[2],
+                     # 生の Omega_1 も残す。om_bar は時定数 1 サイクルの指数
+                     # 移動平均なので、解がまだ緩和している間はドリフトに
+                     # 追従しきれない。後処理で中心移動平均を引くために要る。
+                     om[-1,po]/(2*np.pi)*1e9, om[-1,lat60]/(2*np.pi)*1e9]
                     +[qq[k] for k in QKEYS])
         butter.append(B[i735,:].copy())
         if n%(nout*100)==0:

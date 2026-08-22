@@ -48,23 +48,41 @@ def cycle_period(t, b):
     per = 2*np.diff(tt[idx])
     return float(np.mean(per)), len(per)
 
-def analyse(tag):
+def detrend(t, x, win):
+    """幅 win の移動平均を引いて振動成分だけ残す (端は捨てる)。
+
+    dynamo7.py の om_bar は時定数 1 サイクルの指数移動平均なので、解がまだ
+    緩和している間はドリフトに追従しきれず、その分が「振動振幅」に乗る。
+    実測 (p_a125) では生の max が 20.9 nHz、ドリフトを引くと 6.1 nHz
+    (論文 4.7)。表 1 の量は時間平均まわりの振幅なので後者が対応する。
+    """
+    n = max(3, int(win/(t[1] - t[0])))
+    m = np.convolve(x, np.ones(n)/n, mode='same')
+    e = n//2
+    return (x - m)[e:-e] if len(x) > 2*e + 2 else x - m
+
+def analyse(tag, steady_yr=20.0):
+    """末尾 steady_yr 年 (統計的定常部) だけを使って表 1 の量を出す。"""
     d = np.load(f'results_rempel/{tag}/dynamo.npz')
     h = d['hist']; q = list(d['qkeys']); th = d['th']; bu = d['butter']
     t = h[:,0]/YR
-    late = slice(len(h)//2, None)          # 過渡を捨てる
+    late = t >= t[-1] - steady_yr
     lat40 = np.argmin(abs(th - np.radians(50)))
     per, npc = cycle_period(t, bu[:, lat40])
     out = dict(t_end=t[-1], period=per, ncyc=npc,
                DR=float(np.mean(h[late,4])),
-               t90=float(np.abs(h[late,5]).max()),
-               t60=float(np.abs(h[late,6]).max()),
+               t90=float(np.abs(detrend(t[late], h[late,5], 18.0)).max()),
+               t60=float(np.abs(detrend(t[late], h[late,6], 18.0)).max()),
                Bph=float(np.abs(h[late,1]).max()),
                Br=float(np.abs(h[late,2]).max()))
-    ql = float(np.mean(h[late, 8+q.index('Q_Lambda')]))
+    # 履歴の列構成:
+    #   旧 (2026-08-23 まで): 0..7 が診断、8 以降が QKEYS
+    #   新: 0..9 が診断 (8,9 が生の Omega_1)、10 以降が QKEYS
+    off = h.shape[1] - len(q)
+    ql = float(np.mean(h[late, off+q.index('Q_Lambda')]))
     out['QL_Fsun'] = ql/3.846e33            # 太陽光度で規格化
     for name, key in KEYMAP[1:]:
-        out[key] = float(np.mean(h[late, 8+q.index(name)]))/ql
+        out[key] = float(np.mean(h[late, off+q.index(name)]))/ql
     return out
 
 def show(tag, alpha0):

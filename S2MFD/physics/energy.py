@@ -195,7 +195,23 @@ class EnergyBudget:
         wb = w*bph
         dwb_dr = self._ddr(wb)
         dwb_dt = self._ddth(wb)/rr
-        q_l_om = -self._integrate(om*(brr*dwb_dr + bth*dwb_dt)/FOUR_PI)
+        # 式 (29): Q_L^Omega = - int dV Omega B_p . grad(s B_Phi)
+        #
+        # **Omega_1 だけで評価する。**
+        # Omega = Omega_0 + Omega_1 と分けると Omega_0 の項は
+        #     - Omega_0 int dV B_p . grad(s B_Phi)
+        # で、全ローレンツトルクの体積積分に比例する。ローレンツ力は内部応力
+        # なので全角運動量を変えず、B_Phi は動径境界でゼロなのでマクスウェル
+        # 応力のフラックスも境界を通らない。したがってこの積分は**解析的に
+        # 厳密ゼロ**であり、Omega_1 だけで評価するのは近似ではなく代数的に同一。
+        #
+        # ところが離散化ではゼロにならず、Omega_0 が Omega_1 の 3 倍以上
+        # 大きいので残差が本物の信号を飲み込む。実測 (p_a125, 論文設定):
+        #     Omega_0 の項  -0.391 Q_Lambda   <- 本来ゼロ
+        #     Omega_1 の項  +0.0496 Q_Lambda  <- 本物 (論文 表1 列3 は +0.069)
+        #     合計          -0.342 Q_Lambda   <- 符号まで反転していた
+        # 検証: tests/test_conservation.py の TestQLOmegaOmega0Cancellation
+        q_l_om = -self._integrate(om1*(brr*dwb_dr + bth*dwb_dt)/FOUR_PI)
         q_l_m = self._integrate(
             bph/np.where(w != 0.0, w, np.inf)
             * (vrr*dwb_dr + vth*dwb_dt)/FOUR_PI)

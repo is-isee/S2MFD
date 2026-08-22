@@ -1731,3 +1731,66 @@ class TestLinearStability:
         """
         g, _ = self._solver(0.05, 0.5).linear_stability()
         assert g > 0.0
+
+
+class TestQLOmegaOmega0Cancellation:
+    """Q_L^Omega は Omega_1 だけで評価する。
+
+    Rempel (2006) 式 (29): Q_L^Omega = - int dV Omega B_p . grad(s B_Phi)
+
+    Omega = Omega_0 + Omega_1 と分けると、Omega_0 の項は
+
+        - Omega_0 int dV B_p . grad(s B_Phi)
+
+    で、これは**全ローレンツトルクの体積積分に比例する**。ローレンツ力は
+    内部応力なので全角運動量を変えず、しかも B_Phi は動径境界でゼロなので
+    マクスウェル応力のフラックスも境界を通らない。したがってこの積分は
+    **解析的に厳密ゼロ**であり、Omega_1 だけで評価するのは近似ではなく
+    代数的に同一。
+
+    ところが離散化ではこの積分がゼロにならず、Omega_0 が Omega_1 の 3 倍
+    以上大きいため残差が本物の信号を飲み込む。実測 (p_a125, 論文設定) では
+
+        Omega_0 の項  -0.391 Q_Lambda   <- 本来ゼロ
+        Omega_1 の項  +0.0496 Q_Lambda  <- 本物 (論文 +0.069)
+        合計          -0.342 Q_Lambda   <- 符号まで反転していた
+    """
+
+    def _setup(self):
+        import S2MFD
+        from S2MFD.stratification import Stratification
+        from S2MFD.physics.energy import EnergyBudget
+        from S2MFD.physics import poloidal_mag
+        cfg = make_cfg('parameters/rempel06_paper.py', ix=108, jx=72)
+        grid = make_grid(cfg)
+        strat = Stratification(cfg, grid)
+        setup = S2MFD.Setup(cfg, grid)
+        eb = EnergyBudget(cfg, grid, strat, setup)
+        # 滑らかな双極子的ポロイダル場 + 反対称なトロイダル場
+        f = np.exp(-((grid.RR - 0.75 * cfg.RSUN) / (0.08 * cfg.RSUN)) ** 2)
+        Aph = np.ascontiguousarray(1.0e3 * f * np.sin(grid.TH))
+        Bph = np.ascontiguousarray(3.0e3 * f * np.sin(2 * grid.TH))
+        brr, bth = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+        om1 = np.ascontiguousarray(0.2 * cfg.om0 * f * np.cos(grid.TH) ** 2)
+        z = np.zeros_like(Bph)
+        return cfg, grid, eb, om1, brr, bth, Bph, z
+
+    def test_q_l_omega_is_independent_of_omega0(self):
+        """Q_L^Omega が cfg.om0 の値に依存しないこと。
+
+        Omega_0 の項が解析的にゼロなのだから、om0 を変えても
+        Q_L^Omega は変わらないはず。離散残差を Omega_0 倍して
+        足し込んでいると、この不変性が壊れる。
+        """
+        cfg, grid, eb, om1, brr, bth, Bph, z = self._setup()
+        q1 = eb.exchanges(om1, z, z, brr, bth, Bph, z)['Q_L_Omega']
+        om0_orig = cfg.om0
+        cfg.om0 = 3.0 * om0_orig            # Omega_0 を 3 倍にする
+        try:
+            q2 = eb.exchanges(om1, z, z, brr, bth, Bph, z)['Q_L_Omega']
+        finally:
+            cfg.om0 = om0_orig
+        scale = max(abs(q1), 1e-300)
+        assert abs(q2 - q1)/scale < 1e-10, (
+            f"Q_L^Omega が Omega_0 に依存している: om0 で {q1:.4e}, "
+            f"3*om0 で {q2:.4e} (相対差 {abs(q2-q1)/scale:.2e})")

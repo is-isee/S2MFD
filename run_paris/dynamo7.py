@@ -52,8 +52,14 @@ i735=np.argmin(abs(rr-0.735*cfg.RSUN)); isurf=len(rr)-1
 lat60=np.argmin(abs(th-np.radians(30)))   # 緯度60度 = 余緯度30度
 # hist の列: 0=t 1=|Bph|max 2=|Br|surf 3=Bph@0.735eq 4=DR
 #   5=dOm(pole) 6=dOm(lat60) 7=E_B 8=Om1(pole)raw 9=Om1(lat60)raw
-#   10 以降が QKEYS
+#   10-17 が QKEYS, 18=E_Omega 19=E_M
+# E_Omega と E_M も残すのは、収支式 (20) (21) を dE/dt 込みで検証できる
+# ようにするため。式 (22) は E_B だけで閉じるが、(20) (21) は貯留の
+# 時間微分が要る。dE/dt をゼロと仮定すると、まだ成長中の解では残差が
+# 入力の 10-25 パーセントに見える (2026-08-23 にこれで誤診しかけた)。
 QKEYS=['Q_Lambda','Q_nu_Omega','Q_C','Q_L_Omega','Q_nu_M','Q_B','Q_L_M','Q_eta']
+HCOLS=(['t','Bph_max','Br_surf','Bph_735eq','DR','dOm_pole','dOm_lat60',
+        'E_B','Om1_pole_raw','Om1_lat60_raw'] + QKEYS + ['E_Omega','E_M'])
 
 print(f"[{tag}] alpha_quenching={getattr(cfg,'alpha_quenching',True)} "
       f"r_max={getattr(cfg,'r_max',grid.rrmax)/cfg.RSUN:.4f}R "
@@ -168,14 +174,15 @@ for n in range(1,ns+1):
                      # 移動平均なので、解がまだ緩和している間はドリフトに
                      # 追従しきれない。後処理で中心移動平均を引くために要る。
                      om[-1,po]/(2*np.pi)*1e9, om[-1,lat60]/(2*np.pi)*1e9]
-                    +[qq[k] for k in QKEYS])
+                    +[qq[k] for k in QKEYS]+[e[0], e[1]])
         butter.append(B[i735,:].copy())
         if n%(nout*100)==0:
             print(f"[{tag}] t={t/3.156e7:7.2f}yr |Bph|={hist[-1][1]:7.4f}T "
                   f"|Br|surf={hist[-1][2]:7.5f}T DR={hist[-1][4]:+.4f} "
                   f"dOm(pole)={hist[-1][5]:+6.2f}nHz ({(time.time()-t0)/n*1e3:.2f}ms/st)", flush=True)
         np.savez(f'{outdir}/dynamo.npz', hist=np.array(hist), butter=np.array(butter),
-                 th=th, rr=rr, om0=cfg.om0, RSUN=cfg.RSUN, qkeys=np.array(QKEYS))
+                 th=th, rr=rr, om0=cfg.om0, RSUN=cfg.RSUN, qkeys=np.array(QKEYS),
+                 hist_cols=np.array(HCOLS))
 np.savez(f'{outdir}/final_state.npz', om1=sol.om1, vrr=sol.vrr, vth=sol.vth,
          ro1=sol.ro1, se1=sol.se1, Bph=Bph, Aph=Aph, om_bar=om_bar, t=t)
 print(f"[{tag}] done {(time.time()-t0)/60:.1f} min", flush=True)

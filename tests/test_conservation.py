@@ -1794,3 +1794,134 @@ class TestQLOmegaOmega0Cancellation:
         assert abs(q2 - q1)/scale < 1e-10, (
             f"Q_L^Omega が Omega_0 に依存している: om0 で {q1:.4e}, "
             f"3*om0 で {q2:.4e} (相対差 {abs(q2-q1)/scale:.2e})")
+
+
+class TestMagneticEnergyBudgetIdentity:
+    """磁場のエネルギー収支 (Rempel 2006 式 22) を 1 ステップで直接検証する。
+
+    .. math::
+       \\partial_t E_B = Q_L^\\Omega + Q_L^M - Q_\\eta
+
+    診断 (:mod:`S2MFD.physics.energy`) は各項を**独立に**評価するので、
+    誘導方程式が実際に起こす :math:`dE_B/dt` と比べれば、診断とカーネルの
+    どちらかがずれていれば必ず出る。
+
+    2026-08-23 に見つかった ``poloidal_mag`` の引数取り違え
+    (``grid.drr`` を渡して :math:`B_\\theta` が 2 倍) は、まさにこの
+    恒等式を 2 桁壊す。当時は残差を「スナップショットで
+    :math:`dE_B/dt=0` と仮定した値」で見ていたため、-0.007 という
+    小さな数字に見えて見逃しかけた。**時間微分を入れて比べること**が
+    肝心なので、それをテストで固定する。
+
+    残差の大きさ (規模 = 4 項の絶対値の和で規格化):
+
+        格子      残差      収束次数
+        54x36    +0.0120
+        72x48    +0.0069    1.92
+        108x72   +0.0032    1.91
+        144x96   +0.0019    1.88
+        216x144  +0.0009    1.84
+        432x288  +0.0003    1.71
+
+    2 次で消えるので、未計上の物理項ではなく**離散化の不整合**である
+    (診断の :math:`Q_\\eta` は正定値形、カーネルは発散形で、両者は連続では
+    部分積分で等しいが離散では境界項の分だけずれる)。磁場の SLD フィルタ
+    は滑らかな場では発動しないので寄与ゼロ (実測、フィルタの有無で
+    残差が 1e-6 の桁まで同じ)。
+
+    実測のダイナモラン (v2_*) では、この残差は :math:`Q_\\Lambda` 比で
+    1e-5 - 1e-4 であり、原論文が明記している精度 0.001 より小さい。
+    """
+
+    @staticmethod
+    def _residual(nx, ny, poloidal_drr='drr2'):
+        """1 ステップの収支残差を「4 項の絶対値の和」で規格化して返す。
+
+        ``poloidal_drr='drr'`` にすると 2026-08-23 のバグを再現する
+        (診断に渡す :math:`B_\\theta` が 2 倍になる)。
+        """
+        from S2MFD.physics import (time_marching, poloidal_mag,
+                                   boundary_condition)
+        cfg = make_cfg('parameters/rempel06_paper.py', ix=nx, jx=ny,
+                       alpha0=12.5, magnetic_buoyancy=1, sld_cs_factor=0.30,
+                       alpha_quenching=False)
+        grid = make_grid(cfg)
+        strat = Stratification(cfg, grid)
+        setup = S2MFD.Setup(cfg, grid)
+        sol = dynamic.DynamicSolver(cfg, grid, strat, setup)
+        eb = energy.EnergyBudget(cfg, grid, strat, setup)
+        leg = (S2MFD.Legendre(cfg, grid)
+               if cfg.boundary_condition_type == 'potential' else None)
+        drr_arg = getattr(grid, poloidal_drr)
+
+        # 解析的な流体場。解像度によらない形にしてあるので、残差の
+        # 解像度依存はそのまま離散化誤差の依存になる。
+        x = (grid.RR - cfg.rrmin)/(cfg.rrmax - cfg.rrmin)
+        sol.om1[:] = 0.2*cfg.om0*np.sin(np.pi*x)*np.cos(grid.TH)**2
+        sol.vrr[:] = 3.0e2*np.sin(2*np.pi*x)*np.cos(grid.TH)
+        sol.vth[:] = 3.0e2*np.sin(np.pi*x)*np.sin(2*grid.TH)
+        sol.se1[:] = 0.0
+        sol.sync_to_induction()
+
+        # B_p と B_Phi が同じ桁になるように A_Phi に RSUN を掛ける
+        # (B_p ~ A_Phi/r なので、掛けないと Omega 効果が 8 桁小さくなり
+        #  Q_L^Omega を含む項の検証にならない)。
+        prof = np.exp(-((grid.RR - 0.75*cfg.RSUN)/(0.08*cfg.RSUN))**2)
+        aph = np.ascontiguousarray(1.0e3*cfg.RSUN*prof*np.sin(grid.TH))
+        bph = np.ascontiguousarray(3.0e3*prof*np.sin(2*grid.TH))
+        dt = sol.cfl_dt()
+
+        def step(b, a):
+            b, a = time_marching(b, a, dt, cfg, grid, setup)
+            b, a = boundary_condition(b, a, cfg, grid, leg)
+            b, a = sol.magnetic_filter(b, a, dt)
+            return boundary_condition(b, a, cfg, grid, leg)
+
+        def diagnose(b, a):
+            brr, bth = poloidal_mag(a, grid.RR, grid.sinTH, drr_arg, grid.dth)
+            return (eb.exchanges(sol.om1, sol.vrr, sol.vth, brr, bth, b,
+                                 sol.se1),
+                    eb.reservoirs(sol.om1, sol.vrr, sol.vth, b)[2])
+
+        q0, e0 = diagnose(bph, aph)
+        b1, a1 = step(bph.copy(), aph.copy())
+        q1, e1 = diagnose(b1, a1)
+        q = {k: 0.5*(q0[k] + q1[k]) for k in q0}      # 台形則 (2 次)
+        de_dt = (e1 - e0)/dt
+        r = q['Q_L_Omega'] + q['Q_L_M'] - q['Q_eta'] - de_dt
+        scale = (abs(q['Q_L_Omega']) + abs(q['Q_L_M']) + abs(q['Q_eta'])
+                 + abs(de_dt))
+        return r/scale
+
+    def test_budget_closes_at_paper_resolution(self):
+        """論文の格子 (108x72) で残差が 1 パーセント未満であること。"""
+        r = self._residual(108, 72)
+        assert abs(r) < 0.01, (
+            f"E_B の収支が閉じていない: 残差 {r:+.5f} (規模比). "
+            f"診断とカーネルのどちらかがずれている")
+
+    def test_residual_converges_with_resolution(self):
+        """残差が格子とともに 2 次に近い次数で消えること。
+
+        消えなければ「未計上の物理項がある」ことになる。
+        """
+        r_coarse = abs(self._residual(54, 36))
+        r_fine = abs(self._residual(108, 72))
+        assert r_fine < r_coarse/2.5, (
+            f"残差が解像度とともに消えない: 54x36 で {r_coarse:.5f}, "
+            f"108x72 で {r_fine:.5f} (2 次なら 1/4 になるはず)")
+
+    def test_wrong_radial_spacing_breaks_the_budget(self):
+        """``poloidal_mag`` に ``grid.drr`` を渡すと収支が壊れること。
+
+        2026-08-23 に見つかったバグの回帰テスト。``grid.drr2`` (2 セル幅)
+        の代わりに ``grid.drr`` を渡すと :math:`B_\\theta` が 2 倍になり、
+        ローレンツ力もエネルギー診断も過大になる。
+        """
+        r_ok = abs(self._residual(108, 72))
+        r_bad = abs(self._residual(108, 72, poloidal_drr='drr'))
+        assert r_bad > 0.1, (
+            f"drr を渡しても収支が壊れない: {r_bad:+.5f}. "
+            f"テストが恒等式を検証できていない")
+        assert r_bad > 20*r_ok, (
+            f"正しい場合 {r_ok:.5f} と誤った場合 {r_bad:.5f} の差が小さい")

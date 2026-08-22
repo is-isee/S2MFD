@@ -65,7 +65,22 @@ if init:
     dd=np.load(init)
     for k in ('om1','vrr','vth','ro1','se1'): getattr(sol,k)[:]=dd[k]
     print(f"[{tag}] 緩和済み状態 {init} から開始 (t={float(dd['t'])/3.156e7:.1f}yr 相当)", flush=True)
-sol.set_primitive_from_conserved(sol.conserved()); dt=sol.cfl_dt()
+sol.set_primitive_from_conserved(sol.conserved())
+
+# --- CFL 安全率の自動決定 -------------------------------------------------
+# 明示されていなければ von Neumann の中立点 S0 の 0.9 倍を使う。
+# 中央差分 + SSP-RK2 は拡散がないと無条件不安定なので、人工拡散や解像度を
+# 変えたら安全率も変える必要がある (S2MFD/physics/stability.py 参照)。
+# S0 は解像度とともに上がり (物理粘性の拡散数が効く)、人工拡散が弱い領域では
+# cs_factor によらず一定になる (危険モードが 4-8 セルで SLD が効かない)。
+if 'cfl_safety' not in over:
+    _S0 = sol.neutral_cfl_safety()
+    if _S0 == _S0:                      # nan でない
+        cfg.cfl_safety = 0.9*_S0
+        print(f"[{tag}] cfl_safety を自動設定: {cfg.cfl_safety:.3f} "
+              f"(von Neumann 中立点 {_S0:.3f} の 0.9 倍)", flush=True)
+
+dt=sol.cfl_dt()
 ns=int(relax_yr*3.156e7/dt); t0=time.time(); t=0.0
 for n in range(1,ns+1):
     sol.step(dt); t+=dt

@@ -141,8 +141,12 @@ ns=int(dyn_yr*3.156e7/dt); nout=max(1,ns//2000)
 hist=[]; butter=[]; t0=time.time()
 for n in range(1,ns+1):
     Bph,Aph = time_marching(Bph,Aph,dt,cfg,grid,setup)
-    Bph,Aph = sol.magnetic_filter(Bph,Aph,dt)
-    Bph,Aph = boundary_condition(Bph,Aph,cfg,grid,legendre)   # 磁場の境界条件     # Rempel 2014 のフィルタ段
+    # time_marching の出力ゴーストは未初期化 (np.empty_like) なので、
+    # ゴーストを読む SLD フィルタの**前に**境界条件を掛ける。
+    # 順序を逆にすると未初期化メモリを拾う (実測 相対 1e-10)。
+    Bph,Aph = boundary_condition(Bph,Aph,cfg,grid,legendre)
+    Bph,Aph = sol.magnetic_filter(Bph,Aph,dt)                 # Rempel 2014 のフィルタ段
+    Bph,Aph = boundary_condition(Bph,Aph,cfg,grid,legendre)   # フィルタ後にもう一度
     pm=poloidal_mag(Aph,grid.RR,grid.sinTH,grid.drr,grid.dth)
     sol.set_magnetic_field(pm[0],pm[1],Bph)
     sol.step(dt); sol.sync_to_induction(); t+=dt

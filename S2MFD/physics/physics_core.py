@@ -623,6 +623,14 @@ def time_marching(Bph, Aph, dt, cfg, grid, setup):
       - Bphm : Updated longitudinal magnetic field
       - Aphm : Updated longitudinal vector potential
 
+   .. warning::
+      **出力のゴーストセルは未初期化**である (出力配列は ``np.empty_like``
+      で確保し, カーネルは物理セルしか書かない)。入力のゴーストとも違う
+      任意の値が入る。**呼び出し側は直後に必ず**
+      :func:`~S2MFD.physics.boundary_condition.boundary_condition`
+      **を掛けること。** 人工拡散などゴーストを読む処理をその前に挟むと、
+      未初期化メモリを拾う (実測では相対 1e-10 程度の影響)。
+
    Notes
    -----
    既定の高速版は除算を逆数の乗算に置き換え、numba の fastmath を有効にする。

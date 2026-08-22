@@ -134,7 +134,7 @@ else:
     Bph=np.ascontiguousarray(bseed*prof*np.sin(2*grid.TH))  # 種磁場 [G]
     Aph=np.zeros_like(Bph)
 sol.sync_to_induction()
-pm=poloidal_mag(Aph,grid.RR,grid.sinTH,grid.drr,grid.dth)
+pm=poloidal_mag(Aph,grid.RR,grid.sinTH,grid.drr2,grid.dth)
 sol.set_magnetic_field(pm[0],pm[1],Bph)
 dt=sol.cfl_dt()
 ns=int(dyn_yr*3.156e7/dt); nout=max(1,ns//2000)
@@ -147,7 +147,7 @@ for n in range(1,ns+1):
     Bph,Aph = boundary_condition(Bph,Aph,cfg,grid,legendre)
     Bph,Aph = sol.magnetic_filter(Bph,Aph,dt)                 # Rempel 2014 のフィルタ段
     Bph,Aph = boundary_condition(Bph,Aph,cfg,grid,legendre)   # フィルタ後にもう一度
-    pm=poloidal_mag(Aph,grid.RR,grid.sinTH,grid.drr,grid.dth)
+    pm=poloidal_mag(Aph,grid.RR,grid.sinTH,grid.drr2,grid.dth)
     sol.set_magnetic_field(pm[0],pm[1],Bph)
     sol.step(dt); sol.sync_to_induction(); t+=dt
     if n%2000==0: dt=min(dt, sol.cfl_dt())

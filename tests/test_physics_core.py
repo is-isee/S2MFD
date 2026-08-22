@@ -142,3 +142,70 @@ class TestR06AlphaQuenching:
         cfg.alpha_quenching = True
         _, A_on = time_marching(Bph, np.zeros_like(Bph), 1.0e3, cfg, grid, setup)
         assert np.array_equal(A_default, A_on)
+
+
+class TestPoloidalMagArgument:
+    """``poloidal_mag`` の第 4 引数は ``grid.drr2`` (2 セル幅) であること。
+
+    ``grid.drr`` (1 セル幅) を渡すと一様格子で :math:`B_\\theta` が
+    ちょうど 2 倍になる。2026-08-23 まで ``run_paris/dynamo7.py`` と
+    ``ana/ana_common.py`` がこれを間違えており、**ローレンツ力に使う**
+    :math:`B_\\theta` が 2 倍になっていた。
+
+    誘導方程式はカーネル内部で自前に :math:`B_p` を作るので影響を受けず、
+    運動学的ラン (ローレンツ力なし) は論文と一致していた。一方、
+    非運動学的ランはマクスウェル応力が過大になり低い磁場で飽和し、
+    max(B_phi) が論文の 0.6 倍になっていた。
+    """
+
+    def test_wrong_argument_doubles_btheta(self):
+        """記録: drr を渡すと B_theta が 2 倍になる (一様格子)。"""
+        cfg = make_cfg(ix=64, jx=64)
+        grid = make_grid(cfg)
+        Aph = np.ascontiguousarray(grid.sinTH*np.exp(-((grid.RR - 0.8*cfg.RSUN)
+                                                       / (0.1*cfg.RSUN))**2))
+        _, bth_ok = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
+        _, bth_ng = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+        i = np.s_[2:-2, 2:-2]
+        assert np.allclose(bth_ng[i], 2.0*bth_ok[i], rtol=1e-12)
+
+    def test_solver_helper_matches_kernel_internal_field(self):
+        """``DynamicSolver.poloidal_from_potential`` が誘導カーネルの
+        内部 :math:`B_p` と一致すること。
+
+        カーネルは Aph から自前に B_r, B_theta を作る。ローレンツ力に渡す
+        B_p がそれと違っていたら、同じ磁場に対して誘導と運動量で違う値を
+        使っていることになる。Omega 効果だけを残して 1 ステップ進め、
+        dB_phi/dt = B_p . (Omega の勾配) x r sin(theta) から B_p を逆算して
+        突き合わせる。
+        """
+        import S2MFD
+        from S2MFD.stratification import Stratification
+        from S2MFD.physics import time_marching
+        from S2MFD.physics.dynamic import DynamicSolver
+        cfg = make_cfg('parameters/rempel06_paper.py', ix=64, jx=48)
+        grid = make_grid(cfg)
+        strat = Stratification(cfg, grid)
+        setup = S2MFD.Setup(cfg, grid)
+        sol = DynamicSolver(cfg, grid, strat, setup)
+        m = grid.margin
+        f = np.exp(-((grid.RR - 0.8*cfg.RSUN)/(0.1*cfg.RSUN))**2)
+        Aph = np.ascontiguousarray(1.0e3*f*np.sin(grid.TH))
+        Bph = np.zeros_like(Aph)
+        sol.om1[:] = 0.2*cfg.om0*f*np.cos(grid.TH)**2
+        sol.set_primitive_from_conserved(sol.conserved())
+        sol.sync_to_induction()
+        # 移流・拡散・alpha を止めて Omega 効果だけ残す
+        setup.urr = np.zeros_like(setup.urr); setup.uth = np.zeros_like(setup.uth)
+        setup.et = np.zeros_like(setup.et); setup.etrr = np.zeros_like(setup.etrr)
+        setup.so = np.zeros_like(setup.so)
+        setup.omrr = np.zeros_like(setup.omrr)      # B_theta の項だけ見る
+        dt = 1.0e-3
+        B1, _ = time_marching(Bph, Aph, dt, cfg, grid, setup)
+        src = (B1 - Bph)/dt
+        geo = setup.omth*grid.RR*grid.sinTH
+        sl = (slice(m+1, grid.ixg-m-1), slice(m+1, grid.jxg-m-1))
+        bth_kernel = src[sl]/geo[sl]
+        _, bth_helper = sol.poloidal_from_potential(Aph)
+        assert np.allclose(bth_kernel, bth_helper[sl], rtol=1e-10), \
+            "ローレンツ力に渡す B_theta が誘導カーネルの内部値と違う"

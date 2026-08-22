@@ -34,8 +34,10 @@ def run(freeze_corners):
     # 修正前を再現するために、初期状態の角を控えておく
     cs = [(slice(None, m), slice(None, m)), (slice(None, m), slice(-m, None)),
           (slice(-m, None), slice(None, m)), (slice(-m, None), slice(-m, None))]
-    frozen = {id(a): [a[s].copy() for s in cs] for a in (Bph, Aph)}
-    pm = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+    # time_marching は新しい配列を返すので id() を鍵にしてはいけない
+    frozen_B = [Bph[s].copy() for s in cs]
+    frozen_A = [Aph[s].copy() for s in cs]
+    pm = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
     sol.set_magnetic_field(pm[0], pm[1], Bph)
     dt = sol.cfl_dt()
     n = int(years*3.156e7/dt)
@@ -47,10 +49,10 @@ def run(freeze_corners):
         Bph, Aph = sol.magnetic_filter(Bph, Aph, dt)
         Bph, Aph = boundary_condition(Bph, Aph, cfg, grid, None)
         if freeze_corners:                    # 修正前の挙動を再現
-            for a in (Bph, Aph):
-                for s, v in zip(cs, frozen[id(a)]):
+            for a, fr in ((Bph, frozen_B), (Aph, frozen_A)):
+                for s, v in zip(cs, fr):
                     a[s] = v
-        pm = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+        pm = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
         sol.set_magnetic_field(pm[0], pm[1], Bph)
         sol.step(dt); sol.sync_to_induction()
         if k % max(1, n//40) == 0:

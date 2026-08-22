@@ -29,6 +29,7 @@ import numpy as np
 from numba import njit
 
 from S2MFD.physics import hydro, artdif, stability
+from S2MFD.physics.physics_core import poloidal_mag as hydro_poloidal_mag
 from S2MFD.physics import conservative as cons
 
 __all__ = ['DynamicSolver', 'apply_radial_bc', 'apply_polar_bc']
@@ -653,7 +654,10 @@ class DynamicSolver:
         tuple
             フィルタ後の ``(bph, aph)``. 引数の配列がその場で更新される.
         """
-        if not self.use_artdif:
+        # 人工拡散全体のスイッチとは別に、磁場フィルタだけ切れるようにする。
+        # Rempel (2006) には磁場への人工拡散がないので、それが磁場の振幅に
+        # どれだけ効いているかを測るための対照実験用。
+        if not self.use_artdif or not getattr(self.cfg, 'magnetic_filter', True):
             return bph, aph
         grid, m, w = self.grid, self.m, self.work
         self._update_characteristic_speed()
@@ -666,6 +670,26 @@ class DynamicSolver:
                 grid.drr, grid.drrm, grid.dth, m, w.ffr, w.ffth, self._top_is_pole)
             fld += dt*d
         return bph, aph
+
+    def poloidal_from_potential(self, aph):
+        """ベクトルポテンシャルからポロイダル磁場 (B_r, B_theta) を作る.
+
+        :func:`~S2MFD.physics.physics_core.poloidal_mag` の第 4 引数は
+        **``grid.drr2`` (2 セル幅)** である。``grid.drr`` (1 セル幅) を
+        渡すと :math:`B_\theta` がちょうど 2 倍になる。
+
+        実際 ``run_paris/dynamo7.py`` と ``ana/ana_common.py`` が
+        ``grid.drr`` を渡しており、**ローレンツ力に使う** :math:`B_\theta`
+        が 2 倍になっていた (2026-08-23 に発見)。誘導方程式はカーネル内部で
+        自前に :math:`B_p` を作るので影響を受けず、運動学的ランは正しかった
+        が、非運動学的ランはマクスウェル応力が過大になり低い磁場で飽和して
+        いた (論文比 0.6)。
+
+        引数の取り違えを二度と起こさないよう、呼び出しはこのメソッドに
+        集約すること。
+        """
+        return hydro_poloidal_mag(aph, self.grid.RR, self.grid.sinTH,
+                                  self.grid.drr2, self.grid.dth)
 
     def set_magnetic_field(self, brr, bth, bph):
         """ローレンツ力に使う磁場を外から与える."""

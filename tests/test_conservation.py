@@ -1497,14 +1497,14 @@ class TestHemisphereEquivalence:
         Aph = np.zeros_like(Bph)
         sol.magnetic = True
         sol.sync_to_induction()
-        pm = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+        pm = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
         sol.set_magnetic_field(pm[0], pm[1], Bph)
         dt = sol.cfl_dt()
         for _ in range(nstep):
             Bph, Aph = time_marching(Bph, Aph, dt, cfg, grid, setup)
             Bph, Aph = sol.magnetic_filter(Bph, Aph, dt)
             Bph, Aph = boundary_condition(Bph, Aph, cfg, grid, None)
-            pm = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+            pm = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
             sol.set_magnetic_field(pm[0], pm[1], Bph)
             sol.step(dt)
             sol.sync_to_induction()
@@ -1770,7 +1770,7 @@ class TestQLOmegaOmega0Cancellation:
         f = np.exp(-((grid.RR - 0.75 * cfg.RSUN) / (0.08 * cfg.RSUN)) ** 2)
         Aph = np.ascontiguousarray(1.0e3 * f * np.sin(grid.TH))
         Bph = np.ascontiguousarray(3.0e3 * f * np.sin(2 * grid.TH))
-        brr, bth = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr, grid.dth)
+        brr, bth = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
         om1 = np.ascontiguousarray(0.2 * cfg.om0 * f * np.cos(grid.TH) ** 2)
         z = np.zeros_like(Bph)
         return cfg, grid, eb, om1, brr, bth, Bph, z

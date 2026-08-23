@@ -12,9 +12,16 @@ dE_B/dt = 0 と仮定した残差 (-0.005 〜 -0.016) を「未計上の項が�
 あった。時間微分を入れると残差は Q_Lambda 比で 1e-5 〜 1e-4 に落ちる
 (原論文が明記している精度 0.001 より小さい)。
 
+**E_Omega の左辺は差動回転のエネルギー (Omega_1 だけ) で評価すること。**
+E_Omega = int (1/2) rho0 varpi^2 (Omega_0 + Omega_1)^2 の微分には
+Omega_0 * dL/dt に比例する項が入る。全角運動量保存から解析的に厳密ゼロ
+だが離散では消えず、Omega_0 が大きいので本物の信号を飲み込む
+(実測 0.19 対 0.015、10 倍以上)。
+
 使い方::
 
-    python run_paris/budget_check.py v2_kin v2_a125 v2_a250 v2_a500
+    python run_paris/budget_check.py v2_kin v2_a125          # ダイナモ
+    python run_paris/budget_check.py --relax m108x72_cs030   # 磁場なし
 """
 import sys, os
 import numpy as np
@@ -86,11 +93,45 @@ def report(tag):
     print()
 
 
+# relax_scan の hist の列
+RELAX_COLS = ['t', 'DR', 'om1_max', 'vr', 'vth', 'se1_max', 'L_res', 'M_res',
+              'E_Omega', 'E_M', 'E_DR', 'Q_Lambda', 'Q_nu_Omega', 'Q_C',
+              'Q_nu_M', 'Q_B']
+
+
+def report_relax(tag):
+    """磁場なしラン (relax_scan) の式 (20) (21) を検証する。"""
+    h = np.load(f'results_rempel/{tag}/history.npz')['hist']
+    if h.shape[1] < len(RELAX_COLS):
+        print(f"{tag}: 列が {h.shape[1]} 本しかない (E_Omega 以降がない)")
+        return
+    c = {k: h[:, i] for i, k in enumerate(RELAX_COLS)}
+    t = c['t']
+    k = max(4, len(t)//5)
+    core = slice(k, -k)
+    a = np.abs(c['Q_Lambda'])
+    rhs_om = c['Q_Lambda'] - c['Q_nu_Omega'] - c['Q_C']
+    rhs_m = c['Q_C'] - c['Q_nu_M'] - c['Q_B']
+    r_om = (rhs_om - deriv(t, c['E_Omega']))/a       # 誤り: Omega_0 が入る
+    r_dr = (rhs_om - deriv(t, c['E_DR']))/a          # 正しい
+    r_m = (rhs_m - deriv(t, c['E_M']))/a
+    print(f"{tag:22}{len(t):5d}{t[-1]/YR:8.1f}"
+          f"{np.mean(np.abs(r_om[core])):14.5f}{np.mean(np.abs(r_dr[core])):14.5f}"
+          f"{np.mean(np.abs(r_m[core])):12.5f}")
+
+
 if __name__ == '__main__':
-    tags = sys.argv[1:]
-    if not tags:
+    args = sys.argv[1:]
+    if not args:
         print(__doc__)
         sys.exit(1)
     os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    for tag in tags:
-        report(tag)
+    if args[0] == '--relax':
+        print(f"{'ラン':22}{'n':>5}{'t[yr]':>8}"
+              f"{'残差 (E_Omega)':>14}{'残差 (E_DR)':>14}{'残差 (E_M)':>12}"
+              f"   (Q_Lambda 比)")
+        for tag in args[1:]:
+            report_relax(tag)
+    else:
+        for tag in args:
+            report(tag)

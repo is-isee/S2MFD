@@ -1925,3 +1925,181 @@ class TestMagneticEnergyBudgetIdentity:
             f"テストが恒等式を検証できていない")
         assert r_bad > 20*r_ok, (
             f"正しい場合 {r_ok:.5f} と誤った場合 {r_bad:.5f} の差が小さい")
+
+
+class TestRotationAndMeridionalEnergyBudgets:
+    """収支式 (20) (21) を磁場なしで 1 ステップ検証する。
+
+    .. math::
+       \\partial_t E_\\Omega &= Q_\\Lambda - Q_\\nu^\\Omega - Q_C \\\\
+       \\partial_t E_M &= Q_C - Q_\\nu^M - Q_B
+
+    **左辺の :math:`E_\\Omega` は必ず差動回転のエネルギー
+    (:math:`\\Omega_1` だけ) で評価すること。**
+
+    :math:`E_\\Omega=\\int\\frac12\\rho_0\\varpi^2(\\Omega_0+\\Omega_1)^2` の
+    時間微分は
+
+    .. math::
+       \\Omega_0\\int\\rho_0\\varpi^2\\partial_t\\Omega_1
+       + \\int\\rho_0\\varpi^2\\Omega_1\\partial_t\\Omega_1
+
+    で、第 1 項は :math:`\\Omega_0\\,dL/dt` に比例するので**全角運動量保存
+    から解析的に厳密ゼロ**である。ところが離散化ではゼロにならず、
+    しかも :math:`\\Omega_0` が大きいので第 2 項 (本物) を飲み込む。
+    実測 (m108x72_cs030 の緩和済み状態):
+
+        Omega_0 の項  +0.0297 Q_Lambda   <- 本来ゼロ
+        Omega_1 の項  +0.0007 Q_Lambda   <- 本物
+
+    **これは Q_L^Omega とまったく同じ罠**である
+    (:class:`TestQLOmegaOmega0Cancellation` を参照)。
+
+    残差 (Q_Lambda 比、本テストの解析的な状態):
+
+        格子      E_Omega を使う   E_DR を使う
+        54x36        +0.528        +0.00202
+        108x72       +0.535        +0.00072
+        216x144      +0.540        +0.00028
+
+    E_DR を使えば 2 次に近い次数で消えるが、E_Omega では消えない。
+
+    E_M 側の残差は緩和済み状態で 0.0118 (108x72) -> 0.0012 (288x192) と
+    解像度とともに消える。圧力勾配と重力の仕事が
+    :math:`-Q_B + \\int (p_1/\\rho_0)\\nabla\\cdot(\\rho_0 v)` に等しいという
+    恒等式が離散では成り立たないためで、その食い違いは
+    +0.1062 -> +0.0044 と縮む。**論文の格子 108x72 では残差が 0.012 あり、
+    原論文が明記している精度 0.001 の 10 倍である。**
+    """
+
+    @staticmethod
+    def _residuals(nx, ny):
+        """(E_Omega を使った残差, E_DR を使った残差, E_M の残差) を返す。"""
+        cfg = make_cfg('parameters/rempel06_paper.py', ix=nx, jx=ny,
+                       sld_cs_factor=0.30)
+        grid = make_grid(cfg)
+        strat = Stratification(cfg, grid)
+        setup = S2MFD.Setup(cfg, grid)
+        sol = dynamic.DynamicSolver(cfg, grid, strat, setup)
+        eb = energy.EnergyBudget(cfg, grid, strat, setup)
+        sol.magnetic = False
+
+        x = (grid.RR - cfg.rrmin)/(cfg.rrmax - cfg.rrmin)
+        sol.om1[:] = 0.05*cfg.om0*np.sin(np.pi*x)*np.cos(grid.TH)**2
+        sol.vrr[:] = 3.0e2*np.sin(2*np.pi*x)*np.cos(grid.TH)
+        sol.vth[:] = 3.0e2*np.sin(np.pi*x)*np.sin(2*grid.TH)
+        sol.se1[:] = 1.0e-6*np.sin(np.pi*x)*np.cos(grid.TH)
+        sol.set_primitive_from_conserved(sol.conserved())
+        dt = sol.cfl_dt()
+        z = np.zeros_like(sol.om1)
+
+        def diagnose():
+            q = eb.exchanges(sol.om1, sol.vrr, sol.vth, z, z, z, sol.se1)
+            e_om, e_m, _ = eb.reservoirs(sol.om1, sol.vrr, sol.vth, z)
+            return q, e_om, e_m, eb.differential_rotation_energy(sol.om1)
+
+        q0, eo0, em0, ed0 = diagnose()
+        sol.step(dt)
+        q1, eo1, em1, ed1 = diagnose()
+        q = {k: 0.5*(q0[k] + q1[k]) for k in q0}
+        ql = abs(q['Q_Lambda'])
+        rhs_om = q['Q_Lambda'] - q['Q_nu_Omega'] - q['Q_C']
+        rhs_m = q['Q_C'] - q['Q_nu_M'] - q['Q_B']
+        return ((rhs_om - (eo1 - eo0)/dt)/ql,
+                (rhs_om - (ed1 - ed0)/dt)/ql,
+                (rhs_m - (em1 - em0)/dt)/ql)
+
+    def test_full_omega_energy_is_polluted_by_omega0(self):
+        """E_Omega をそのまま使うと Omega_0 の項が残差を支配すること。
+
+        これが成り立たなくなったら (= E_Omega でも閉じるようになったら)、
+        本テストの前提が変わったということなので docstring を見直すこと。
+        """
+        r_om, r_dr, _ = self._residuals(108, 72)
+        assert abs(r_om) > 20*abs(r_dr), (
+            f"E_Omega を使った残差 {r_om:+.5f} が E_DR を使った残差 "
+            f"{r_dr:+.5f} を圧倒していない")
+
+    def test_differential_rotation_energy_closes_the_budget(self):
+        """E_DR を使えば式 (20) が閉じ、解像度とともに残差が消えること。"""
+        _, r_coarse, _ = self._residuals(54, 36)
+        _, r_fine, _ = self._residuals(108, 72)
+        assert abs(r_fine) < 0.005, (
+            f"E_DR を使っても式 (20) が閉じない: 残差 {r_fine:+.5f}")
+        assert abs(r_fine) < abs(r_coarse)/1.5, (
+            f"残差が解像度とともに消えない: 54x36 で {r_coarse:+.5f}, "
+            f"108x72 で {r_fine:+.5f}")
+
+    def test_buoyancy_work_differs_by_the_acoustic_term(self):
+        """式 (21) の :math:`Q_B` はアネラスティック近似を仮定していること。
+
+        圧力勾配と重力の仕事を合わせると、厳密には
+
+        .. math::
+           \\int v\\cdot(-\\nabla p_1 + \\rho_1 g)\\,dV
+           = -Q_B + \\int \\frac{p_1}{\\rho_0}\\nabla\\cdot(\\rho_0 v)\\,dV
+
+        になる (背景が多方性 :math:`p_0\\propto\\rho_0^\\gamma` なので、
+        :math:`\\rho_1=\\rho_0(p_1/(\\gamma p_0)-s_1)` を使うと
+        :math:`p_1 v_r\\,d\\ln\\rho_0/dr` の項がちょうど消える)。
+        最後の項は :math:`\\nabla\\cdot(\\rho_0 v)=0` のときだけ落ちる。
+
+        本実装は音速抑制した圧縮性なので :math:`\\nabla\\cdot(\\rho_0 v)`
+        はゼロではない。緩和した解では小さい (0.0001 Q_Lambda) が、
+        任意の状態では支配的になる。ここではその恒等式が実際に
+        成り立っていることを確かめる (これが崩れたら圧力か重力の
+        実装が変わったということ)。
+        """
+        cfg = make_cfg('parameters/rempel06_paper.py', ix=108, jx=72,
+                       sld_cs_factor=0.30, artificial_diffusion=False)
+        grid = make_grid(cfg)
+        strat = Stratification(cfg, grid)
+        setup = S2MFD.Setup(cfg, grid)
+        sol = dynamic.DynamicSolver(cfg, grid, strat, setup)
+        eb = energy.EnergyBudget(cfg, grid, strat, setup)
+        sol.magnetic = False
+        x = (grid.RR - cfg.rrmin)/(cfg.rrmax - cfg.rrmin)
+        sol.om1[:] = 0.05*cfg.om0*np.sin(np.pi*x)*np.cos(grid.TH)**2
+        sol.vrr[:] = 3.0e2*np.sin(2*np.pi*x)*np.cos(grid.TH)
+        sol.vth[:] = 3.0e2*np.sin(np.pi*x)*np.sin(2*grid.TH)
+        sol.se1[:] = 1.0e-6*np.sin(np.pi*x)*np.cos(grid.TH)
+        sol.set_primitive_from_conserved(sol.conserved())
+
+        m = grid.margin
+        sl = (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
+        azim = 2.0*np.pi if sol._top_is_pole else 4.0*np.pi
+
+        def work(dq_mr, dq_mt):
+            # q_mr = JV*v_r (JV は rho0 と体積要素を含む) なので、
+            # v.dq を体積積分すれば d/dt int (1/2) rho0 v^2 になる
+            w = sol.vrr*dq_mr + sol.vth*dq_mt
+            return azim*float(
+                (w[sl]*grid.drr[m:grid.ixg - m, None]).sum())*grid.dth
+
+        dq = sol.rhs()
+        full = work(dq[1], dq[2])
+        saved = sol.pr1.copy()
+        sol.pr1[:] = 0.0
+        w_press = full - work(*sol.rhs()[1:3])
+        sol.pr1[:] = saved
+        saved_gr = strat.gr.copy()
+        strat.gr[:] = 0.0
+        w_grav = full - work(*sol.rhs()[1:3])
+        strat.gr[:] = saved_gr
+
+        z = np.zeros_like(sol.om1)
+        q_b = eb.exchanges(sol.om1, sol.vrr, sol.vth, z, z, z, sol.se1)['Q_B']
+        # 音響項. 連続の式は dq_ro = JM*d(rho1)/dt = -JM div(rho0 v)/zeta^2
+        integ = -(sol.pr1/strat.ro0[:, None])*(strat.zeta**2)[:, None]*dq[0]
+        acoustic = azim*float(
+            (integ[sl]*grid.drr[m:grid.ixg - m, None]).sum())*grid.dth
+
+        lhs = w_press + w_grav + q_b
+        scale = max(abs(acoustic), abs(lhs))
+        assert abs(lhs - acoustic)/scale < 0.02, (
+            f"圧力+重力の仕事 + Q_B = {lhs:.4e} が音響項 {acoustic:.4e} と "
+            f"一致しない (相対差 {abs(lhs-acoustic)/scale:.4f})")
+        # この状態では音響項が支配的であることも確かめる
+        # (小さすぎるとテストが何も見ていないことになる)
+        assert abs(acoustic) > 0.1*abs(q_b), (
+            f"音響項 {acoustic:.4e} が Q_B {q_b:.4e} に対して小さすぎる")

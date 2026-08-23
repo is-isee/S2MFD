@@ -257,6 +257,25 @@ class EnergyBudget:
         注記しているので, :math:`Q_\\Lambda` で規格化した値がその程度に
         収まっていれば期待どおり.
 
+        .. warning::
+           ``de_om_dt`` には **差動回転のエネルギー**
+           (:meth:`differential_rotation_energy`) の時間微分を渡すこと.
+           :meth:`reservoirs` が返す :math:`E_\\Omega` の微分を渡すと,
+
+           .. math::
+              \\Omega_0\\int\\rho_0\\varpi^2\\partial_t\\Omega_1\\,dV
+
+           という項が入る. これは :math:`\\Omega_0\\,dL/dt` に比例するので
+           **全角運動量保存から解析的に厳密ゼロ**だが, 離散では消えず,
+           :math:`\\Omega_0` が大きいので本物の信号を飲み込む
+           (実測 +0.0297 :math:`Q_\\Lambda` 対 +0.0007). Q_L^Omega を
+           :math:`\\Omega_1` だけで評価するのと同じ理由である.
+
+           また ``de_*_dt`` を既定の 0 のままにしてよいのは**本当に定常な
+           とき**だけである. 2026-08-23 に, 成長中のダイナモで
+           :math:`dE_B/dt` を落として残差を読み, 「未計上の項がある」と
+           誤診した (実際は左辺が入力の 10-25 パーセントあった).
+
         Returns
         -------
         dict

@@ -333,6 +333,12 @@ class DynamicSolver:
         # 記録すること。** 拡散 CFL には自動で入る (sld_diffusivity_max が
         # cspB を見るため)。
         _cfg = self.cfg
+        # 磁場フィルタで動径境界面のフラックスをゼロにしないか。
+        # 反対称境界 (B_Phi = 0、Rempel 2006 の下部) を使うときに要る。
+        # 対称境界では飛びがないので何も変わらない (artdif.py の
+        # sld_diffuse_primitive の docstring 参照)。
+        self.magnetic_open_boundary = bool(
+            getattr(_cfg, 'magnetic_open_boundary', False))
         v_floor = float(getattr(_cfg, 'sld_bottom_speed', 0.0))
         if v_floor > 0.0:
             w = float(getattr(_cfg, 'sld_bottom_width', 0.0)
@@ -717,7 +723,8 @@ class DynamicSolver:
                 jac_th=self.jacB_th, ijac=self.iJB, csp_r=self.cspB_r,
                 csp_th=self.cspB_th, fh=self.sld_fh, ep=self.sld_ep,
                 drr=grid.drr, drrm=grid.drrm, dth=grid.dth, margin=m,
-                ffr=w.ffr, ffth=w.ffth, top_is_pole=self._top_is_pole)
+                ffr=w.ffr, ffth=w.ffth, top_is_pole=self._top_is_pole,
+                open_radial_boundary=self.magnetic_open_boundary)
             fld += dt*d
         return bph, aph
 

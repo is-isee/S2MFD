@@ -96,3 +96,7 @@ configfile = 'config.json'
 # 詳細は S2MFD/physics/dynamic.py の DynamicSolver.__init__ を参照。
 sld_bottom_speed = 0.0      # [cm/s] 特性速度の床。0 で無効
 sld_bottom_width = 0.0      # [cm] 下端からの幅。0 なら 0.02*RSUN を使う
+
+# 磁場の人工拡散フラックスを動径境界で開ける。反対称境界 (B_Phi = 0) を
+# 使うときだけ必要。対称境界では何も変わらない。
+magnetic_open_boundary = False

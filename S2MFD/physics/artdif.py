@@ -262,15 +262,37 @@ def sld_diffuse_scaled(dqq, uu, jac_r, jac_th, csp_r, csp_th, fh, ep,
 
 @kernel()
 def sld_diffuse_primitive(duu, uu, jac_r, jac_th, ijac, csp_r, csp_th, fh, ep,
-                          drr, drrm, dth, margin, ffr, ffth, top_is_pole=True):
+                          drr, drrm, dth, margin, ffr, ffth, top_is_pole=True,
+                          open_radial_boundary=False):
     """保存形ではなく直接解いているプリミティブ変数に人工拡散を掛ける.
 
     エントロピーのように保存量として持っていない変数に使う.
     フラックスは保存形と同じヤコビアン付きで作り, 最後にセル中心の
     ヤコビアンで割って :math:`\\partial u/\\partial t` に変換する.
+
+    Parameters
+    ----------
+    open_radial_boundary : bool
+        ``True`` にすると**動径境界面のフラックスをゼロにしない**.
+
+        既定 (``False``) は保存量と同じ扱いで, 境界からは何も出入りしない.
+        エントロピーや, 対称 (零フラックス) 境界の磁場ではこれが正しい.
+
+        ところが **Rempel (2006) の下部境界 B_Phi = 0 (反対称)** を課すと,
+        境界面での飛びをゼロにしてしまうために**磁場が抜ける経路が塞がる**.
+        しかも境界層は滑らかで単調なので SLD のリミタが発動せず, 内部でも
+        拡散されない. 結果として境界の 1 セルで格子スケールの指数成長が
+        起きる (2026-08-23 実測: 108x72 で 4.4 年目から 1.1 年で倍増し,
+        13 年で max|B_phi| = 92 T).
+
+        ``True`` なら反対称ゴーストとの大きな飛びがそのまま SLD フラックス
+        になり, 境界が本来の意味 (磁場の吸い込み) で働く. 対称境界では
+        ゴーストと物理セルが等しいので飛びがなく, **この切り替えは何も
+        変えない**.
     """
     sld_flux_r(uu, jac_r, csp_r, fh, ep, drr, drrm, margin, ffr)
-    zero_boundary_faces_r(ffr, margin)
+    if not open_radial_boundary:
+        zero_boundary_faces_r(ffr, margin)
     sld_flux_th(uu, jac_th, csp_th, fh, ep, margin, ffth)
     zero_boundary_faces_th(ffth, margin, top_is_pole)
     ixg, jxg = duu.shape

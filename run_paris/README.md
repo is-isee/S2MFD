@@ -1,11 +1,33 @@
 # run_paris — Rempel 2006 再現ランの投入と測定
 
-paris (AMD EPYC 9354, 64 コア) で走らせるための一式。
-`/scr/a000` は boston と共有だが `/home` は別なので、python は
-`/scr/a000/c0234hotta/venv-paris/bin/python` を使い、投入時に
+> **名前について**: 当初 paris というホストで走らせるための一式だったが、
+> いまはホストに依存しない (絶対パスと `PYTHONPATH` だけ)。共同利用では
+> 紛らわしいので、いずれ `runs/` などに改名したい。
+>
+> **これらはリポジトリのスクリプトで、`pip install` されるパッケージには
+> 含まれない。** 使うにはリポジトリを clone すること。パッケージ本体
+> (`import S2MFD`) だけでも同じことはできる — スクリプトはその使い方の例。
+>
+> 手順の説明はドキュメントの
+> [Rempel (2006) を再現する](https://is-isee.github.io/S2MFD/main/tutorial_rempel.html)
+> にある。
+
+
+## この環境での使い方 (堀田研)
+
+`/scr/a000` は paris / boston / astana で共有だが `/home` は別なので、
+python は `/scr/a000/c0234hotta/venv-paris/bin/python` を使い、投入時に
 `cd /scr/a000/c0234hotta/Repository/S2MFD` と
 `PYTHONPATH=/scr/a000/c0234hotta/Repository/S2MFD` が要る
 (S2MFD は pip install されていない)。ssh の既定 cwd は HOME。
+
+**投入先はそのつど決める。** ルール化せず、投入前に
+
+    ssh <host> "uptime; ps -eo user:20,nlwp,etime,args --sort=-nlwp | head"
+
+で load と**誰の何が走っているか**を見る (`ps` はユーザ名を切り詰めるので
+`user:20` と幅を指定する)。astana は共有ファイルサーバでもあり、
+ほかの解析が走っていることが多い。
 
 ## ドライバ
 

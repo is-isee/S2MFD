@@ -122,12 +122,16 @@ def _plot(outdir, rr, th, sol, cfg, h, m, grid):
     om = (cfg.om0 + sol.om1[m:grid.ixg - m, m:grid.jxg - m])/(2*np.pi)*1e9
     fig, ax = plt.subplots(1, 3, figsize=(13.5, 3.8))
 
+    # 系列が 4 つ以下なら凡例より**直接ラベル**の方が読みやすい。
     for (j, lab), c in zip(((0, 'pole'), (len(th)//2, r'45$^\circ$'),
                             (len(th) - 1, 'equator')), blues):
-        ax[0].plot(rr, om[:, j], color=c, label=lab, lw=2)
+        ax[0].plot(rr, om[:, j], color=c, lw=2)
+        ax[0].annotate(lab, xy=(rr[-1], om[-1, j]), xytext=(4, 0),
+                       textcoords='offset points', color=c, fontsize=9,
+                       fontweight='bold', va='center', clip_on=False)
+    ax[0].set_xlim(rr[0], rr[-1] + 0.10*(rr[-1] - rr[0]))
     ax[0].set_xlabel(r'$r/R_\odot$'); ax[0].set_ylabel(r'$\Omega/2\pi$ [nHz]')
-    ax[0].set_title('(a) differential rotation')
-    ax[0].legend(frameon=False, title='latitude', loc='lower right')
+    ax[0].set_title('(a) differential rotation by latitude')
 
     ax[1].plot(h[:, 0], h[:, 1], color=blues[1], lw=2)
     ax[1].set_xlabel('time [yr]')

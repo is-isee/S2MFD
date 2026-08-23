@@ -14,6 +14,7 @@ S2MFD Documentation
    usage
    dynamic
    tutorial_rempel
+   verification
    inference
    tutorial_inference
    api_reference

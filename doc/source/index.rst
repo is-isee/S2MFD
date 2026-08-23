@@ -12,6 +12,7 @@ S2MFD Documentation
 
    installation
    usage
+   reading_the_code
    dynamic
    parameters
    tutorial_rempel

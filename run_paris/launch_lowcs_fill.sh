@@ -11,9 +11,10 @@
 #
 # 継続ランは t0= で時刻を引き継ぐ。これを渡さないと convergence.py の
 # 「同じ (格子, cs) では最長のラン」が継続前の古いランを採ってしまう。
-# **投入先は paris。** astana は堀田先生ご自身の解析 (ipython,
-# compress_delete_qq.py, probe_upflow_threshold.py など) が常時走っているので
-# 使わないこと (2026-08-23 に 21 スレッド投入して重くしてしまった)。
+# 投入先はそのときの空き具合で決める (このスクリプトは host 非依存)。
+# 2026-08-23 の実行時は astana が混んでいたので paris に出した。
+# 投入前に ssh <host> "uptime; ps -eo user:20,nlwp,args" で
+# load と**誰の何が走っているか**を見ること。
 cd /scr/a000/c0234hotta/Repository/S2MFD || exit 1
 export MPLBACKEND=Agg PYTHONPATH=/scr/a000/c0234hotta/Repository/S2MFD
 export S2MFD_PARFILE=parameters/rempel06_paper.py

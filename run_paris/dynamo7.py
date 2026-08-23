@@ -53,14 +53,32 @@ i735=np.argmin(abs(rr-0.735*cfg.RSUN)); isurf=len(rr)-1
 lat60=np.argmin(abs(th-np.radians(30)))   # 緯度60度 = 余緯度30度
 # hist の列: 0=t 1=|Bph|max 2=|Br|surf 3=Bph@0.735eq 4=DR
 #   5=dOm(pole) 6=dOm(lat60) 7=E_B 8=Om1(pole)raw 9=Om1(lat60)raw
-#   10-17 が QKEYS, 18=E_Omega 19=E_M
+#   10-17 が QKEYS, 18=E_Omega 19=E_M, 20=放射層の符号つきトロイダル磁束
+#   21=放射層の |B_phi| の積分
 # E_Omega と E_M も残すのは、収支式 (20) (21) を dE/dt 込みで検証できる
 # ようにするため。式 (22) は E_B だけで閉じるが、(20) (21) は貯留の
 # 時間微分が要る。dE/dt をゼロと仮定すると、まだ成長中の解では残差が
 # 入力の 10-25 パーセントに見える (2026-08-23 にこれで誤診しかけた)。
 QKEYS=['Q_Lambda','Q_nu_Omega','Q_C','Q_L_Omega','Q_nu_M','Q_B','Q_L_M','Q_eta']
 HCOLS=(['t','Bph_max','Br_surf','Bph_735eq','DR','dOm_pole','dOm_lat60',
-        'E_B','Om1_pole_raw','Om1_lat60_raw'] + QKEYS + ['E_Omega','E_M'])
+        'E_B','Om1_pole_raw','Om1_lat60_raw'] + QKEYS
+       + ['E_Omega','E_M','Phi_rad','absPhi_rad'])
+
+# 放射層 (r < r_bc) のトロイダル磁束。
+#
+# ここは eta_c = 1e5 m^2/s しかないので拡散時間が L^2/eta = 516 年 = 周期の
+# 29 倍になる。**下部境界を閉じる (対称) と、放射層が数十サイクル分の古い
+# 極性を溜め込む。** Rempel (2006) が下部で B_Phi = 0 を課しているのは、
+# これを抜くためかもしれない (堀田先生の見立て、2026-08-23)。
+#
+# 符号つきの積分が単調に増えるなら「溜まっている」、サイクルとともに
+# 振動するなら「反転している」。|B_phi| の積分は溜まった量の大きさ。
+_i_rad = rr < getattr(cfg, 'rr_bc', 0.71*cfg.RSUN)
+def _radiative_flux(B):
+    """放射層の (符号つき, 絶対値) トロイダル磁束 [G cm^2]."""
+    w = rr[_i_rad, None]*grid.drr[m:grid.ixg-m][_i_rad, None]*grid.dth
+    b = B[_i_rad, :]
+    return float((b*w).sum()), float((np.abs(b)*w).sum())
 
 print(f"[{tag}] alpha_quenching={getattr(cfg,'alpha_quenching',True)} "
       f"r_max={getattr(cfg,'r_max',grid.rrmax)/cfg.RSUN:.4f}R "
@@ -175,7 +193,8 @@ for n in range(1,ns+1):
                      # 移動平均なので、解がまだ緩和している間はドリフトに
                      # 追従しきれない。後処理で中心移動平均を引くために要る。
                      om[-1,po]/(2*np.pi)*1e9, om[-1,lat60]/(2*np.pi)*1e9]
-                    +[qq[k] for k in QKEYS]+[e[0], e[1]])
+                    +[qq[k] for k in QKEYS]+[e[0], e[1]]
+                    +list(_radiative_flux(B)))
         butter.append(B[i735,:].copy())
         if n%(nout*100)==0:
             print(f"[{tag}] t={t/3.156e7:7.2f}yr |Bph|={hist[-1][1]:7.4f}T "

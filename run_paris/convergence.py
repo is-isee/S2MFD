@@ -52,6 +52,42 @@ def _cs_from_tag(s):
     return int(s)/1000.0*10.0 if len(s) == 3 else float(s)/100.0
 
 
+def saturate_fit(t, dr, frac=0.6):
+    """DR(t) = DR_inf - A exp(-t/tau) を当てはめて、飽和値と残りを返す。
+
+    傾きの閾値だけで判定すると、**人工拡散が弱いランは緩和が遅すぎて**
+    未飽和のまま通ってしまう (2026-08-23: c108x72_cs010 が 100 年走っても
+    +0.0008/yr で上がり続けていたのに「飽和」と判定されていた)。
+    緩和曲線を外挿して**残りいくら動くか**を出す方が使える。
+
+    Returns
+    -------
+    (DR_inf, tau, gap) : float
+        ``gap = DR_inf - DR(最新)``。当てはまらなければ ``(nan, nan, nan)``。
+    """
+    from scipy.optimize import least_squares
+    k = int(len(t)*(1.0 - frac))
+    tt, yy = t[k:], dr[k:]
+    if len(tt) < 12:
+        return float('nan'), float('nan'), float('nan')
+    span = tt[-1] - tt[0]
+    sign = 1.0 if yy[-1] >= yy[0] else -1.0
+
+    def res(q):
+        return q[0] - q[1]*np.exp(-(tt - tt[0])/max(q[2], 1e-3)) - yy
+
+    try:
+        r = least_squares(res, [yy[-1] + sign*0.01, sign*0.01, span],
+                          bounds=([-1.0, -1.0, 0.5*span/10.0],
+                                  [1.0, 1.0, 50.0*span]))
+    except Exception:
+        return float('nan'), float('nan'), float('nan')
+    # tau が窓より極端に長いと外挿が効かない (ほぼ直線の当てはめ)
+    if not np.isfinite(r.x[0]) or r.x[2] > 20.0*span:
+        return float('nan'), float('nan'), float('nan')
+    return float(r.x[0]), float(r.x[2]), float(r.x[0] - yy[-1])
+
+
 def collect():
     """(nx, ny, cs) -> dict の辞書。同じ組は最長のランを採る。"""
     out = {}
@@ -76,8 +112,15 @@ def collect():
         # t0= の規約 (上の MIN_SPAN の説明) により、絶対時刻がそのまま
         # 「その cs での緩和時間」になる
         span = t[-1]
+        dinf, tau, gap = saturate_fit(t, dr)
+        # 緩和曲線の外挿で「残りどれだけ動くか」を見る。傾きだけだと
+        # 緩和が遅いランを取りこぼす (saturate_fit の docstring 参照)。
+        settled = (abs(gap) < 0.002) if np.isfinite(gap) else (
+            abs(slope) < SATURATED)
         rec = dict(tag=tag, t=t[-1], DR=dr[-1], slope=slope, span=span,
-                   sat=(abs(slope) < SATURATED and span >= MIN_SPAN),
+                   DR_inf=dinf, tau=tau, gap=gap,
+                   sat=(settled and abs(slope) < SATURATED
+                        and span >= MIN_SPAN),
                    short=span < MIN_SPAN, n=len(h))
         if key not in out or rec['t'] > out[key]['t']:
             out[key] = rec
@@ -101,15 +144,18 @@ def table(tab):
                 line += f"{f'{r[chr(68)+chr(82)]:+.4f}{mark}@{r[chr(116)]:.0f}y':>18}"
         print(line)
     print()
-    print(f"{'ラン':22}{'t[yr]':>8}{'走行[yr]':>10}{'DR':>10}"
-          f"{'dDR/dt[1/yr]':>15}  判定")
+    print(f"{'ラン':22}{'t[yr]':>8}{'DR':>9}{'dDR/dt':>10}"
+          f"{'外挿 DR_inf':>12}{'残り':>9}{'tau[yr]':>9}  判定")
     for k in sorted(tab):
         r = tab[k]
         v = ('飽和' if r['sat']
              else ('判定保留 (走行 %.0f 年)' % r['span'] if r['short']
                    else '**未飽和**'))
-        print(f"{r['tag']:22}{r['t']:8.1f}{r['span']:10.1f}{r['DR']:+10.4f}"
-              f"{r['slope']:+15.5f}  {v}")
+        di = f"{r['DR_inf']:+12.4f}" if np.isfinite(r['DR_inf']) else f"{'-':>12}"
+        gp = f"{r['gap']:+9.4f}" if np.isfinite(r['gap']) else f"{'-':>9}"
+        ta = f"{r['tau']:9.1f}" if np.isfinite(r['tau']) else f"{'-':>9}"
+        print(f"{r['tag']:22}{r['t']:8.1f}{r['DR']:+9.4f}{r['slope']:+10.5f}"
+              f"{di}{gp}{ta}  {v}")
 
 
 def fit(tab):

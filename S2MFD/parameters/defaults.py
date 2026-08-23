@@ -89,3 +89,10 @@ gridfile = 'grid.npz'
 setupfile = 'setup.npz'
 legendrefile = 'legendre.npz'
 configfile = 'config.json'
+
+# --- 下部境界だけ磁場の人工拡散を効かせる (既定は無効) ----------------------
+# 磁場フィルタの特性速度は |v| だけなので、子午面流が入り込まない放射層では
+# 実質効かない。Rempel (2006) どおりの下部境界 B_Phi = 0 を課すときだけ必要。
+# 詳細は S2MFD/physics/dynamic.py の DynamicSolver.__init__ を参照。
+sld_bottom_speed = 0.0      # [cm/s] 特性速度の床。0 で無効
+sld_bottom_width = 0.0      # [cm] 下端からの幅。0 なら 0.02*RSUN を使う

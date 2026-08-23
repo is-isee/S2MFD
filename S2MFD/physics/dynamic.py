@@ -314,6 +314,33 @@ class DynamicSolver:
         # 磁場フィルタ用の特性速度 (音速を含まない)
         self.cspB_r = np.zeros(self.shape)
         self.cspB_th = np.zeros(self.shape)
+        # 下部境界だけ磁場フィルタを効かせるための特性速度の床。
+        #
+        # 磁場フィルタの特性速度は |v| だけなので、子午面流が入り込まない
+        # 放射層 (r < r_bc) では**フィルタが実質効かない**。そこで
+        # Rempel (2006) どおりの下部境界 B_Phi = 0 を課すと、小さい eta_c が
+        # 作る抵抗層 sqrt(eta_c t) (1 年で 0.00255 R) が 108x72 の底のセル幅
+        # 0.00386 R に入らず、境界で格子スケールの指数成長が起きる
+        # (実測: 4.4 年目から 1.1 年で倍増し 13 年で max|B_phi| = 92 T)。
+        #
+        # 境界層を 1 セルに乗せるには kappa >~ dr^2/t = 2.3e9 cm^2/s が要り、
+        # SLD の kappa ~ 0.5 c dr から c ~ 0.2 m/s。既定は 0 (無効)。
+        #
+        #     cfg.sld_bottom_speed [cm/s]  床の大きさ
+        #     cfg.sld_bottom_width [cm]    下端からの幅 (ガウシアン)
+        #
+        # **これは論文にない数値的な措置なので、0 でない値を使ったら必ず
+        # 記録すること。** 拡散 CFL には自動で入る (sld_diffusivity_max が
+        # cspB を見るため)。
+        _cfg = self.cfg
+        v_floor = float(getattr(_cfg, 'sld_bottom_speed', 0.0))
+        if v_floor > 0.0:
+            w = float(getattr(_cfg, 'sld_bottom_width', 0.0)
+                      or 0.02*_cfg.RSUN)
+            x = (self.grid.rr - self.grid.rr[self.m])/w
+            self._cspB_floor = (v_floor*np.exp(-x**2))[:, None]
+        else:
+            self._cspB_floor = None
         # 緯度平均拡散の 1 次元作業配列
         self._w1 = np.zeros(self.shape[0])
         self._p1 = np.zeros(self.shape[0])
@@ -370,8 +397,9 @@ class DynamicSolver:
         # 流れである (アルヴェン波は運動量方程式との結合で現れる)。
         # 音速を入れると、運動学的ランでフィルタの実効拡散係数 (1/2)c*dx が
         # 磁気拡散 eta を桁で上回り CFL を破る (実測 1.3e13 対 eta=1e12)。
-        self.cspB_r[1:] = 0.5*(vv[1:] + vv[:-1])
-        self.cspB_th[:, 1:] = 0.5*(vv[:, 1:] + vv[:, :-1])
+        vb = vv if self._cspB_floor is None else vv + self._cspB_floor
+        self.cspB_r[1:] = 0.5*(vb[1:] + vb[:-1])
+        self.cspB_th[:, 1:] = 0.5*(vb[:, 1:] + vb[:, :-1])
 
     # -- 状態の変換 -------------------------------------------------------
     def conserved(self, out=None):

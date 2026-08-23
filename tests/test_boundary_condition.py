@@ -234,3 +234,71 @@ class TestBCImplementationsAgree:
             f"{bc_type}: Bph のゴーストが 2 実装で違う"
         assert np.allclose(Ap, An, rtol=1e-12, atol=0), \
             f"{bc_type}: Aph のゴーストが 2 実装で違う"
+
+
+class TestRempelBottomBoundaryIsDeliberatelySymmetric:
+    """Rempel 設定の**下部境界は論文と違う**ことを固定する。
+
+    Rempel (2006) §2.2:
+
+        B_Phi vanishes at both radial boundaries, while A vanishes at the
+        inner boundary, and the poloidal field is assumed to be radial at
+        the top boundary.
+
+    つまり論文は下部境界 (r = 0.65 RSUN) で :math:`B_\\Phi = 0` (反対称)。
+    その分岐は ``boundary_condition_type='R06'`` として実装してあるが、
+    **本実装は意図的に ``'vertical'`` (``d(rB_Phi)/dr = 0``、対称) を使う。**
+
+    理由 1 (物理)
+        r = 0.65 RSUN は放射層の内部で、実際の太陽には境界がない。放射層は
+        良導体なので磁場は蓄えられるべきで、:math:`B_\\Phi=0` は境界を
+        トロイダル磁束と磁気エネルギーの**吸い込み**にしてしまう。対称条件
+        なら拡散フラックスがゼロで、``A = 0`` と合わせて閉じた境界になる。
+        **論文自身が §3.2 で「B_Phi だけは closed boundary condition では
+        ない」と認めており**、上部境界の抵抗フラックスが無視できるとしか
+        言っていない (下部については何も言っていない)。式 (22) の収支が
+        Q_Lambda 比 1e-5 - 1e-4 で閉じるのは対称境界だからである。
+
+    理由 2 (数値)
+        :math:`B_\\Phi = 0` が作る抵抗層 :math:`\\sqrt{\\eta_c t}` は 1 年で
+        0.00255 R。108x72 の底のセル幅は 0.00386 R で**入らない**。実測でも
+        108x72 の ``'R06'`` は 4.4 年目から 1.1 年で倍増する局所的な指数成長
+        を起こし、13 年で max|B_phi| = 92 T に達して発散した (0.735 R 赤道の
+        値は最後まで正常だった)。
+
+    詳細は ``doc/dev_records/2026-08-23_paper_audit2.md``。
+
+    **論文に合わせようとしてここを 'R06' に変えるときは、上の 2 点に
+    答えてから変えること。**
+    """
+
+    @pytest.mark.parametrize('parameter_file', [
+        'parameters/rempel06.py', 'parameters/rempel06_paper.py'])
+    def test_bottom_boundary_is_symmetric(self, parameter_file):
+        cfg = make_cfg(parameter_file)
+        assert cfg.boundary_condition_type == 'vertical', (
+            f"{parameter_file} の boundary_condition_type が "
+            f"{cfg.boundary_condition_type!r} になっている。"
+            f"論文どおりの 'R06' は 108x72 で発散する (docstring 参照)")
+
+    def test_symmetric_bottom_keeps_the_toroidal_field(self):
+        """対称条件では下部境界でトロイダル磁場が消えないこと。
+
+        反対称 ('R06') なら境界面で 0 になる。ここが 2 つの条件の違いの
+        すべてである (上部は同じ)。
+        """
+        m = 2
+        out = {}
+        for bc in ('vertical', 'R06'):
+            cfg = make_cfg(ix=32, jx=32, margin=m,
+                           boundary_condition_type=bc)
+            grid = make_grid(cfg)
+            Bph = np.ones((grid.ixg, grid.jxg))
+            Aph = np.zeros((grid.ixg, grid.jxg))
+            b, _ = boundary_condition(Bph, Aph, cfg, grid, None)
+            # 境界面 = ゴースト m-1 と物理セル m の中点
+            out[bc] = 0.5*(b[m-1, m:grid.jxg-m] + b[m, m:grid.jxg-m])
+        assert np.allclose(out['R06'], 0.0, atol=1e-12), (
+            "'R06' で境界面の B_phi がゼロになっていない")
+        assert np.all(np.abs(out['vertical']) > 0.5), (
+            "'vertical' で境界面の B_phi が消えている")

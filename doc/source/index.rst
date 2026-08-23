@@ -13,6 +13,7 @@ S2MFD Documentation
    installation
    usage
    dynamic
+   parameters
    tutorial_rempel
    verification
    inference

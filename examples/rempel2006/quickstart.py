@@ -127,7 +127,7 @@ def _plot(outdir, rr, th, sol, cfg, h, m, grid):
         ax[0].plot(rr, om[:, j], color=c, label=lab, lw=2)
     ax[0].set_xlabel(r'$r/R_\odot$'); ax[0].set_ylabel(r'$\Omega/2\pi$ [nHz]')
     ax[0].set_title('(a) differential rotation')
-    ax[0].legend(frameon=False, title='latitude')
+    ax[0].legend(frameon=False, title='latitude', loc='lower right')
 
     ax[1].plot(h[:, 0], h[:, 1], color=blues[1], lw=2)
     ax[1].set_xlabel('time [yr]')

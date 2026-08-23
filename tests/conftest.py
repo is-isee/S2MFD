@@ -10,32 +10,20 @@ import S2MFD
 GOLDEN_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'golden')
 
 
-def make_cfg(parameter_file='parameters/defaults.py', datadir=None, **overrides):
-    """Cfg を生成し、datadir と任意の属性を上書きする補助関数。
+def make_cfg(parameter_file='parameters/defaults.py', datadir=None,
+             **overrides):
+    """:func:`S2MFD.build_cfg` の別名 (既存テストとの互換のために残す)。
 
-    注意: defaults.py の派生量 (uu0, so0, ome など) は読込時に確定するため、
-    ここで基本量 (rey, cso, ett など) を上書きしても派生量には反映されない。
-    派生量を変えたい場合は派生量そのものを渡すこと。
+    **新しいコードは ``S2MFD.build_cfg`` を直接使うこと。**
+    実行スクリプトが ``tests/`` を import しなければならないのはおかしいので、
+    2026-08-23 に本体へ移した。
     """
-    cfg = S2MFD.Cfg(parameter_file)
-    if datadir is not None:
-        # 現実装はパスを文字列連結するので末尾スラッシュが必須
-        cfg.datadir = str(datadir).rstrip('/') + '/'
-    for key, value in overrides.items():
-        setattr(cfg, key, value)
-    return cfg
+    return S2MFD.build_cfg(parameter_file, datadir=datadir, **overrides)
 
 
 def make_grid(cfg):
-    return S2MFD.Grid(
-        ix=cfg.ix, jx=cfg.jx, margin=cfg.margin,
-        rrmin=cfg.rrmin, rrmax=cfg.rrmax,
-        thmin=cfg.thmin, thmax=cfg.thmax,
-        stretch=getattr(cfg, 'grid_stretch', 0.0),
-        stretch_center=getattr(cfg, 'grid_stretch_center',
-                               0.5*(cfg.rrmin + cfg.rrmax)),
-        stretch_width=getattr(cfg, 'grid_stretch_width', 0.0),
-    )
+    """:meth:`S2MFD.Grid.from_cfg` の別名 (既存テストとの互換)。"""
+    return S2MFD.Grid.from_cfg(cfg)
 
 
 def run_short_simulation(cfg):

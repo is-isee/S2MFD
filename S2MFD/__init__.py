@@ -9,7 +9,7 @@ Example
 """
 
 from .main_functions import run_simulation
-from .cfg import Cfg
+from .cfg import Cfg, build_cfg
 from .grid import Grid
 from .legendre import Legendre
 from .setup import Setup
@@ -19,6 +19,7 @@ from . import physics
 from . import tools
 
 __all__ = [ 'Cfg',
+            'build_cfg',
             'Grid',
             'Legendre',
             'Setup',

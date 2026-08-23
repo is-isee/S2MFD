@@ -8,7 +8,7 @@
     トーショナル振動 4.7 nHz (極) / 3.5 nHz (緯度 60 度)
     蝶形図: 緯度 50 度から始まり 40 度でピーク
 """
-import sys, os, time, numpy as np; sys.path.insert(0,'tests')
+import sys, os, time, numpy as np
 np.seterr(all='ignore')
 import S2MFD
 PARFILE=os.environ.get('S2MFD_PARFILE','parameters/rempel06.py')
@@ -17,7 +17,6 @@ from S2MFD.physics import (conservative as cons, time_marching,
                            poloidal_from_potential, boundary_condition)
 from S2MFD.physics.dynamic import DynamicSolver
 from S2MFD.physics.energy import EnergyBudget, solar_luminosity
-from conftest import make_cfg, make_grid
 
 nx,ny   = int(sys.argv[1]), int(sys.argv[2])
 relax_yr= float(sys.argv[3])     # 磁場を入れる前の流体緩和
@@ -43,8 +42,8 @@ outdir=f'results_rempel/{tag}'; os.makedirs(outdir, exist_ok=True)
 # ローレンツ力を入れた解 (§3.1, 図 4, 表 1 列 3-9) では外している。
 # コマンドラインで明示されていなければ、この規則に従う。
 over.setdefault('alpha_quenching', bool(kinematic))
-cfg=make_cfg(PARFILE,ix=nx,jx=ny, **over)
-grid=make_grid(cfg); strat=Stratification(cfg,grid); setup=S2MFD.Setup(cfg,grid)
+cfg=S2MFD.build_cfg(PARFILE,ix=nx,jx=ny, **over)
+grid=S2MFD.Grid.from_cfg(cfg); strat=Stratification(cfg,grid); setup=S2MFD.Setup(cfg,grid)
 sol=DynamicSolver(cfg,grid,strat,setup); eb=EnergyBudget(cfg,grid,strat,setup)
 m=grid.margin; sl=(slice(m,grid.ixg-m),slice(m,grid.jxg-m))
 th=grid.th[m:grid.jxg-m]; rr=grid.rr[m:grid.ixg-m]

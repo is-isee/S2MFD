@@ -13,12 +13,10 @@ sld_cs_factor = 0.3 に固定して安全率 S だけを振っていた。人工
 """
 import sys, os, numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, 'tests')
 np.seterr(all='ignore')
 import S2MFD
 from S2MFD.stratification import Stratification
 from S2MFD.physics.dynamic import DynamicSolver
-from conftest import make_cfg, make_grid
 
 TH = np.linspace(1e-6, np.pi, 801)
 
@@ -45,8 +43,8 @@ def sld_response(theta, ep=2.0, fh=2.0, n=1024):
 RESP = np.clip(np.nan_to_num(np.array([sld_response(t) for t in TH])), 0, None)
 
 def build(cs):
-    cfg = make_cfg('parameters/rempel06_paper.py', sld_cs_factor=cs)
-    grid = make_grid(cfg); strat = Stratification(cfg, grid)
+    cfg = S2MFD.build_cfg('parameters/rempel06_paper.py', sld_cs_factor=cs)
+    grid = S2MFD.Grid.from_cfg(cfg); strat = Stratification(cfg, grid)
     setup = S2MFD.Setup(cfg, grid)
     sol = DynamicSolver(cfg, grid, strat, setup)
     sol.set_primitive_from_conserved(sol.conserved())

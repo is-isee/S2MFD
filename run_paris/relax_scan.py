@@ -1,5 +1,5 @@
 """Rempel 2006 参照モデルの流体緩和 (Lambda 効果による差動回転の形成)."""
-import sys, os, time, numpy as np; sys.path.insert(0,'tests')
+import sys, os, time, numpy as np
 np.seterr(all='ignore')
 import S2MFD
 PARFILE=os.environ.get('S2MFD_PARFILE','parameters/rempel06.py')
@@ -7,7 +7,6 @@ from S2MFD.stratification import Stratification
 from S2MFD.physics import conservative as cons
 from S2MFD.physics.dynamic import DynamicSolver
 from S2MFD.physics.energy import EnergyBudget, solar_luminosity
-from conftest import make_cfg, make_grid
 
 nx,ny = int(sys.argv[1]), int(sys.argv[2])
 years = float(sys.argv[3]); bc = sys.argv[4]; tag = sys.argv[5]
@@ -26,9 +25,9 @@ for a in sys.argv[6:]:
         # margin のように int でなければならない値がある
         try: over[k] = int(v)
         except ValueError: over[k] = float(v)
-cfg = make_cfg(PARFILE, ix=nx, jx=ny, dynamics='hydro',
+cfg = S2MFD.build_cfg(PARFILE, ix=nx, jx=ny, dynamics='hydro',
                angmom_bottom_bc=bc, **over)
-grid=make_grid(cfg); strat=Stratification(cfg,grid); setup=S2MFD.Setup(cfg,grid)
+grid=S2MFD.Grid.from_cfg(cfg); strat=Stratification(cfg,grid); setup=S2MFD.Setup(cfg,grid)
 sol = DynamicSolver(cfg,grid,strat,setup); eb = EnergyBudget(cfg,grid,strat,setup)
 m=grid.margin; sl=(slice(m,grid.ixg-m),slice(m,grid.jxg-m))
 if init:                      # 別解像度の緩和済み状態から始める

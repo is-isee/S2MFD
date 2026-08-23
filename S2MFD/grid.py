@@ -104,6 +104,32 @@ class Grid(NpzIO):
    X: np.ndarray = field(init=False)
    Y: np.ndarray = field(init=False)
    
+   @classmethod
+   def from_cfg(cls, cfg):
+      """``Cfg`` から格子を作る.
+
+      設定ファイルに格子の指定がどう書かれていても、格子の作り方が
+      **1 箇所に決まる**ようにするための入口。伸縮格子の既定値
+      (``grid_stretch`` など) はここでだけ解釈する。
+
+      Examples
+      --------
+      >>> import S2MFD
+      >>> cfg = S2MFD.build_cfg('parameters/rempel06_paper.py')
+      >>> grid = S2MFD.Grid.from_cfg(cfg)
+      >>> grid.ix, grid.jx
+      (108, 72)
+      """
+      return cls(
+         ix=cfg.ix, jx=cfg.jx, margin=cfg.margin,
+         rrmin=cfg.rrmin, rrmax=cfg.rrmax,
+         thmin=cfg.thmin, thmax=cfg.thmax,
+         stretch=getattr(cfg, 'grid_stretch', 0.0),
+         stretch_center=getattr(cfg, 'grid_stretch_center',
+                                0.5*(cfg.rrmin + cfg.rrmax)),
+         stretch_width=getattr(cfg, 'grid_stretch_width', 0.0),
+      )
+
    def _face_positions(self):
       """セル境界 (面) の半径を ixg+1 個返す。
 

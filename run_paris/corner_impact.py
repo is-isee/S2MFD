@@ -8,20 +8,18 @@
 """
 import sys, os, time, numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, 'tests')
 np.seterr(all='ignore')
 import S2MFD
 from S2MFD.stratification import Stratification
 from S2MFD.physics import time_marching, poloidal_mag, boundary_condition
 from S2MFD.physics.dynamic import DynamicSolver
-from conftest import make_cfg, make_grid
 
 init, alpha0, years = sys.argv[1], float(sys.argv[2]), float(sys.argv[3])
 
 def run(freeze_corners):
-    cfg = make_cfg('parameters/rempel06_paper.py', alpha0=alpha0,
+    cfg = S2MFD.build_cfg('parameters/rempel06_paper.py', alpha0=alpha0,
                    magnetic_buoyancy=1, sld_cs_factor=0.30, alpha_quenching=False)
-    grid = make_grid(cfg); strat = Stratification(cfg, grid)
+    grid = S2MFD.Grid.from_cfg(cfg); strat = Stratification(cfg, grid)
     setup = S2MFD.Setup(cfg, grid)
     sol = DynamicSolver(cfg, grid, strat, setup)
     m = grid.margin

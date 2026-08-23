@@ -15,19 +15,17 @@ E_B = int dV B_phi^2/(8 pi) なので、フィルタによる変化率は
 """
 import sys, os, numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, 'tests')
 np.seterr(all='ignore')
 import S2MFD
 from S2MFD.stratification import Stratification
 from S2MFD.physics.energy import EnergyBudget
 from S2MFD.physics import poloidal_from_potential
 from S2MFD.physics.dynamic import DynamicSolver
-from conftest import make_cfg, make_grid
 
 tag, alpha0 = sys.argv[1], float(sys.argv[2])
-cfg = make_cfg('parameters/rempel06_paper.py', alpha0=alpha0, magnetic_buoyancy=1,
+cfg = S2MFD.build_cfg('parameters/rempel06_paper.py', alpha0=alpha0, magnetic_buoyancy=1,
                sld_cs_factor=0.30, alpha_quenching=False)
-grid = make_grid(cfg); strat = Stratification(cfg, grid); setup = S2MFD.Setup(cfg, grid)
+grid = S2MFD.Grid.from_cfg(cfg); strat = Stratification(cfg, grid); setup = S2MFD.Setup(cfg, grid)
 sol = DynamicSolver(cfg, grid, strat, setup); eb = EnergyBudget(cfg, grid, strat, setup)
 m = grid.margin
 d = np.load(f'results_rempel/{tag}/final_state.npz')

@@ -173,3 +173,48 @@ def _values_equal(a, b):
         return bool(a == b)
     except Exception:
         return False
+
+
+def build_cfg(parameter_file='parameters/defaults.py', datadir=None,
+              **overrides):
+    """パラメタファイルから :class:`Cfg` を作り, 必要なら値を上書きする.
+
+    設定を作る入口をここ 1 つにするための関数。実行スクリプトも解析
+    スクリプトもテストもこれを使う。
+
+    Parameters
+    ----------
+    parameter_file : str
+        パラメタファイル。``'parameters/xxx.py'`` のように書くと
+        パッケージ同梱のものを読む (``S2MFD/parameters/`` 以下)。
+        絶対パスを渡せば任意のファイルも読める。
+    datadir : str or pathlib.Path, optional
+        出力先。末尾のスラッシュは自動で補う (現実装はパスを文字列
+        連結するため必須)。
+    **overrides
+        ``cfg`` の属性を上書きする。
+
+        .. warning::
+           パラメタファイルの**派生量** (``uu0``, ``so0``, ``ome`` など) は
+           読込時に確定する。基本量 (``rey``, ``cso``, ``ett`` など) を
+           ここで上書きしても派生量には反映されない。派生量を変えたい
+           場合は派生量そのものを渡すこと。
+
+    Returns
+    -------
+    Cfg
+
+    Examples
+    --------
+    論文設定を 216x144 で:
+
+    >>> import S2MFD
+    >>> cfg = S2MFD.build_cfg('parameters/rempel06_paper.py', ix=216, jx=144)
+    >>> grid = S2MFD.Grid.from_cfg(cfg)
+    """
+    cfg = Cfg(parameter_file)
+    if datadir is not None:
+        cfg.datadir = str(datadir).rstrip('/') + '/'
+    for key, value in overrides.items():
+        setattr(cfg, key, value)
+    return cfg

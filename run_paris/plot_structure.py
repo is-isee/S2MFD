@@ -7,7 +7,6 @@
 """
 import sys, os, numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, 'tests')
 import matplotlib; matplotlib.use('Agg')
 matplotlib.rcParams['axes.unicode_minus']=False
 import matplotlib.pyplot as plt
@@ -15,16 +14,16 @@ np.seterr(all='ignore')
 import S2MFD
 from S2MFD.stratification import Stratification
 from S2MFD.physics import poloidal_mag
-from conftest import make_cfg, make_grid
+
 YR=3.156e7
 tag = sys.argv[1]; alpha0 = float(sys.argv[2])
 d = np.load(f'results_rempel/{tag}/dynamo.npz')
 h, bu, th, rr = d['hist'], d['butter'], d['th'], d['rr']
 t = h[:,0]/YR
 fs = np.load(f'results_rempel/{tag}/final_state.npz')
-cfg = make_cfg('parameters/rempel06_paper.py', alpha0=alpha0, magnetic_buoyancy=1,
+cfg = S2MFD.build_cfg('parameters/rempel06_paper.py', alpha0=alpha0, magnetic_buoyancy=1,
                sld_cs_factor=0.30, alpha_quenching=False)
-grid = make_grid(cfg); Stratification(cfg,grid); S2MFD.Setup(cfg,grid)
+grid = S2MFD.Grid.from_cfg(cfg); Stratification(cfg,grid); S2MFD.Setup(cfg,grid)
 m = grid.margin
 Bph2d = fs['Bph'][m:-m, m:-m]*1e-4          # T
 lat = 90.0 - np.degrees(th)

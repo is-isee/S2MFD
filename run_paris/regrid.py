@@ -4,11 +4,9 @@
 そのまま内挿してよい。ゴーストセルは呼び出し側の境界条件で埋め直す。
 """
 import sys, numpy as np
-sys.path.insert(0, 'tests')
 import os
 import S2MFD
 PARFILE=os.environ.get('S2MFD_PARFILE','parameters/rempel06.py')
-from conftest import make_cfg, make_grid
 
 src_file, nx, ny, out = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4]
 d = np.load(src_file)
@@ -20,9 +18,9 @@ rs, ts = d['rr'], d['th']
 over = {}
 if len(sys.argv) > 5:
     over['grid_stretch'] = float(sys.argv[5])
-cfg_t = make_cfg(PARFILE, ix=nx, jx=ny, **over)
+cfg_t = S2MFD.build_cfg(PARFILE, ix=nx, jx=ny, **over)
 print(f'  target: {PARFILE}  rrmax={cfg_t.rrmax/cfg_t.RSUN:.3f}R  stretch={cfg_t.grid_stretch}')
-gt = make_grid(cfg_t)
+gt = S2MFD.Grid.from_cfg(cfg_t)
 print(f"{len(rs)}x{len(ts)} -> {gt.ixg}x{gt.jxg}")
 
 def interp2d(q, rs, ts, rt, tt):

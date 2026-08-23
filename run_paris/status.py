@@ -32,23 +32,23 @@ def main(filt=None):
               f"{res:>10}  {'*** 発散' if r['bad'] else 'OK'}")
 
 def summary():
-    """(解像度, cs) ごとに DR をまとめる。"""
-    tab = {}
-    for r in rows():
-        m = re.match(r'm(\d+)x(\d+)_cs(\d+)$', r['tag'])
-        if m:
-            nx, ny, cs = int(m[1]), int(m[2]), float('0.'+m[3][1:]) if m[3][0]=='0' else float(m[3])/100
-            tab[(nx, ny, cs)] = r
-    if not tab: return
-    print("\n=== 解像度 x 人工拡散 (DR @ 最新時刻) ===")
-    css = sorted({k[2] for k in tab}); reso = sorted({(k[0], k[1]) for k in tab})
-    print(f"{'格子':>10}" + "".join(f"{c:>16.2f}" for c in css))
-    for nx, ny in reso:
-        line = f"{nx}x{ny:<6}"
-        for c in css:
-            r = tab.get((nx, ny, c))
-            line += f"{(f'{r[chr(68)+chr(82)]:+.4f}@{r[chr(116)]:.0f}y' if r else '-'):>16}"
-        print(line)
+    """(解像度, cs) ごとに DR をまとめる。
+
+    以前はここで ``m(\d+)x(\d+)_cs(\d+)`` にしか当てず、後から投入した
+    ``s216x144_*`` / ``s288x192_*`` を無視して**古い短いランの値**を
+    表示していた (2026-08-23 に発見。216x144 cs=0.30 を「+0.2121@9y」と
+    出していたが、実際は `s216x144_cs030` が 28 年走って +0.2777)。
+    接頭辞によらず最長のランを採り、飽和判定も出す
+    ``convergence.py`` に寄せた。
+    """
+    try:
+        import convergence
+    except ImportError:
+        print("\n(convergence.py が見つからないので要約表を出さない)")
+        return
+    print()
+    convergence.table(convergence.collect())
+
 
 if __name__ == '__main__':
     main(sys.argv[1] if len(sys.argv) > 1 else None)

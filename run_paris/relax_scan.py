@@ -13,10 +13,15 @@ nx,ny = int(sys.argv[1]), int(sys.argv[2])
 years = float(sys.argv[3]); bc = sys.argv[4]; tag = sys.argv[5]
 outdir = f'results_rempel/{tag}'; os.makedirs(outdir, exist_ok=True)
 
-over = {}; init = None
+over = {}; init = None; t0_yr = 0.0
 for a in sys.argv[6:]:
     k, v = a.split('=')
     if k == 'init': init = v
+    # 継続ラン用の時刻オフセット [yr]。既定 0。
+    # これを渡さないと hist の t が 0 から始まり、収束表 (convergence.py) が
+    # 「同じ (格子, cs) では最長のラン」を選ぶときに**継続前の古いラン**を
+    # 採ってしまう。cs を変えて種にするだけなら 0 のままでよい。
+    elif k == 't0': t0_yr = float(v)
     else:
         # margin のように int でなければならない値がある
         try: over[k] = int(v)
@@ -57,7 +62,8 @@ M0=cons.cell_integral(strat.JM*sol.ro1*zeta2[:,None],grid.drr,grid.dth,m)
 scaleL=cons.cell_integral(np.abs(strat.JL*cfg.om0),grid.drr,grid.dth,m)
 scaleM=cons.cell_integral(np.abs(strat.JM*strat.ro0[:,None]),grid.drr,grid.dth,m)
 th=grid.th[m:grid.jxg-m]; eq=np.argmin(abs(th-np.pi/2))
-hist=[]; t0=time.time(); t=0.0; nout=max(1,nsteps//500)
+hist=[]; t0=time.time(); t=t0_yr*3.156e7; nout=max(1,nsteps//500)
+if t0_yr: print(f"[{tag}] 時刻を t={t0_yr:.1f}yr から数える (継続ラン)", flush=True)
 for n in range(1, nsteps+1):
     sol.step(dt); t += dt
     if n % 2000 == 0:      # 流れが育つので dt を追随させる

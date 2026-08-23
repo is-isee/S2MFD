@@ -32,6 +32,17 @@ YR = 3.156e7
 SATURATED = 1.0e-3
 #: 傾きを測る窓 [yr]
 WINDOW = 5.0
+#: **その cs で**これだけの年数を回っていないと飽和と判定しない [yr]
+#
+# 傾きだけで判定すると、別の cs の緩和済み状態を種にして数年しか回して
+# いないランを「飽和」と誤判定する (2026-08-23 に s288x192_cs005 が 3 年で
+# 飽和判定になった)。緩和は 216x144 級で 20-30 年かかる。
+#
+# 「その cs での緩和時間」は hist の **絶対時刻 t[-1]** で測る。
+# `relax_scan.py` の `t0=` は**同じ cs の継続ランにだけ渡す**規約なので、
+# 継続ランでは t[-1] が通算の緩和時間になり、cs を変えて種にしただけの
+# ランでは t0=0 のままなので t[-1] がその cs での緩和時間になる。
+MIN_SPAN = 10.0
 
 TAG = re.compile(r'^[a-z]*?(\d+)x(\d+)_cs(\d+)$')
 
@@ -62,8 +73,12 @@ def collect():
         slope = (np.polyfit(t[sel], dr[sel], 1)[0] if sel.sum() >= 3
                  else float('nan'))
         key = (int(m[1]), int(m[2]), _cs_from_tag(m[3]))
-        rec = dict(tag=tag, t=t[-1], DR=dr[-1], slope=slope,
-                   sat=abs(slope) < SATURATED, n=len(h))
+        # t0= の規約 (上の MIN_SPAN の説明) により、絶対時刻がそのまま
+        # 「その cs での緩和時間」になる
+        span = t[-1]
+        rec = dict(tag=tag, t=t[-1], DR=dr[-1], slope=slope, span=span,
+                   sat=(abs(slope) < SATURATED and span >= MIN_SPAN),
+                   short=span < MIN_SPAN, n=len(h))
         if key not in out or rec['t'] > out[key]['t']:
             out[key] = rec
     return out
@@ -72,8 +87,8 @@ def collect():
 def table(tab):
     css = sorted({k[2] for k in tab}, reverse=True)
     reso = sorted({(k[0], k[1]) for k in tab})
-    print(f"DR (飽和 = |dDR/dt| < {SATURATED:g}/yr, 直近 {WINDOW:g} 年で判定)。"
-          f"* は未飽和")
+    print(f"DR (飽和 = |dDR/dt| < {SATURATED:g}/yr かつ自身の走行 "
+          f">= {MIN_SPAN:g} 年)。* は未飽和、? は走行が短くて判定保留")
     print(f"{'格子':>10}" + "".join(f"{f'cs={c:g}':>18}" for c in css))
     for nx, ny in reso:
         line = f"{nx}x{ny:<6}"
@@ -82,15 +97,19 @@ def table(tab):
             if r is None:
                 line += f"{'-':>18}"
             else:
-                mark = ' ' if r['sat'] else '*'
+                mark = ' ' if r['sat'] else ('?' if r['short'] else '*')
                 line += f"{f'{r[chr(68)+chr(82)]:+.4f}{mark}@{r[chr(116)]:.0f}y':>18}"
         print(line)
     print()
-    print(f"{'ラン':22}{'t[yr]':>8}{'DR':>10}{'dDR/dt[1/yr]':>15}  判定")
+    print(f"{'ラン':22}{'t[yr]':>8}{'走行[yr]':>10}{'DR':>10}"
+          f"{'dDR/dt[1/yr]':>15}  判定")
     for k in sorted(tab):
         r = tab[k]
-        print(f"{r['tag']:22}{r['t']:8.1f}{r['DR']:+10.4f}{r['slope']:+15.5f}"
-              f"  {'飽和' if r['sat'] else '**未飽和**'}")
+        v = ('飽和' if r['sat']
+             else ('判定保留 (走行 %.0f 年)' % r['span'] if r['short']
+                   else '**未飽和**'))
+        print(f"{r['tag']:22}{r['t']:8.1f}{r['span']:10.1f}{r['DR']:+10.4f}"
+              f"{r['slope']:+15.5f}  {v}")
 
 
 def fit(tab):
@@ -162,6 +181,17 @@ def extrapolate(tab, min_points=3):
         flag = '' if len(pts) > 3 else '  (3 点なので残差はゼロになる)'
         print(f"{cs:6.2f}{len(pts):4d}{ns:>26}{r.x[0]:+10.4f}{r.x[2]:7.2f}"
               f"{rms:9.5f}{flag}")
+        # 最も粗い点を落としても同じ値に来るか (漸近領域に入っているかの目安)
+        if len(pts) > 3:
+            N2, y2 = N[1:], y[1:]
+
+            def res2(q):
+                return q[0] + q[1]*N2**(-q[2]) - y2
+
+            r2 = least_squares(res2, [0.27, 100.0, 2.0],
+                               bounds=([-1, -1e6, 0.5], [1, 1e6, 6]))
+            print(f"{'':10}{'最粗を落とす':>26}{r2.x[0]:+10.4f}{r2.x[2]:7.2f}"
+                  f"{'':9}  (差 {r2.x[0]-r.x[0]:+.4f})")
     print(f"  Rempel (2006) 表 1 列 2 = 0.27")
     # 固定 N での cs 依存の幅 (二重極限が交換するかの目安)
     print(f"\n=== 固定 N での cs 依存の幅 (cs=0.10 と 0.30 の差) ===")

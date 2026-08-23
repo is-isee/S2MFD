@@ -16,11 +16,29 @@
   Q_nu^M / Q_Lambda              0.005   0.005   0.007   0.010
   Q_L^M / Q_Lambda                 -     0.014   0.024   0.033
   Q_eta / Q_Lambda                 -     0.083   0.172   0.268
+  E_B_bar [1e31 J]                 -      2.8     4.6     5.1
+  max[(E_B - E_B_bar)/E_B_bar]     -     0.12    0.22    0.26
 
 max(Om - Om_bar) と max(B_r) は 0.985 RSUN、max(B_phi) は 0.735 RSUN で評価。
 Om_bar は時間平均 (dynamo7.py が指数移動平均で作る)。
+
+E_B_bar の桁について
+--------------------
+表 1 の該当行の指数は読み取りにくいが **10^31 J** である。10^33 J だと
+同じ表の max(E_B)_bc = 1.7e31 J (r = 0.71-0.76 RSUN の殻での値) が全体の
+0.6 パーセントになり、「トロイダル磁場は対流層底に集中する」という
+この模型の描像と矛盾する (殻の体積比は 12 パーセント)。
+max(B_phi) = 1.2-1.4 T と E_B = int B^2/(2 mu_0) dV からの見積もりも
+~3e31 J で、10^33 J には B_rms ~ 3 T が必要になり max(B_phi) を超える。
 """
-import sys, numpy as np
+import os
+import sys
+
+import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from S2MFD.physics.energy import solar_luminosity   # 3.828e33 erg/s
+
 np.seterr(all='ignore')
 YR = 3.156e7
 
@@ -35,6 +53,9 @@ PAPER = {                      # alpha0 [cm/s] -> 表 1 の列
                QL=0.008, Qnu=0.304, QC=0.465, QLO=0.232, QB=0.423,
                QnuM=0.010, QLM=0.033, Qeta=0.268),
 }
+for _a, _eb, _var in ((12.5, 2.8, 0.12), (25.0, 4.6, 0.22), (50.0, 5.1, 0.26)):
+    PAPER[_a]['EB'] = _eb
+    PAPER[_a]['EBvar'] = _var
 KEYMAP = [('Q_Lambda','QL'), ('Q_nu_Omega','Qnu'), ('Q_C','QC'),
           ('Q_L_Omega','QLO'), ('Q_B','QB'), ('Q_nu_M','QnuM'),
           ('Q_L_M','QLM'), ('Q_eta','Qeta')]
@@ -75,12 +96,21 @@ def analyse(tag, steady_yr=20.0):
                t60=float(np.abs(detrend(t[late], h[late,6], 18.0)).max()),
                Bph=float(np.abs(h[late,1]).max()),
                Br=float(np.abs(h[late,2]).max()))
+    # 磁気エネルギー [1e31 J]。erg -> J は 1e-7。
+    # **変動幅はドリフトを引いてから測る。** 引かないと、まだ成長している
+    # 解では成長分が「サイクル変動」に乗る (実測: v2_a125 で 0.51 対 0.12)。
+    eb = h[late, 7]*1e-7
+    out['EB'] = float(np.mean(eb))*1e-31
+    ebd = detrend(t[late], eb, 18.0)
+    out['EBvar'] = float(np.abs(ebd).max()/np.mean(eb))
+    out['EBvar_raw'] = float(np.abs(eb - np.mean(eb)).max()/np.mean(eb))
     # 履歴の列構成:
     #   旧 (2026-08-23 まで): 0..7 が診断、8 以降が QKEYS
     #   新: 0..9 が診断 (8,9 が生の Omega_1)、10 以降が QKEYS
     off = h.shape[1] - len(q)
     ql = float(np.mean(h[late, off+q.index('Q_Lambda')]))
-    out['QL_Fsun'] = ql/3.846e33            # 太陽光度で規格化
+    # 太陽光度は energy.py と揃える (以前ここだけ 3.846e33 だった)
+    out['QL_Fsun'] = ql/solar_luminosity
     for name, key in KEYMAP[1:]:
         out[key] = float(np.mean(h[late, off+q.index(name)]))/ql
     return out
@@ -104,10 +134,13 @@ def show(tag, alpha0):
             ('Q_B / Q_Lam','QB','QB','%.3f'),
             ('Q_nu^M / Q_Lam','QnuM','QnuM','%.3f'),
             ('Q_L^M / Q_Lam','QLM','QLM','%.3f'),
-            ('Q_eta / Q_Lam','Qeta','Qeta','%.3f')]
+            ('Q_eta / Q_Lam','Qeta','Qeta','%.3f'),
+            ('E_B_bar [1e31 J]','EB','EB','%.2f'),
+            ('max|E_B-E_B_bar|/E_B_bar','EBvar','EBvar','%.3f'),
+            ('  (ドリフト込みの生値)','EBvar_raw',None,'%.3f')]
     print(f"  {'量':<28}{'計算':>10}{'論文':>10}   比")
     for label, rk, pk, fmt in rows:
-        v = r.get(rk); pv = p.get(pk)
+        v = r.get(rk); pv = p.get(pk) if pk else None
         if v is None: continue
         ratio = f"{v/pv:6.2f}" if pv else "     -"
         pvs = (fmt % pv) if pv is not None else "-"

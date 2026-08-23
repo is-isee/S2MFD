@@ -82,10 +82,29 @@ def detrend(t, x, win):
     e = n//2
     return (x - m)[e:-e] if len(x) > 2*e + 2 else x - m
 
+def qcols(d, h):
+    """QKEYS の列を名前で引く。
+
+    **列の位置を `h.shape[1] - len(qkeys)` で当てにしてはいけない。**
+    2026-08-23 に dynamo7.py が E_Omega/E_M/放射層の磁束を末尾に足したため、
+    新しい記録 (22 列) では QKEYS は 10-17 で、差し引きの 14 は的外れになる。
+    実害: res144_* の Q_Lambda が 100 分の 1、Q_nu^M が 1e12 倍に見えた。
+    hist_cols があればそれを使い、無い古い記録 (16 列 = 診断 8 + QKEYS 8)
+    だけ差し引きにする。
+    """
+    q = [str(k) for k in d["qkeys"]]
+    if 'hist_cols' in d:
+        idx = {str(k): i for i, k in enumerate(d['hist_cols'])}
+        return {k: h[:, idx[str(k)]] for k in q}
+    off = h.shape[1] - len(q)
+    return {k: h[:, off + i] for i, k in enumerate(q)}
+
+
 def analyse(tag, steady_yr=20.0):
     """末尾 steady_yr 年 (統計的定常部) だけを使って表 1 の量を出す。"""
     d = np.load(f'results_rempel/{tag}/dynamo.npz')
     h = d['hist']; q = list(d['qkeys']); th = d['th']; bu = d['butter']
+    qc = qcols(d, h)
     t = h[:,0]/YR
     late = t >= t[-1] - steady_yr
     lat40 = np.argmin(abs(th - np.radians(50)))
@@ -104,15 +123,11 @@ def analyse(tag, steady_yr=20.0):
     ebd = detrend(t[late], eb, 18.0)
     out['EBvar'] = float(np.abs(ebd).max()/np.mean(eb))
     out['EBvar_raw'] = float(np.abs(eb - np.mean(eb)).max()/np.mean(eb))
-    # 履歴の列構成:
-    #   旧 (2026-08-23 まで): 0..7 が診断、8 以降が QKEYS
-    #   新: 0..9 が診断 (8,9 が生の Omega_1)、10 以降が QKEYS
-    off = h.shape[1] - len(q)
-    ql = float(np.mean(h[late, off+q.index('Q_Lambda')]))
+    ql = float(np.mean(qc['Q_Lambda'][late]))
     # 太陽光度は energy.py と揃える (以前ここだけ 3.846e33 だった)
     out['QL_Fsun'] = ql/solar_luminosity
     for name, key in KEYMAP[1:]:
-        out[key] = float(np.mean(h[late, off+q.index(name)]))/ql
+        out[key] = float(np.mean(qc[name][late]))/ql
     return out
 
 def show(tag, alpha0):

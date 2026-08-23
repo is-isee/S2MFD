@@ -51,10 +51,12 @@ def load(tag):
     if 'hist_cols' in d:
         cols = {k: h[:, i] for i, k in enumerate(d['hist_cols'])}
     else:
-        # 2026-08-23 以前の記録には E_Omega / E_M が入っていない
-        qk = list(d['qkeys'])
+        # 2026-08-23 以前の記録には E_Omega / E_M が入っていない。
+        # 古い記録は 16 列 = 診断 8 + QKEYS 8 で、QKEYS は 10 でなく 8 から。
+        qk = [str(k) for k in d['qkeys']]
+        off = h.shape[1] - len(qk)
         cols = {'t': h[:, 0], 'E_B': h[:, 7]}
-        cols.update({k: h[:, 10 + i] for i, k in enumerate(qk)})
+        cols.update({k: h[:, off + i] for i, k in enumerate(qk)})
     return cols
 
 

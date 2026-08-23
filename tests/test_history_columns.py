@@ -1,0 +1,78 @@
+"""``results_rempel/*/dynamo.npz`` の履歴列を名前で引けること。
+
+``run_paris/dynamo7.py`` の ``HCOLS`` は 2026-08-23 に E_Omega / E_M /
+放射層の磁束を末尾に足して 16 列から 22 列になった。このとき
+``run_paris/table1.py`` が QKEYS の位置を ``h.shape[1] - len(qkeys)``
+で当てにしていたため、新しい記録で 14 列目 (= E_B より後ろ) を
+``Q_Lambda`` として読み、res144_* の Q_Lambda が 100 分の 1、
+Q_nu^M が 1e12 倍という値を出した。**列を差し引きで当てない。**
+"""
+import importlib.util
+import os
+
+import numpy as np
+import pytest
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+QKEYS = ['Q_Lambda', 'Q_nu_Omega', 'Q_C', 'Q_L_Omega',
+         'Q_nu_M', 'Q_B', 'Q_L_M', 'Q_eta']
+# dynamo7.py の HCOLS と同じ並び (22 列)
+HCOLS_NEW = (['t', 'Bph_max', 'Br_surf', 'Bph_735eq', 'DR', 'dOm_pole',
+              'dOm_lat60', 'E_B', 'Om1_pole_raw', 'Om1_lat60_raw'] + QKEYS
+             + ['E_Omega', 'E_M', 'Phi_rad', 'absPhi_rad'])
+
+
+def _load_script(name):
+    path = os.path.join(ROOT, 'run_paris', f'{name}.py')
+    spec = importlib.util.spec_from_file_location(f'_rp_{name}', path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _hist(ncol):
+    """列番号がそのまま値になる履歴 (nrow=4)。"""
+    return np.tile(np.arange(ncol, dtype=float), (4, 1))
+
+
+def _write(tmp_path, tag, hist, **extra):
+    d = tmp_path / 'results_rempel' / tag
+    d.mkdir(parents=True)
+    np.savez(d / 'dynamo.npz', hist=hist, qkeys=np.array(QKEYS), **extra)
+
+
+class TestTable1Columns:
+    def test_new_layout_uses_hist_cols(self):
+        """22 列の記録では QKEYS は 10-17。差し引きの 14 ではない。"""
+        table1 = _load_script('table1')
+        h = _hist(len(HCOLS_NEW))
+        d = {'qkeys': np.array(QKEYS), 'hist_cols': np.array(HCOLS_NEW)}
+        qc = table1.qcols(d, h)
+        assert qc['Q_Lambda'][0] == 10.0
+        assert qc['Q_eta'][0] == 17.0
+
+    def test_old_layout_falls_back_to_offset(self):
+        """hist_cols の無い 16 列の記録は 8 列目から QKEYS。"""
+        table1 = _load_script('table1')
+        h = _hist(16)
+        qc = table1.qcols({'qkeys': np.array(QKEYS)}, h)
+        assert qc['Q_Lambda'][0] == 8.0
+        assert qc['Q_eta'][0] == 15.0
+
+
+class TestBudgetCheckColumns:
+    @pytest.mark.parametrize('with_cols', [True, False])
+    def test_load_finds_q_lambda(self, tmp_path, monkeypatch, with_cols):
+        """新旧どちらの記録でも Q_Lambda と E_B を正しく引くこと。
+
+        古い記録に対する読み口は 2026-08-24 まで ``10 + i`` 固定で、
+        16 列の記録では IndexError になっていた。
+        """
+        budget = _load_script('budget_check')
+        ncol = len(HCOLS_NEW) if with_cols else 16
+        extra = {'hist_cols': np.array(HCOLS_NEW)} if with_cols else {}
+        _write(tmp_path, 'dummy', _hist(ncol), **extra)
+        monkeypatch.chdir(tmp_path)
+        cols = budget.load('dummy')
+        assert cols['E_B'][0] == 7.0
+        assert cols['Q_Lambda'][0] == (10.0 if with_cols else 8.0)

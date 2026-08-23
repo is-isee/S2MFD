@@ -10,6 +10,8 @@ diffusion() では 'up' でセル境界 i-1/2 の勾配を作り 'dw' で発散�
 import numpy as np
 import pytest
 
+from conftest import make_cfg, make_grid
+
 from S2MFD.tools import drr1, drr2, dth1, dth2
 
 
@@ -97,3 +99,85 @@ class TestDth2:
         qq = (t**2)[None, :] * np.ones((4, ny))
         dqq = dth2(qq, d)
         assert np.allclose(dqq[:, 1:-1], (2.0 * t)[None, 1:-1])
+
+
+class TestAnaIndexHelpers:
+    """``ana/ana_common.py`` の添字ヘルパがゴーストセルを踏まないこと。
+
+    2026-08-23 以前の ``ana/`` は表面を ``Brrt[-2]`` で取っていた。これは
+    **margin=1 でしか最外物理セルにならず**、margin=2 (Rempel 設定) では
+    ゴーストセルを指す。半径も ``1+np.argmin(abs(grid.rr - r))`` で、
+    ``grid.rr`` がゴースト込みなので +1 は 1 セル外側だった
+    (0.7006 R のつもりが 0.7033 R)。
+
+    どちらも「配列の端をゴースト込みで触る」型で、同じ型が診断側でも
+    繰り返し出ている (``doc/dev_records/2026-08-23_mistakes.md`` の
+    失敗パターン A)。
+    """
+
+    @staticmethod
+    def _ana():
+        import os
+        import sys
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        path = os.path.join(root, 'ana')
+        if path not in sys.path:
+            sys.path.insert(0, path)
+        import ana_common
+        return ana_common
+
+    @pytest.mark.parametrize('parameter_file,margin', [
+        ('parameters/hotta10.py', 1),
+        ('parameters/rempel06_paper.py', 2),
+    ])
+    def test_surface_index_is_a_physical_cell(self, parameter_file, margin):
+        a = self._ana()
+        cfg = make_cfg(parameter_file)
+        grid = make_grid(cfg)
+        assert grid.margin == margin
+        i = a.surface_index(grid)
+        assert grid.margin <= i < grid.ixg - grid.margin, (
+            f"surface_index={i} が物理セル "
+            f"[{grid.margin}, {grid.ixg-grid.margin}) の外")
+        # 最外の物理セルであること
+        assert i == grid.ixg - grid.margin - 1
+
+    def test_surface_index_matches_old_minus_two_for_margin_one(self):
+        """margin=1 では従来の ``[-2]`` と一致すること (図が変わらない)。"""
+        a = self._ana()
+        grid = make_grid(make_cfg('parameters/hotta10.py'))
+        assert a.surface_index(grid) == grid.ixg - 2
+
+    @pytest.mark.parametrize('parameter_file', [
+        'parameters/hotta10.py', 'parameters/rempel06_paper.py'])
+    def test_radial_index_stays_inside_and_is_nearest(self, parameter_file):
+        a = self._ana()
+        cfg = make_cfg(parameter_file)
+        grid = make_grid(cfg)
+        m = grid.margin
+        for frac in (0.7, 0.735, 0.985):
+            i = a.radial_index(grid, frac*cfg.RSUN)
+            assert m <= i < grid.ixg - m
+            inner = grid.rr[m:grid.ixg-m]
+            best = np.min(np.abs(inner - frac*cfg.RSUN))
+            assert abs(grid.rr[i] - frac*cfg.RSUN) == pytest.approx(best)
+
+    def test_radial_index_is_not_the_old_off_by_one(self):
+        """旧実装 ``1+argmin`` が 1 セルずれていたことを固定する。"""
+        a = self._ana()
+        cfg = make_cfg('parameters/rempel06_paper.py')
+        grid = make_grid(cfg)
+        i = a.radial_index(grid, 0.7*cfg.RSUN)
+        old = 1 + int(np.argmin(np.abs(grid.rr - 0.7*cfg.RSUN)))
+        assert old == i + 1, "旧実装との関係が変わった。docstring を見直すこと"
+        assert abs(grid.rr[i] - 0.7*cfg.RSUN) < abs(grid.rr[old] - 0.7*cfg.RSUN)
+
+    @pytest.mark.parametrize('parameter_file', [
+        'parameters/hotta10.py', 'parameters/rempel06_paper.py'])
+    def test_colat_index_stays_inside(self, parameter_file):
+        a = self._ana()
+        grid = make_grid(make_cfg(parameter_file))
+        m = grid.margin
+        for deg in (30.0, 60.0, 89.0):
+            j = a.colat_index(grid, deg)
+            assert m <= j < grid.jxg - m

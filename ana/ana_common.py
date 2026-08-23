@@ -86,3 +86,49 @@ def load_run(datadir, n0=0, n1=None, with_poloidal=True):
         timet=timet, Bpht=Bpht, Apht=Apht, Brrt=Brrt, Btht=Btht,
         tau_diff=tau_diff, n0=n0, n1=n1,
     )
+
+
+# ---------------------------------------------------------------------------
+# ゴーストセルを踏まないための添字ヘルパ
+#
+# 2026-08-23 に入れた。それまで ana/ は
+#   - 表面を ``Brrt[-2]`` で取っていた (margin=1 なら最外物理セルだが、
+#     **margin=2 だとゴーストセル**。Rempel 設定は margin=2)
+#   - 半径を ``1+np.argmin(abs(grid.rr - 0.7*RSUN))`` で取っていた
+#     (``grid.rr`` はゴースト込みなので argmin だけで正しく、+1 は
+#     **1 セル外側**を指していた。0.7006R のつもりが 0.7033R)
+# としていた。どちらも「配列の端をゴースト込みで触る」型の誤りで、
+# 同じ型が診断側でも繰り返し出ている
+# (doc/dev_records/2026-08-23_mistakes.md の失敗パターン A)。
+# ---------------------------------------------------------------------------
+
+def physical_slice(grid):
+    """物理セルだけを取り出す ``(slice, slice)``."""
+    m = grid.margin
+    return (slice(m, grid.ixg - m), slice(m, grid.jxg - m))
+
+
+def radial_index(grid, r):
+    """半径 ``r`` [cm] に最も近い**物理セル**の (ゴースト込み) 添字."""
+    m = grid.margin
+    lo, hi = m, grid.ixg - m
+    return lo + int(np.argmin(np.abs(grid.rr[lo:hi] - r)))
+
+
+def colat_index(grid, colat_deg):
+    """余緯度 [度] に最も近い**物理セル**の (ゴースト込み) 添字."""
+    m = grid.margin
+    lo, hi = m, grid.jxg - m
+    return lo + int(np.argmin(np.abs(grid.th[lo:hi]
+                                     - np.radians(colat_deg))))
+
+
+def surface_index(grid):
+    """最外の**物理**動径セルの添字 (margin=1 なら -2 と同じ)."""
+    return grid.ixg - grid.margin - 1
+
+
+def physical_colat_deg(grid):
+    """物理セルの余緯度 [度]. プロットの縦軸に使う."""
+    m = grid.margin
+    return np.degrees(grid.th[m:grid.jxg - m])

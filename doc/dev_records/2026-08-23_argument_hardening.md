@@ -83,3 +83,63 @@ Rempel の Omega_1 = 0 剛体回転リザーバ境界と対応しているので
 `physics_core.py` の融合カーネル呼び出し (`kernel(Bph, Aph, dt, ...)`) は
 末尾が `*factors` の可変長なので、Python の文法上キーワードに混ぜられない。
 ここは触っていない。
+
+---
+
+# 続き: `ana/` のゴーストセル添字 (未解決 2 番)
+
+引き継ぎ文書の未解決 2 番は「`ana/` は長期間 B_theta が 2 倍の図を出していた」
+だったが、`ana/` を読み直したら**別のゴーストセル絡みの誤りが 2 種類**
+残っていた。どちらも margin=1 では偶然正しく、**margin=2 (Rempel 設定) で
+だけ壊れる**という見つけにくい形。
+
+## (a) 表面を `Brrt[-2]` で取っていた
+
+`grid.rr` はゴースト込みなので、最外の物理セルは `ixg - margin - 1`。
+
+| パラメタ | margin | ixg | 最外物理 | `-2` |
+|---|---|---|---|---|
+| defaults / alpha_omega / hotta10 | 1 | 130 | 128 | 128 (一致) |
+| **rempel06_paper** | **2** | **112** | **109** | **110 (ゴースト)** |
+
+margin=1 の runs では正しかったので、長い間気づかれなかった。
+
+## (b) `1+np.argmin(abs(grid.rr - 0.7*RSUN))` で 1 セルずれていた
+
+`grid.rr` はゴースト込みなので `argmin` だけで正しい添字が出る。`+1` は
+**1 セル外側**を指す。rempel06_paper で 0.7008 R のつもりが 0.7027 R、
+hotta10 で 0.6984 R のつもりが 0.7016 R。
+
+`butterfly_diagram.py` / `J08_test.py` / `sunspots_number.py` /
+`npz_edit.py` の 4 本すべてに入っていた (`npz_edit.py` は 0.8 R)。
+
+## 直したもの
+
+`ana/ana_common.py` に添字ヘルパを追加し、4 本すべてを置き換えた:
+
+    physical_slice(grid)        物理セルだけの (slice, slice)
+    radial_index(grid, r)       r [cm] に最も近い物理セルの添字
+    colat_index(grid, deg)      余緯度 [度] に最も近い物理セルの添字
+    surface_index(grid)         最外の物理動径セル (margin=1 なら -2 と同じ)
+    physical_colat_deg(grid)    物理セルの余緯度 [度] (プロットの縦軸用)
+
+蝶形図の pcolormesh も、縦軸と데ータの両方を物理セルに限定した
+(以前はゴーストの緯度まで描いていた)。B_phi と B_r を取った半径を
+標準出力に出すようにしたので、ずれていれば図を見る前に気づく。
+
+## 図が変わる範囲
+
+- margin=1 の runs: **表面の位置は変わらない**が、`1+` を落とした分
+  B_phi の半径が 1 セル内側になる (0.7016 R -> 0.6984 R)。
+- margin=2 の runs: 表面がゴーストセルから最外物理セルに変わるので
+  **B_r の図は変わる**。
+
+## テスト
+
+`tests/test_tools.py::TestAnaIndexHelpers` (6 本)
+
+- `surface_index` が margin=1/2 のどちらでも物理セルであること
+- margin=1 では従来の `[-2]` と一致すること (既存の図が変わらないこと)
+- `radial_index` が物理セル内で最近傍であること
+- **旧実装 `1+argmin` が 1 セル外側だったこと**を関係式として固定
+- `colat_index` が物理セル内であること

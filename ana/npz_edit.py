@@ -14,6 +14,9 @@ import numpy as np
 
 import S2MFD
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from ana_common import radial_index
+
 datadir = sys.argv[1] if len(sys.argv) > 1 else '../data/'
 nd = int(sys.argv[2]) if len(sys.argv) > 2 else 800
 
@@ -34,7 +37,9 @@ time = d["time"]
 n = d["n"]
 
 
-base  = 1+np.argmin(abs(grid.rr-0.8*cfg.RSUN))
+# ゴーストを踏まない添字 (2026-08-23)。以前の 1+argmin(...) は
+# 1 セル外側を指していた。ana_common 参照。
+base  = radial_index(grid, 0.8*cfg.RSUN)
 # グリッドに応じた北半球と南半球の分割
 if grid.jxg % 2==0:
     S_equa = grid.jxg//2 - 1

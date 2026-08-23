@@ -166,9 +166,15 @@ def extrapolate(tab, min_points=3):
     # 固定 N での cs 依存の幅 (二重極限が交換するかの目安)
     print(f"\n=== 固定 N での cs 依存の幅 (cs=0.10 と 0.30 の差) ===")
     for nx in sorted({k[0] for k in tab}):
-        a = tab.get((nx, nx*2//3, 0.10)) or tab.get((nx, int(nx/1.5), 0.10))
-        b = tab.get((nx, nx*2//3, 0.30)) or tab.get((nx, int(nx/1.5), 0.30))
-        if a and b and a['sat'] and b['sat']:
+        # ny は格子ごとに決まるので、キーから引く (2/3 を仮定しない)
+        def pick(cs):
+            for (kx, ky, kc), v in tab.items():
+                if kx == nx and abs(kc - cs) < 1e-12 and v['sat']:
+                    return v
+            return None
+
+        a, b = pick(0.10), pick(0.30)
+        if a and b:
             print(f"  N={nx:4d}  {a['DR']-b['DR']:+.4f}")
 
 

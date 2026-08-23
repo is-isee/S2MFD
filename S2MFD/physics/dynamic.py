@@ -29,7 +29,7 @@ import numpy as np
 from numba import njit
 
 from S2MFD.physics import hydro, artdif, stability
-from S2MFD.physics.physics_core import poloidal_mag as hydro_poloidal_mag
+from S2MFD.physics import physics_core
 from S2MFD.physics import conservative as cons
 
 __all__ = ['DynamicSolver', 'apply_radial_bc', 'apply_polar_bc']
@@ -429,61 +429,74 @@ class DynamicSolver:
             a[:] = 0.0
 
         # --- 質量 --------------------------------------------------------
-        hydro.mass_rhs(dq_ro, self.vrr, self.vth, s.JV, s.JVY, self.izeta2,
-                       grid.drr, grid.wfm, grid.dth, m, w.ffr, w.ffth, w.cen, self._top_is_pole)
+        hydro.mass_rhs(
+            dq_ro=dq_ro, vrr=self.vrr, vth=self.vth, JV=s.JV, JVY=s.JVY,
+            izeta2=self.izeta2, drr=grid.drr, wfm=grid.wfm, dth=grid.dth,
+            margin=m, ffr=w.ffr, ffth=w.ffth, cen=w.cen,
+            top_is_pole=self._top_is_pole)
 
         # --- 子午面運動量 (移流 + 幾何源項 + 圧力 + 浮力 + ローレンツ) ----
-        hydro.momentum_rhs(dq_mr, dq_mt, self.vrr, self.vth, self.om1,
-                           self.ro1, self.pr1, self.brr, self.bth, self.bph,
-                           s.JV, s.JVY, s.JM, s.RSIN, grid.RR, grid.sinTH,
-                           grid.cosTH, s.ro0, s.gr, cfg.om0,
-                           grid.drr, grid.drr2, grid.wfm, grid.dth, m,
-                           self.magnetic,
-                           w.ffr, w.ffth, w.cen, self.magnetic_buoyancy, self._top_is_pole)
+        hydro.momentum_rhs(
+            dq_mr=dq_mr, dq_mt=dq_mt, vrr=self.vrr, vth=self.vth,
+            om1=self.om1, ro1=self.ro1, pr1=self.pr1, brr=self.brr,
+            bth=self.bth, bph=self.bph, JV=s.JV, JVY=s.JVY, JM=s.JM,
+            RSIN=s.RSIN, RR=grid.RR, sinTH=grid.sinTH, cosTH=grid.cosTH,
+            ro0=s.ro0, gr=s.gr, om0=cfg.om0, drr=grid.drr, drr2=grid.drr2,
+            wfm=grid.wfm, dth=grid.dth, margin=m, magnetic=self.magnetic,
+            ffr=w.ffr, ffth=w.ffth, cen=w.cen,
+            magnetic_buoyancy=self.magnetic_buoyancy,
+            top_is_pole=self._top_is_pole)
 
         # --- 角運動量 (移流 + Maxwell、および分離したレイノルズ応力) ------
         hydro.angular_momentum_rhs(
-            dq_om, self.om1, self.vrr, self.vth,
-            self.brr, self.bth, self.bph,
-            s.JL, s.JLY, s.JV, s.JVY, s.W2, grid.RR, grid.RRm,
-            grid.sinTH, grid.sinTHm, s.ro0, s.ro0m,
-            st.lam_rp, st.lam_tp, cfg.om0,
-            st.nu_dif, st.nu_dif_m, st.nu_lam, st.nu_lam_m,
-            grid.drr, grid.drrm, grid.wfm, grid.dth, m, self.magnetic,
-            self.consistent_advection, self.om1_bottom_dirichlet,
-            ds_om, heat, self._bflux, w.ffr, w.ffth, w.cen, self._top_is_pole)
+            dq_om=dq_om, om1=self.om1, vrr=self.vrr, vth=self.vth,
+            brr=self.brr, bth=self.bth, bph=self.bph, JL=s.JL, JLY=s.JLY,
+            JV=s.JV, JVY=s.JVY, W2=s.W2, RR=grid.RR, RRm=grid.RRm,
+            sinTH=grid.sinTH, sinTHm=grid.sinTHm, ro0=s.ro0, ro0m=s.ro0m,
+            lam_rp=st.lam_rp, lam_tp=st.lam_tp, om0=cfg.om0, nu_dif=st.nu_dif,
+            nu_dif_m=st.nu_dif_m, nu_lam=st.nu_lam, nu_lam_m=st.nu_lam_m,
+            drr=grid.drr, drrm=grid.drrm, wfm=grid.wfm, dth=grid.dth,
+            margin=m, magnetic=self.magnetic,
+            consistent_advection=self.consistent_advection,
+            open_bottom=self.om1_bottom_dirichlet, dq_stress=ds_om, heat=heat,
+            bflux=self._bflux, ffr=w.ffr, ffth=w.ffth, cen=w.cen,
+            top_is_pole=self._top_is_pole)
 
         # --- 子午面の粘性 (散逸項として分離) -----------------------------
-        hydro.viscous_meridional_rhs(ds_mr, ds_mt, self.vrr, self.vth,
-                                     grid.rr, grid.sinTH, grid.cosTH, s.ro0,
-                                     st.nu_dif, st.nu_dif_m,
-                                     grid.drr, grid.drrm, grid.drr2, grid.wfm,
-                                     grid.dth, m, w.ffr, w.ffth, self._top_is_pole)
+        hydro.viscous_meridional_rhs(
+            dq_mr=ds_mr, dq_mt=ds_mt, vrr=self.vrr, vth=self.vth, rr=grid.rr,
+            sinTH=grid.sinTH, cosTH=grid.cosTH, ro0=s.ro0, nu_dif=st.nu_dif,
+            nu_dif_m=st.nu_dif_m, drr=grid.drr, drrm=grid.drrm,
+            drr2=grid.drr2, wfm=grid.wfm, dth=grid.dth, margin=m, ffr=w.ffr,
+            ffth=w.ffth, top_is_pole=self._top_is_pole)
 
         # --- 人工拡散 (これも散逸項) -------------------------------------
         if self.use_artdif:
             self._update_characteristic_speed()
             heat_before = heat.copy()
-            artdif.sld_diffuse_work(ds_om, heat, self.om1,
-                                    self.jacL_r, self.jacL_th,
-                                    self.csp_r, self.csp_th,
-                               self.sld_fh, self.sld_ep,
-                                    grid.drr, grid.drrm, grid.dth, m,
-                                    w.ffr, w.ffth, self._top_is_pole)
+            artdif.sld_diffuse_work(
+                dqq=ds_om, heat=heat, uu=self.om1, jac_r=self.jacL_r,
+                jac_th=self.jacL_th, csp_r=self.csp_r, csp_th=self.csp_th,
+                fh=self.sld_fh, ep=self.sld_ep, drr=grid.drr, drrm=grid.drrm,
+                dth=grid.dth, margin=m, ffr=w.ffr, ffth=w.ffth,
+                top_is_pole=self._top_is_pole)
             # 子午面速度はベクトル成分なので、theta 掃引で基底が回る分の
             # 幾何項が要る (v_r と v_theta が混ざる)
             artdif.sld_diffuse_meridional(
-                ds_mr, ds_mt, self.vrr, self.vth,
-                self.jacV_r, self.jacV_th, self.csp_r, self.csp_th,
-                self.sld_fh, self.sld_ep, grid.drr, grid.drrm, grid.dth, m,
-                w.ffr, w.ffth, w.ffr2, w.ffth2, self._top_is_pole)
+                dq_mr=ds_mr, dq_mt=ds_mt, vrr=self.vrr, vth=self.vth,
+                jac_r=self.jacV_r, jac_th=self.jacV_th, csp_r=self.csp_r,
+                csp_th=self.csp_th, fh=self.sld_fh, ep=self.sld_ep,
+                drr=grid.drr, drrm=grid.drrm, dth=grid.dth, margin=m,
+                ffr1=w.ffr, ffth1=w.ffth, ffr2=w.ffr2, ffth2=w.ffth2,
+                top_is_pole=self._top_is_pole)
             # 密度にも掛ける (音波の格子スケール振動を抑える)。保存量は
             # ∫ζ²ρ1 dV なので、連続の式と同じく発散に 1/ζ² を掛ける
-            artdif.sld_diffuse_scaled(dq_ro, self.ro1, self.jacM_r,
-                                      self.jacM_th, self.csp_r, self.csp_th,
-                                      self.sld_fh, self.sld_ep,
-                                      grid.drr, grid.drrm, grid.dth, m,
-                                      self.izeta2, w.ffr, w.ffth, self._top_is_pole)
+            artdif.sld_diffuse_scaled(
+                dqq=dq_ro, uu=self.ro1, jac_r=self.jacM_r,
+                jac_th=self.jacM_th, csp_r=self.csp_r, csp_th=self.csp_th,
+                fh=self.sld_fh, ep=self.sld_ep, drr=grid.drr, drrm=grid.drrm,
+                dth=grid.dth, margin=m, scale=self.izeta2, ffr=w.ffr,
+                ffth=w.ffth, top_is_pole=self._top_is_pole)
 
             # 人工拡散が角運動量から抜いたエネルギーを記録する (診断用)。
             # heat は -F.grad(Omega1) なので、その体積積分が散逸率になる。
@@ -499,12 +512,12 @@ class DynamicSolver:
             # エントロピーにも掛ける。ここを忘れると s1 の格子ノイズが
             # 減衰せず、p1 = p0(gamma*rho1/rho0 + s1) を通して rho0 の小さい
             # 対流層上部で巨大な加速を生み、計算が壊れる
-            artdif.sld_diffuse_primitive(dse1, self.se1, self.jacM_r,
-                                         self.jacM_th, self.iJM,
-                                         self.csp_r, self.csp_th,
-                                         self.sld_fh, self.sld_ep,
-                                         grid.drr, grid.drrm, grid.dth, m,
-                                         w.ffr, w.ffth, self._top_is_pole)
+            artdif.sld_diffuse_primitive(
+                duu=dse1, uu=self.se1, jac_r=self.jacM_r, jac_th=self.jacM_th,
+                ijac=self.iJM, csp_r=self.csp_r, csp_th=self.csp_th,
+                fh=self.sld_fh, ep=self.sld_ep, drr=grid.drr, drrm=grid.drrm,
+                dth=grid.dth, margin=m, ffr=w.ffr, ffth=w.ffth,
+                top_is_pole=self._top_is_pole)
 
             # --- 4 次ハイパー拡散 (Rempel 2014) ---------------------------
             # 背景勾配があると SLD のリミタが「単調」と判断してしまい、
@@ -516,19 +529,23 @@ class DynamicSolver:
             if self.mean_diff_frac > 0.0:
                 kap = self.mean_diff_frac*float(np.max(st.nu_dif))
                 artdif.mean_profile_diffuse_r(
-                    ds_mr, self.vrr, s.JV, kap, grid.drr, grid.drrm, m,
-                    self._w1, self._p1, self._d1)
+                    dqq=ds_mr, uu=self.vrr, jac=s.JV, kappa=kap, drr=grid.drr,
+                    drrm=grid.drrm, margin=m, wsum=self._w1, prof=self._p1,
+                    dq1=self._d1)
                 artdif.mean_profile_diffuse_r_primitive(
-                    dse1, self.se1, s.JM, s.iJM, kap, grid.drr, grid.drrm, m,
-                    self._w1, self._p1, self._d1)
+                    duu=dse1, uu=self.se1, jac=s.JM, ijac=s.iJM, kappa=kap,
+                    drr=grid.drr, drrm=grid.drrm, margin=m, wsum=self._w1,
+                    prof=self._p1, dq1=self._d1)
 
             if self.hyper_h4 > 0.0:
-                artdif.hyper_diffuse_r(ds_mr, self.vrr, self.jacV_r,
-                                       self.vadv_r, self.hyper_h4,
-                                       grid.drr, grid.dth, m, w.ffr, w.ffth)
+                artdif.hyper_diffuse_r(
+                    dqq=ds_mr, uu=self.vrr, jac_r=self.jacV_r,
+                    vadv_r=self.vadv_r, h4=self.hyper_h4, drr=grid.drr,
+                    dth=grid.dth, margin=m, ffr=w.ffr, ffth=w.ffth)
                 artdif.hyper_diffuse_r_primitive(
-                    dse1, self.se1, self.jacM_r, self.iJM, self.vadv_r,
-                    self.hyper_h4, grid.drr, m, w.ffr)
+                    duu=dse1, uu=self.se1, jac_r=self.jacM_r, ijac=self.iJM,
+                    vadv_r=self.vadv_r, h4=self.hyper_h4, drr=grid.drr,
+                    margin=m, ffr=w.ffr)
                 # 密度は保存量なので RSST の 1/zeta^2 を掛ける
                 artdif.hyper_flux_r(self.ro1, self.jacM_r, self.vadv_r,
                                     self.hyper_h4, m, w.ffr)
@@ -541,19 +558,22 @@ class DynamicSolver:
                                                 self.izeta2)
 
         # --- エントロピー -------------------------------------------------
-        hydro.entropy_rhs(dse1, self.se1, self.vrr, self.vth, s.ro0, s.tm0,
-                          s.pr0, s.hp, s.delta, st.kappa_t, st.kappa_t_m,
-                          s.JM, s.iJM, grid.rr, grid.sinTH, grid.sinTHm,
-                          s.gamma, grid.drr, grid.drrm, grid.drr2, grid.wfm,
-                          grid.dth, m, w.ffr, w.ffth, self._top_is_pole)
+        hydro.entropy_rhs(
+            dse1=dse1, se1=self.se1, vrr=self.vrr, vth=self.vth, ro0=s.ro0,
+            tm0=s.tm0, pr0=s.pr0, hp=s.hp, delta=s.delta, kappa=st.kappa_t,
+            kappa_m=st.kappa_t_m, JM=s.JM, iJM=s.iJM, rr=grid.rr,
+            sinTH=grid.sinTH, sinTHm=grid.sinTHm, gamma=s.gamma, drr=grid.drr,
+            drrm=grid.drrm, drr2=grid.drr2, wfm=grid.wfm, dth=grid.dth,
+            margin=m, ffr=w.ffr, ffth=w.ffth, top_is_pole=self._top_is_pole)
         # 散逸したエネルギーをエントロピーに戻す (係数はちょうど 1)
-        hydro.add_dissipative_heating(dse1, heat, ds_mr, ds_mt,
-                                      self.vrr, self.vth,
-                                      s.pr0, s.iJM, s.gamma, m)
+        hydro.add_dissipative_heating(
+            dse1=dse1, heat=heat, dq_mr=ds_mr, dq_mt=ds_mt, vrr=self.vrr,
+            vth=self.vth, pr0=s.pr0, iJM=s.iJM, gamma=s.gamma, margin=m)
         if self.magnetic:
-            hydro.add_ohmic_heating(dse1, self.brr, self.bth, self.bph,
-                                    st.et, s.pr0, grid.RR, grid.sinTH,
-                                    s.gamma, grid.drr2, grid.dth, m)
+            hydro.add_ohmic_heating(
+                dse1=dse1, brr=self.brr, bth=self.bth, bph=self.bph,
+                eta=st.et, pr0=s.pr0, RR=grid.RR, sinTH=grid.sinTH,
+                gamma=s.gamma, drr2=grid.drr2, dth=grid.dth, margin=m)
 
         # --- 散逸項を本体に合流 ------------------------------------------
         dq_mr += ds_mr
@@ -665,9 +685,11 @@ class DynamicSolver:
             d = self._rhs_bufs[0]
             d[:] = 0.0
             artdif.sld_diffuse_primitive(
-                d, np.ascontiguousarray(fld), self.jacB_r, self.jacB_th,
-                self.iJB, self.cspB_r, self.cspB_th, self.sld_fh, self.sld_ep,
-                grid.drr, grid.drrm, grid.dth, m, w.ffr, w.ffth, self._top_is_pole)
+                duu=d, uu=np.ascontiguousarray(fld), jac_r=self.jacB_r,
+                jac_th=self.jacB_th, ijac=self.iJB, csp_r=self.cspB_r,
+                csp_th=self.cspB_th, fh=self.sld_fh, ep=self.sld_ep,
+                drr=grid.drr, drrm=grid.drrm, dth=grid.dth, margin=m,
+                ffr=w.ffr, ffth=w.ffth, top_is_pole=self._top_is_pole)
             fld += dt*d
         return bph, aph
 
@@ -685,11 +707,14 @@ class DynamicSolver:
         が、非運動学的ランはマクスウェル応力が過大になり低い磁場で飽和して
         いた (論文比 0.6)。
 
-        引数の取り違えを二度と起こさないよう、呼び出しはこのメソッドに
+        引数の取り違えを二度と起こさないよう、呼び出しはこのメソッドか、
+        ソルバを持たないスクリプト用の自由関数
+        :func:`~S2MFD.physics.physics_core.poloidal_from_potential` に
         集約すること。
         """
-        return hydro_poloidal_mag(aph, self.grid.RR, self.grid.sinTH,
-                                  self.grid.drr2, self.grid.dth)
+        # 同名のメソッドから呼ぶので、モジュール名を明示して
+        # 再帰に見えないようにする
+        return physics_core.poloidal_from_potential(aph, self.grid)
 
     def set_magnetic_field(self, brr, bth, bph):
         """ローレンツ力に使う磁場を外から与える."""
@@ -776,10 +801,13 @@ class DynamicSolver:
         if self.magnetic:
             kappa_max = max(kappa_max,
                             float(np.max(st.et)) + k_sld_b)    # 誘導
-        dt = hydro.cfl_dt(self.vrr, self.vth, self.brr, self.bth, self.bph,
-                          s.ro0, self.ro1, s.cs_eff, self.grid.rr,
-                          self.grid.drr, self.grid.dth, kappa_max, self.m,
-                          getattr(cfg, 'cfl_safety', 0.2), self.magnetic)
+        dt = hydro.cfl_dt(
+                 vrr=self.vrr, vth=self.vth, brr=self.brr, bth=self.bth,
+                 bph=self.bph, ro0=s.ro0, ro1=self.ro1, cs_eff=s.cs_eff,
+                 rr=self.grid.rr, drr=self.grid.drr, dth=self.grid.dth,
+                 diffusivity=kappa_max, margin=self.m,
+                 safety=getattr(cfg, 'cfl_safety', 0.2),
+                 magnetic=self.magnetic)
         self._warn_if_linearly_unstable(dt)
         return dt
 

@@ -37,7 +37,7 @@ def run(freeze_corners):
     # time_marching は新しい配列を返すので id() を鍵にしてはいけない
     frozen_B = [Bph[s].copy() for s in cs]
     frozen_A = [Aph[s].copy() for s in cs]
-    pm = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
+    pm = poloidal_from_potential(Aph, grid)
     sol.set_magnetic_field(pm[0], pm[1], Bph)
     dt = sol.cfl_dt()
     n = int(years*3.156e7/dt)
@@ -52,7 +52,7 @@ def run(freeze_corners):
             for a, fr in ((Bph, frozen_B), (Aph, frozen_A)):
                 for s, v in zip(cs, fr):
                     a[s] = v
-        pm = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
+        pm = poloidal_from_potential(Aph, grid)
         sol.set_magnetic_field(pm[0], pm[1], Bph)
         sol.step(dt); sol.sync_to_induction()
         if k % max(1, n//40) == 0:

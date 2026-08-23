@@ -15,8 +15,12 @@ def poloidal_mag(Aph, RR, sinTH, drr2_, dth):
    RR : numpy.ndarray
       Radial coordinate
    sinTH : numpy.ndarray
-   drr : numpy.ndarray
-      Radial grid spacing
+   drr2_ : numpy.ndarray
+      **2 セル幅**の動径格子間隔 ``grid.drr2``. 中心差分の分母なので
+      ``grid.drr`` (1 セル幅) を渡すと :math:`B_\\theta` がちょうど 2 倍に
+      なる. 2026-08-23 に実際に起き、ローレンツ力が過大になっていた
+      (``doc/dev_records/2026-08-23_mistakes.md``).
+      **新しい呼び出しは :func:`poloidal_from_potential` を使うこと。**
    dth : numpy.ndarray
       Colatitudinal grid spacing
 
@@ -694,6 +698,34 @@ def time_marching(Bph, Aph, dt, cfg, grid, setup):
                  np.empty_like(Bph), np.empty_like(Aph), *factors)
 
 
+def poloidal_from_potential(aph, grid):
+   """ベクトルポテンシャルからポロイダル磁場 :math:`(B_r, B_\\theta)` を作る.
+
+   :func:`poloidal_mag` を格子から正しい引数で呼ぶだけの薄い包み。
+   **引数を選べなくすることが目的**なので、新しいコードはこちらを使う。
+
+   :func:`poloidal_mag` の第 4 引数は ``grid.drr2`` (2 セル幅) だが、
+   ``grid.drr`` (1 セル幅) を渡しても黙って動き、:math:`B_\\theta` が
+   ちょうど 2 倍になる。2026-08-23 に ``run_paris/dynamo7.py`` と
+   ``ana/ana_common.py`` の両方で実際に起きており、非運動学的ダイナモの
+   ローレンツ力が過大で論文比 0.6 の磁場で飽和していた。誘導方程式の
+   カーネルは :math:`B_p` を内部で作るので影響を受けず、運動学的ランだけ
+   正しいという分かりにくい壊れ方をした。
+
+   Parameters
+   ----------
+   aph : numpy.ndarray
+      方位角ベクトルポテンシャル :math:`A_\\Phi`
+   grid : S2MFD.Grid
+
+   Returns
+   -------
+   tuple of numpy.ndarray
+      ``(Brr, Bth)``
+   """
+   return poloidal_mag(aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
+
+
 def time_marching_reference(Bph, Aph, dt, cfg, grid, setup):
    """
    Reference (unfused) implementation of one Euler substep.
@@ -704,7 +736,7 @@ def time_marching_reference(Bph, Aph, dt, cfg, grid, setup):
    Parameters / Returns は time_marching() と同じ。
    """
    # calculate poloidal magnetic field
-   Brr, Bth = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
+   Brr, Bth = poloidal_from_potential(Aph, grid)
    
    # advection term
    Bph_adrr, Bph_adth, Aph_adrr, Aph_adth \

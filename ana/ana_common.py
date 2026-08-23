@@ -77,8 +77,7 @@ def load_run(datadir, n0=0, n1=None, with_poloidal=True):
         Bpht[:, :, k] = data.Bph
         Apht[:, :, k] = data.Aph
         if with_poloidal:
-            Brr, Bth = S2MFD.physics.poloidal_mag(
-                data.Aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
+            Brr, Bth = S2MFD.physics.poloidal_from_potential(data.Aph, grid)
             Brrt[:, :, k] = Brr
             Btht[:, :, k] = Bth
 

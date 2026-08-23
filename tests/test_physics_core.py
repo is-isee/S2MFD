@@ -169,6 +169,60 @@ class TestPoloidalMagArgument:
         i = np.s_[2:-2, 2:-2]
         assert np.allclose(bth_ng[i], 2.0*bth_ok[i], rtol=1e-12)
 
+    def test_helper_takes_the_grid_so_the_argument_cannot_be_wrong(self):
+        """``poloidal_from_potential(aph, grid)`` が正しい方と一致すること。
+
+        引数を**選べなくする**のがこの関数の目的なので、
+        ``grid.drr2`` を渡した場合とビット一致していればよい。
+        """
+        from S2MFD.physics import poloidal_from_potential
+        cfg = make_cfg(ix=64, jx=64)
+        grid = make_grid(cfg)
+        Aph = np.ascontiguousarray(grid.sinTH*np.exp(-((grid.RR - 0.8*cfg.RSUN)
+                                                       / (0.1*cfg.RSUN))**2))
+        brr_h, bth_h = poloidal_from_potential(Aph, grid)
+        brr_k, bth_k = poloidal_mag(Aph, grid.RR, grid.sinTH,
+                                    grid.drr2, grid.dth)
+        assert np.array_equal(brr_h, brr_k)
+        assert np.array_equal(bth_h, bth_k)
+
+    def test_production_code_does_not_call_the_raw_kernel(self):
+        """本体と実行スクリプトが ``poloidal_mag`` を直接呼んでいないこと。
+
+        2026-08-23 のバグは ``grid.drr2`` の代わりに ``grid.drr`` を渡した
+        ことによるもので、**同じ間違いが 2 箇所で独立に起きていた**
+        (``run_paris/dynamo7.py`` と ``ana/ana_common.py``)。呼び出しを
+        :func:`poloidal_from_potential` に寄せて、間違えようがなくする。
+
+        テストは間違った引数をわざと渡すので対象外。
+        """
+        import os
+        import re
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        allowed = {
+            # 包み自身と、その中で呼ぶ本体
+            os.path.join('S2MFD', 'physics', 'physics_core.py'),
+        }
+        offenders = []
+        for sub in ('S2MFD', 'ana', 'run_paris'):
+            for dirpath, dirnames, filenames in os.walk(os.path.join(root, sub)):
+                dirnames[:] = [d for d in dirnames if d != '__pycache__']
+                for fn in filenames:
+                    if not fn.endswith('.py'):
+                        continue
+                    full = os.path.join(dirpath, fn)
+                    rel = os.path.relpath(full, root)
+                    if rel in allowed:
+                        continue
+                    with open(full, encoding='utf-8') as fh:
+                        for i, line in enumerate(fh, 1):
+                            if re.search(r'(?<![\w.])poloidal_mag\s*\(', line):
+                                offenders.append(f'{rel}:{i}')
+        assert not offenders, (
+            'poloidal_mag を直接呼んでいる箇所がある。'
+            'poloidal_from_potential(aph, grid) を使うこと: '
+            + ', '.join(offenders))
+
     def test_solver_helper_matches_kernel_internal_field(self):
         """``DynamicSolver.poloidal_from_potential`` が誘導カーネルの
         内部 :math:`B_p` と一致すること。

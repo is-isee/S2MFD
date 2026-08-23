@@ -20,7 +20,7 @@ np.seterr(all='ignore')
 import S2MFD
 from S2MFD.stratification import Stratification
 from S2MFD.physics.energy import EnergyBudget
-from S2MFD.physics import poloidal_mag
+from S2MFD.physics import poloidal_from_potential
 from S2MFD.physics.dynamic import DynamicSolver
 from conftest import make_cfg, make_grid
 
@@ -36,7 +36,7 @@ for k in ('om1', 'vrr', 'vth', 'ro1', 'se1'):
 Bph = np.ascontiguousarray(d['Bph']); Aph = np.ascontiguousarray(d['Aph'])
 sol.magnetic = True
 sol.set_primitive_from_conserved(sol.conserved()); sol.sync_to_induction()
-pm = poloidal_mag(Aph, grid.RR, grid.sinTH, grid.drr2, grid.dth)
+pm = poloidal_from_potential(Aph, grid)
 sol.set_magnetic_field(pm[0], pm[1], Bph)
 dt = sol.cfl_dt()
 
@@ -51,8 +51,8 @@ dB = (B1 - B0)/dt
 q_sld = -eb._integrate(B0*dB/(4.0*np.pi))
 
 # ポロイダル側も測る (E_pol = int (Br^2+Bth^2)/(8pi))
-pm0 = poloidal_mag(A0, grid.RR, grid.sinTH, grid.drr2, grid.dth)
-pm1 = poloidal_mag(A1, grid.RR, grid.sinTH, grid.drr2, grid.dth)
+pm0 = poloidal_from_potential(A0, grid)
+pm1 = poloidal_from_potential(A1, grid)
 q_sld_pol = -eb._integrate((pm0[0]*(pm1[0]-pm0[0]) + pm0[1]*(pm1[1]-pm0[1]))
                            / dt/(4.0*np.pi))
 

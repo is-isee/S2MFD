@@ -12,6 +12,7 @@ S2MFD Documentation
 
    installation
    usage
+   dynamic
    inference
    tutorial_inference
    api_reference

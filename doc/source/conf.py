@@ -52,7 +52,10 @@ autosummary_generate = True
 #html_theme = 'sphinx_material'
 html_theme = 'sphinx_rtd_theme'
 #html_theme = "pydata_sphinx_theme"
-html_static_path = []
+# 図 (doc/figures/make_all.py が生成) を配る。
+# 生成には results_rempel/ が要るので、PNG はリポジトリにコミット
+# してあり CI では作り直さない。
+html_static_path = ['_static']
 
 autodoc_member_order = 'groupwise'
 autodoc_default_options = {

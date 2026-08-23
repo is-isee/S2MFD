@@ -699,10 +699,10 @@ def time_marching(Bph, Aph, dt, cfg, grid, setup):
 
 
 def poloidal_from_potential(aph, grid):
-   """ベクトルポテンシャルからポロイダル磁場 :math:`(B_r, B_\\theta)` を作る.
+   r"""ベクトルポテンシャルからポロイダル磁場 :math:`(B_r, B_\\theta)` を作る.
 
    :func:`poloidal_mag` を格子から正しい引数で呼ぶだけの薄い包み。
-   **引数を選べなくすることが目的**なので、新しいコードはこちらを使う。
+   **引数を選べなくすることが目的**\ なので、新しいコードはこちらを使う。
 
    :func:`poloidal_mag` の第 4 引数は ``grid.drr2`` (2 セル幅) だが、
    ``grid.drr`` (1 セル幅) を渡しても黙って動き、:math:`B_\\theta` が

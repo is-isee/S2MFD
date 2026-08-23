@@ -9,7 +9,7 @@ from S2MFD.npz_io import NpzIO
 
 @dataclass
 class Grid(NpzIO):
-   """
+   r"""
    Class for managing the grid data.
 
    Attributes
@@ -36,7 +36,7 @@ class Grid(NpzIO):
       Radial cell width ``rrm[i+1] - rrm[i]`` (ixg,). 非一様格子では
       i に依存する。``stretch = 0`` なら全要素が等しい。
    drrm : numpy.ndarray
-      隣り合うセル中心の距離 ``rr[i] - rr[i-1]`` (ixg,)。**面での勾配**は
+      隣り合うセル中心の距離 ``rr[i] - rr[i-1]`` (ixg,)。**面での勾配**\ は
       これで割る。一様格子では ``drr`` と一致するが、非一様格子では
       別物なので混同しないこと。
    drr2 : numpy.ndarray

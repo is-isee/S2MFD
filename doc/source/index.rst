@@ -13,6 +13,7 @@ S2MFD Documentation
    installation
    usage
    dynamic
+   tutorial_rempel
    inference
    tutorial_inference
    api_reference

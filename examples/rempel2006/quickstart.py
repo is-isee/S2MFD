@@ -112,29 +112,40 @@ def _plot(outdir, rr, th, sol, cfg, h, m, grid):
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 
+    # 図の色は「その色が何の仕事をしているか」で決める。
+    # 緯度は順序量なので単一色相のランプ (虹色にしない)。
+    blues = ['#86b6ef', '#2a78d6', '#0d366b']
+    plt.rcParams.update({'axes.grid': True, 'grid.alpha': 0.35,
+                         'axes.spines.top': False, 'axes.spines.right': False,
+                         'axes.titlesize': 10, 'figure.dpi': 120})
+
     om = (cfg.om0 + sol.om1[m:grid.ixg - m, m:grid.jxg - m])/(2*np.pi)*1e9
-    fig, ax = plt.subplots(1, 3, figsize=(12.5, 3.6))
+    fig, ax = plt.subplots(1, 3, figsize=(13.5, 3.8))
 
-    for j, lab in ((0, 'pole'), (len(th)//2, '45 deg'), (len(th) - 1, 'equator')):
-        ax[0].plot(rr, om[:, j], label=lab)
+    for (j, lab), c in zip(((0, 'pole'), (len(th)//2, r'45$^\circ$'),
+                            (len(th) - 1, 'equator')), blues):
+        ax[0].plot(rr, om[:, j], color=c, label=lab, lw=2)
     ax[0].set_xlabel(r'$r/R_\odot$'); ax[0].set_ylabel(r'$\Omega/2\pi$ [nHz]')
-    ax[0].set_title('differential rotation'); ax[0].legend()
+    ax[0].set_title('(a) differential rotation')
+    ax[0].legend(frameon=False, title='latitude')
 
-    ax[1].plot(h[:, 0], h[:, 1])
+    ax[1].plot(h[:, 0], h[:, 1], color=blues[1], lw=2)
     ax[1].set_xlabel('time [yr]')
     ax[1].set_ylabel(r'$(\Omega_{\rm eq}-\Omega_{\rm pole})/\Omega_0$')
-    ax[1].set_title('spin-up of the differential rotation')
+    ax[1].set_title('(b) spin-up  (early wiggles = acoustic transient)')
 
-    ax[2].semilogy(h[:, 0], np.abs(h[:, 2]) + 1e-30)
+    ax[2].semilogy(h[:, 0], np.abs(h[:, 2]) + 1e-30, color=blues[1], lw=2)
+    ax[2].axhline(1e-15, color='#52514e', lw=1.2, ls='--')
+    ax[2].annotate('$10^{-15}$', xy=(0.98, 1e-15), xycoords=('axes fraction',
+                   'data'), xytext=(0, 4), textcoords='offset points',
+                   ha='right', fontsize=8, color='#52514e')
     ax[2].set_xlabel('time [yr]')
     ax[2].set_ylabel('|angular momentum residual|')
-    ax[2].set_title('conservation (machine precision)')
+    ax[2].set_title('(c) conservation is at machine precision')
 
-    for a in ax:
-        a.grid(alpha=0.3)
-    fig.tight_layout()
+    fig.tight_layout(w_pad=2.0)
     out = os.path.join(outdir, 'quickstart.png')
-    fig.savefig(out, dpi=120)
+    fig.savefig(out)
     print(f'\n図を書きました: {out}')
 
 

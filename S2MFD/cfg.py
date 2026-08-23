@@ -176,7 +176,7 @@ def _values_equal(a, b):
 
 
 def build_cfg(parameter_file='parameters/defaults.py', datadir=None,
-              **overrides):
+              resolve=True, **overrides):
     """パラメタファイルから :class:`Cfg` を作り, 必要なら値を上書きする.
 
     設定を作る入口をここ 1 つにするための関数。実行スクリプトも解析
@@ -191,14 +191,21 @@ def build_cfg(parameter_file='parameters/defaults.py', datadir=None,
     datadir : str or pathlib.Path, optional
         出力先。末尾のスラッシュは自動で補う (現実装はパスを文字列
         連結するため必須)。
+    resolve : bool
+        ``True`` (既定) なら上書きのあとに :meth:`Cfg.resolve` を呼び、
+        **基本量の変更を派生量に反映する**。
+
+        これを呼ばないと ``build_cfg(..., rey=1400)`` としても
+        ``uu0 = rey*ett/RSUN`` が古いままになる (実測: ``uu0`` が 0 の
+        まま変わらない)。:class:`~S2MFD.Simulation` の初期化では自動で
+        呼ばれるが、動力学モードの実行スクリプトは ``Simulation`` を
+        作らないので、ここで呼ぶ必要がある。
+
+        パラメタファイルが導出式と**違う値を明示していた**名前と、
+        利用者が直接代入した名前は再計算されない
+        (:meth:`Cfg.resolve` を参照)。
     **overrides
         ``cfg`` の属性を上書きする。
-
-        .. warning::
-           パラメタファイルの**派生量** (``uu0``, ``so0``, ``ome`` など) は
-           読込時に確定する。基本量 (``rey``, ``cso``, ``ett`` など) を
-           ここで上書きしても派生量には反映されない。派生量を変えたい
-           場合は派生量そのものを渡すこと。
 
     Returns
     -------
@@ -211,10 +218,18 @@ def build_cfg(parameter_file='parameters/defaults.py', datadir=None,
     >>> import S2MFD
     >>> cfg = S2MFD.build_cfg('parameters/rempel06_paper.py', ix=216, jx=144)
     >>> grid = S2MFD.Grid.from_cfg(cfg)
+
+    基本量を変えると派生量も追随する:
+
+    >>> cfg = S2MFD.build_cfg('parameters/alpha_omega.py', rey=1400)
+    >>> round(cfg.uu0)          # uu0 = rey*ett/RSUN
+    2011
     """
     cfg = Cfg(parameter_file)
     if datadir is not None:
         cfg.datadir = str(datadir).rstrip('/') + '/'
     for key, value in overrides.items():
         setattr(cfg, key, value)
+    if resolve:
+        cfg.resolve()
     return cfg

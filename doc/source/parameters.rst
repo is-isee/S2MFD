@@ -24,8 +24,8 @@ S2MFD の設定は **Python ファイル 1 枚**\ で与える。既存のファ
 ``'parameters/xxx.py'`` と書くと同梱の ``S2MFD/parameters/`` を読む。
 絶対パスを渡せば任意のファイルを読める。
 
-.. warning::
-   **派生量はファイル読込時に確定する。**\  たとえば ``defaults.py`` は
+.. note::
+   **基本量を変えると派生量も追随する。** ``defaults.py`` は
 
    .. code-block:: python
 
@@ -33,9 +33,20 @@ S2MFD の設定は **Python ファイル 1 枚**\ で与える。既存のファ
        rey = 700
        uu0 = rey*ett/RSUN        # <- 派生量
 
-   と書いてある。``build_cfg(..., ett=2e11)`` としても ``uu0`` は
-   変わらない。派生量を変えたいときは派生量そのものを渡すこと。
+   のように書いてある。``build_cfg(..., rey=1400)`` とすると ``uu0`` も
+   再計算される (``build_cfg`` が :meth:`S2MFD.Cfg.resolve` を呼ぶ)。
 
+   ただし **パラメタファイルが導出式と違う値を明示していた名前**\ と、
+   **利用者が直接代入した名前**\ は再計算されない。たとえば
+
+   .. code-block:: python
+
+       cfg = S2MFD.build_cfg('parameters/alpha_omega.py')
+       cfg.uu0 = 500        # 直接代入したので以後 rey から再計算されない
+       cfg.rey = 1400
+       cfg.resolve()        # uu0 は 500 のまま
+
+   ``build_cfg(..., resolve=False)`` で再計算を止められる。
 
 既存のパラメタファイル
 ----------------------

@@ -11,6 +11,9 @@
 #
 # 継続ランは t0= で時刻を引き継ぐ。これを渡さないと convergence.py の
 # 「同じ (格子, cs) では最長のラン」が継続前の古いランを採ってしまう。
+# **投入先は paris。** astana は堀田先生ご自身の解析 (ipython,
+# compress_delete_qq.py, probe_upflow_threshold.py など) が常時走っているので
+# 使わないこと (2026-08-23 に 21 スレッド投入して重くしてしまった)。
 cd /scr/a000/c0234hotta/Repository/S2MFD || exit 1
 export MPLBACKEND=Agg PYTHONPATH=/scr/a000/c0234hotta/Repository/S2MFD
 export S2MFD_PARFILE=parameters/rempel06_paper.py
@@ -28,9 +31,9 @@ launch () {   # tag nx ny years threads init t0 cs
 
 # --- cs=0.05 を飽和させる (どちらも傾きが残っていた) ---
 launch c108x72_cs005  108  72 60 3 $R/m108x72_cs005/state.npz 25 0.05
-launch c144x96_cs005  144  96 60 5 $R/s144x96_cs005/state.npz 30 0.05
+launch c144x96_cs005  144  96 60 4 $R/s144x96_cs005/state.npz 30 0.05
 # --- cs=0.10 の 4 点目 (108x72 は 40 年で傾き +0.001 の境界) ---
 launch c108x72_cs010  108  72 60 3 $R/m108x72_cs010/state.npz 40 0.10
 # --- 144x96 で cs をさらに下げる (飽和した cs=0.05 の状態を種にする) ---
-launch s144x96_cs003  144  96 50 5 $R/s144x96_cs005/state.npz  0 0.03
-launch s144x96_cs002  144  96 50 5 $R/s144x96_cs005/state.npz  0 0.02
+launch s144x96_cs003  144  96 50 4 $R/s144x96_cs005/state.npz  0 0.03
+launch s144x96_cs002  144  96 50 4 $R/s144x96_cs005/state.npz  0 0.02

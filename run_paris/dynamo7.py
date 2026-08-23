@@ -35,6 +35,8 @@ for a in sys.argv[7:]:
             try: over[k]=float(v)      # 1.0e12 のような指数表記も通す
             except ValueError: over[k]=v
 bseed_arg=over.pop('bseed', 1.0)
+# 再開時の時刻 [yr]。既定 None なら init ファイルの t を使う。
+t0_yr=over.pop('t0', None)
 om_bar_tau_yr=float(over.pop('om_bar_tau_yr', 18.0))  # 時間平均の時定数
 outdir=f'results_rempel/{tag}'; os.makedirs(outdir, exist_ok=True)
 
@@ -150,8 +152,16 @@ if _resume is not None:
     # 表示は物理セルだけで取る。ゴーストの**角**セルは境界条件のループが
     # 書かないので古い値が残っており (実測 9 T)、全体の max を出すと誤解する。
     # ステンシルは角を使わないので実害はない。
+    # **時刻も引き継ぐ。** 引き継がないと hist の t が 0 に戻り、周期や
+    # 飽和の解析が前のランと繋がらない (2026-08-24)。
+    # `t0=` で明示的に上書きできる。
+    if t0_yr is not None:
+        t = float(t0_yr)*3.156e7
+    elif 't' in _resume:
+        t = float(_resume['t'])
     print(f"[{tag}] 磁場も {init} から再開 "
-          f"(max|Bph|={np.abs(Bph[sl]).max()*1e-4:.4f}T)", flush=True)
+          f"(max|Bph|={np.abs(Bph[sl]).max()*1e-4:.4f}T, "
+          f"t={t/3.156e7:.1f}yr から)", flush=True)
 else:
     prof=np.exp(-((grid.RR-0.72*cfg.RSUN)/(0.05*cfg.RSUN))**2)
     bseed=float(bseed_arg)

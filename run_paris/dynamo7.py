@@ -172,7 +172,7 @@ pm=poloidal_from_potential(Aph,grid)
 sol.set_magnetic_field(pm[0],pm[1],Bph)
 dt=sol.cfl_dt()
 ns=int(dyn_yr*3.156e7/dt); nout=max(1,ns//2000)
-hist=[]; butter=[]; t0=time.time()
+hist=[]; butter=[]; tors=[]; t0=time.time()
 for n in range(1,ns+1):
     Bph,Aph = time_marching(Bph,Aph,dt,cfg,grid,setup)
     # time_marching の出力ゴーストは未初期化 (np.empty_like) なので、
@@ -205,11 +205,19 @@ for n in range(1,ns+1):
                     +[qq[k] for k in QKEYS]+[e[0], e[1]]
                     +list(_radiative_flux(B)))
         butter.append(B[i735,:].copy())
+        # 表面の Omega_1 を**全緯度**残す [nHz]。トーショナル振動の振幅は
+        # 極と緯度 60 度の 2 点しか記録していなかったが、
+        #   * 振幅はドリフトを引いてから測る必要があり (中心移動平均)、
+        #   * どの時間窓で測るかで 2 割変わる (2026-08-24 に実測)
+        # ので、後処理で窓と緯度を選べるようにしておく。96 点/出力なので
+        # 記録の大きさは butter と同程度。
+        tors.append(om[-1,:].copy()/(2*np.pi)*1e9)
         if n%(nout*100)==0:
             print(f"[{tag}] t={t/3.156e7:7.2f}yr |Bph|={hist[-1][1]:7.4f}T "
                   f"|Br|surf={hist[-1][2]:7.5f}T DR={hist[-1][4]:+.4f} "
                   f"dOm(pole)={hist[-1][5]:+6.2f}nHz ({(time.time()-t0)/n*1e3:.2f}ms/st)", flush=True)
         np.savez(f'{outdir}/dynamo.npz', hist=np.array(hist), butter=np.array(butter),
+                 torsional=np.array(tors),
                  th=th, rr=rr, om0=cfg.om0, RSUN=cfg.RSUN, qkeys=np.array(QKEYS),
                  hist_cols=np.array(HCOLS))
 np.savez(f'{outdir}/final_state.npz', om1=sol.om1, vrr=sol.vrr, vth=sol.vth,

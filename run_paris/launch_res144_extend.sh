@@ -20,6 +20,17 @@ YEARS=${YEARS:-18}
 cd /scr/a000/c0234hotta/Repository/S2MFD || exit 1
 INIT=results_rempel/$TAG/final_state.npz
 [ -f "$INIT" ] || { echo "$INIT がない ($TAG はまだ完走していない)"; exit 1; }
+# **二重投入を防ぐ。** 2026-08-24 に、利用者が手で投入した 88 秒後に
+# chain_res144.sh が同じものを投入し、同じ results_rempel/${TAG}_b/ へ
+# 2 プロセスが書いた (計算は決定論的なので中身は同じだったが、np.savez
+# が競合すれば壊れうるし、コアも二重に食う)。
+if pgrep -f "dynamo7.py 144 96 0 .* ${TAG}_b " > /dev/null; then
+  echo "  ${TAG}_b はすでに走っている。投入しない"; exit 1
+fi
+if [ -e "results_rempel/${TAG}_b.log" ]; then
+  echo "  results_rempel/${TAG}_b.log がすでにある。投入しない"
+  echo "  (やり直すなら results_rempel/${TAG}_b{,.log} を消してから)"; exit 1
+fi
 export MPLBACKEND=Agg PYTHONPATH=/scr/a000/c0234hotta/Repository/S2MFD
 export S2MFD_PARFILE=parameters/rempel06_paper.py
 PY=/scr/a000/c0234hotta/venv-paris/bin/python

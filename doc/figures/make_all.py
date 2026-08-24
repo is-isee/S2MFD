@@ -23,6 +23,7 @@ matplotlib.use('Agg')
 sys.path.insert(0, HERE)
 import fig_profiles, fig_convergence, fig_butterfly     # noqa: E402
 import fig_table1, fig_energy                           # noqa: E402
+import fig_resolution_60yr                              # noqa: E402
 
 
 def main(outdir=DEFAULT):
@@ -31,7 +32,8 @@ def main(outdir=DEFAULT):
                      ('convergence', fig_convergence.main),
                      ('butterfly', fig_butterfly.main),
                      ('Table 1', fig_table1.main),
-                     ('energy budget', fig_energy.main)):
+                     ('energy budget', fig_energy.main),
+                     ('resolution at 60 yr', fig_resolution_60yr.main)):
         try:
             fn(outdir)
         except Exception as e:                          # noqa: BLE001

@@ -133,3 +133,34 @@ class TestDetrendKeepsTheWholeWindow:
         r = table1.detrend(t, x, 18.0)
         assert 3.0 <= np.abs(r).max() < 3.45         # 振幅は残る (偏り +9%)
         assert abs(np.polyfit(t, r, 1)[0]) < 1e-9    # ドリフトは消える
+
+
+class TestBphIsMeasuredAtTheRightRadius:
+    """``max(B_phi)`` は r = 0.735 RSUN で測ること。
+
+    Rempel (2006) 表 1 の注記: "The maximum of Omega - Omega_bar and B_r is
+    evaluated at 0.985 R_sun and **the maximum of B_Phi at 0.735 R_sun**"。
+    2026-08-25 まで ``hist[:,1]`` (全半径の最大) を使っており、実測で
+    5-14 パーセント過大だった。
+    """
+
+    def test_uses_butter_not_the_global_max(self, tmp_path, monkeypatch):
+        table1 = _load_script('table1')
+        n = 400
+        h = np.zeros((n, len(HCOLS_NEW)))
+        h[:, 0] = np.linspace(0, 60, n)*3.156e7
+        h[:, 1] = 9.99                      # 全半径の最大 (別の半径にある)
+        h[:, 7] = 1.0e38                    # E_B (ゼロ割りを避けるため)
+        for i, k in enumerate(QKEYS):       # Q_* もゼロ以外にしておく
+            h[:, HCOLS_NEW.index(k)] = 1.0e31
+        # butter は 0.735 RSUN の B_phi [G]。ピークは 2.0 T = 2e4 G
+        bu = np.zeros((n, 8))
+        bu[:, 3] = 2.0e4*np.sin(np.linspace(0, 6*np.pi, n))
+        d = tmp_path/'results_rempel'/'dummy'
+        d.mkdir(parents=True)
+        np.savez(d/'dynamo.npz', hist=h, butter=bu, th=np.linspace(0.01, 1.55, 8),
+                 qkeys=np.array(QKEYS), hist_cols=np.array(HCOLS_NEW))
+        monkeypatch.chdir(tmp_path)
+        r = table1.analyse('dummy')
+        assert abs(r['Bph'] - 2.0) < 0.02       # 0.735R の値
+        assert abs(r['Bph_anyr'] - 9.99) < 1e-6  # 参考値として残る

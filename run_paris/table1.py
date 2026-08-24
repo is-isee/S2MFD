@@ -159,7 +159,14 @@ def analyse(tag, steady_yr=20.0):
                DR=float(np.mean(h[late,4])),
                t90=float(np.abs(detrend(t[late], h[late,5], 18.0)).max()),
                t60=float(np.abs(detrend(t[late], h[late,6], 18.0)).max()),
-               Bph=float(np.abs(h[late,1]).max()),
+               # **max(B_phi) は r = 0.735 RSUN での値**。表 1 の注記:
+               # "The maximum of Omega - Omega_bar and B_r is evaluated at
+               #  0.985 R_sun and the maximum of B_Phi at 0.735 R_sun"
+               # 2026-08-25 まで hist[:,1] (**全半径**の最大) を使っており、
+               # 5-14 パーセント過大だった。butter が 0.735 RSUN の全緯度
+               # なので、そこから取る (G -> T は 1e-4)。
+               Bph=float(np.abs(bu[late]).max()*1e-4),
+               Bph_anyr=float(np.abs(h[late,1]).max()),
                Br=float(np.abs(h[late,2]).max()))
     # 磁気エネルギー [1e31 J]。erg -> J は 1e-7。
     # **変動幅はドリフトを引いてから測る。** 引かないと、まだ成長している
@@ -186,7 +193,8 @@ def show(tag, alpha0):
     rows = [('(Om_eq-Om_pole)/Om0','DR','DR','%.3f'),
             ('max(Om-Om_bar) 90deg [nHz]','t90','t90','%.1f'),
             ('max(Om-Om_bar) 60deg [nHz]','t60','t60','%.1f'),
-            ('max(B_phi) [T]','Bph','Bph','%.3f'),
+            ('max(B_phi) [T] @0.735R','Bph','Bph','%.3f'),
+            ('  (参考: 全半径の最大)','Bph_anyr',None,'%.3f'),
             ('max(B_r) [T]','Br','Br','%.4f'),
             ('Q_Lambda [F_sun]','QL_Fsun','QL','%.4f'),
             ('Q_nu^Om / Q_Lam','Qnu','Qnu','%.3f'),

@@ -76,3 +76,29 @@ class TestBudgetCheckColumns:
         cols = budget.load('dummy')
         assert cols['E_B'][0] == 7.0
         assert cols['Q_Lambda'][0] == (10.0 if with_cols else 8.0)
+
+
+class TestCyclePeriodSplitsByTime:
+    """``cycle_period`` の「後半」は時刻で切ること。
+
+    延長ランをつなぐと区間ごとに出力間隔が違う (42 年に 2000 点 +
+    18 年に 2000 点)。インデックスの中点で切ると t = 42 年から後ろだけを
+    見ることになり、反転が 2 回しか入らず周期が nan になっていた。
+    """
+
+    def test_uneven_sampling_still_gives_the_period(self):
+        table1 = _load_script('table1')
+        # 0-42 年を 2000 点、42-60 年を 2000 点 (後半が 4.7 倍密)
+        t = np.concatenate([np.linspace(0, 42, 2000),
+                            np.linspace(42, 60, 2000)[1:]])
+        b = np.sin(2*np.pi*t/18.0)          # 周期 18 年
+        per, n = table1.cycle_period(t, b)
+        assert n >= 2          # 反転 3 回 -> 周期 2 個
+        assert abs(per - 18.0) < 0.2
+
+    def test_uniform_sampling_unchanged(self):
+        table1 = _load_script('table1')
+        t = np.linspace(0, 60, 4000)
+        b = np.sin(2*np.pi*t/18.0)
+        per, n = table1.cycle_period(t, b)
+        assert abs(per - 18.0) < 0.2

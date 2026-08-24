@@ -61,9 +61,15 @@ KEYMAP = [('Q_Lambda','QL'), ('Q_nu_Omega','Qnu'), ('Q_C','QC'),
           ('Q_L_M','QLM'), ('Q_eta','Qeta')]
 
 def cycle_period(t, b):
-    """符号反転から周期を出す (立ち上がりを除いた後半のみ)。"""
-    half = len(t)//2
-    tt, bb = t[half:], b[half:]
+    """符号反転から周期を出す (立ち上がりを除いた後半のみ)。
+
+    **「後半」は時刻で切る。インデックスの中点ではない。**
+    延長ランをつなぐと区間ごとに出力間隔が違う (42 年に 2000 点 +
+    18 年に 2000 点) ので、インデックスの中点は t = 42 年になり、
+    後半に反転が 2 回しか入らず周期が出せなかった (2026-08-24)。
+    """
+    late = t >= 0.5*(t[0] + t[-1])
+    tt, bb = t[late], b[late]
     s = np.sign(bb); idx = np.where(np.diff(s) != 0)[0]
     if len(idx) < 3: return np.nan, 0
     per = 2*np.diff(tt[idx])
@@ -100,11 +106,35 @@ def qcols(d, h):
     return {k: h[:, off + i] for i, k in enumerate(q)}
 
 
+def load_run(tag):
+    """1 本または ``+`` でつないだ複数本の記録を読む。
+
+    延長ラン (``res144_kin`` -> ``res144_kin_b``) は別ファイルなので、
+    ``'res144_kin+res144_kin_b'`` と書けば時刻順につないで 1 本として扱う。
+    重複する時刻は落とす。QKEYS は**名前で**取り出してからつなぐので、
+    区間ごとに列構成が違っていても正しく合わさる。
+    """
+    hs, bus, qcs, th = [], [], [], None
+    for tg in tag.split('+'):
+        d = np.load(f'results_rempel/{tg}/dynamo.npz')
+        h = d['hist']
+        hs.append(h)
+        bus.append(d['butter'])
+        qcs.append(qcols(d, h))
+        th = d['th']
+    h = np.vstack(hs)
+    bu = np.vstack(bus)
+    qc = {k: np.concatenate([c[k] for c in qcs]) for k in qcs[0]}
+    order = np.argsort(h[:, 0])
+    h, bu = h[order], bu[order]
+    qc = {k: v[order] for k, v in qc.items()}
+    keep = np.concatenate(([True], np.diff(h[:, 0]) > 0))
+    return h[keep], bu[keep], th, {k: v[keep] for k, v in qc.items()}
+
+
 def analyse(tag, steady_yr=20.0):
     """末尾 steady_yr 年 (統計的定常部) だけを使って表 1 の量を出す。"""
-    d = np.load(f'results_rempel/{tag}/dynamo.npz')
-    h = d['hist']; q = list(d['qkeys']); th = d['th']; bu = d['butter']
-    qc = qcols(d, h)
+    h, bu, th, qc = load_run(tag)
     t = h[:,0]/YR
     late = t >= t[-1] - steady_yr
     lat40 = np.argmin(abs(th - np.radians(50)))

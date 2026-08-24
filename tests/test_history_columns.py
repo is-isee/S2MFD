@@ -102,3 +102,34 @@ class TestCyclePeriodSplitsByTime:
         b = np.sin(2*np.pi*t/18.0)
         per, n = table1.cycle_period(t, b)
         assert abs(per - 18.0) < 0.2
+
+
+class TestDetrendKeepsTheWholeWindow:
+    """``detrend`` は区間を削らないこと。
+
+    2026-08-25 まで幅 18 年の移動平均を引いて両端を捨てていた。解析区間も
+    20 年なので**残るのが 2 年ぶんだけ**になり、「末尾 20 年の最大」が
+    「どこか 2 年間の最大」になっていた。これで表 1 のトーショナル振動が
+    論文比 0.67-0.70 に見えていた (正しくは 0.95-1.04)。
+    """
+
+    def test_length_is_preserved(self):
+        table1 = _load_script('table1')
+        t = np.linspace(40.0, 60.0, 704)
+        x = np.sin(2*np.pi*t/18.0)
+        assert len(table1.detrend(t, x, 18.0)) == len(t)
+
+    def test_linear_drift_is_removed_and_amplitude_kept(self):
+        """ドリフトは消え、振幅は 1 割の偏りの内側で残る。
+
+        20 年の区間に周期 18 年が 1.1 サイクルしか入らないので、1 次の
+        当てはめが振動そのものを一部吸い、振幅を 1 割ほど過大に返す
+        (3.0 -> 3.28)。全ランに同じだけ乗るので比較には効かないが、
+        論文値との比を 1 割の精度で議論してはいけない。
+        """
+        table1 = _load_script('table1')
+        t = np.linspace(40.0, 60.0, 704)
+        x = 3.0*np.sin(2*np.pi*t/18.0) + 0.5*(t - 50.0) + 7.0
+        r = table1.detrend(t, x, 18.0)
+        assert 3.0 <= np.abs(r).max() < 3.45         # 振幅は残る (偏り +9%)
+        assert abs(np.polyfit(t, r, 1)[0]) < 1e-9    # ドリフトは消える

@@ -1,0 +1,422 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>パラメタファイルと新しいモデルの足し方 &mdash; S2MFD 0.2.1.dev211 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=7430afd0"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Rempel (2006) を再現する" href="tutorial_rempel.html" />
+    <link rel="prev" title="動力学モード (非運動学的ダイナモ)" href="dynamic.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            S2MFD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reading_the_code.html">コードを読むための Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dynamic.html">動力学モード (非運動学的ダイナモ)</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">パラメタファイルと新しいモデルの足し方</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id3">設定の読み込み</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">既存のパラメタファイル</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">モデルを切り替えるスイッチ</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id6">新しいモデルを足す</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id7">よく使うパラメタ</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_rempel.html">Rempel (2006) を再現する</a></li>
+<li class="toctree-l1"><a class="reference internal" href="verification.html">検証されていること</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">S2MFD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">パラメタファイルと新しいモデルの足し方</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/parameters.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1>パラメタファイルと新しいモデルの足し方<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+<p>S2MFD の設定は <strong>Python ファイル 1 枚</strong>で与える。既存のファイルを
+<code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">*</span></code> で継承して差分だけ書く、というのが基本の形。</p>
+<nav class="contents local" id="id2">
+<p class="topic-title">内容</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#id3" id="id11">設定の読み込み</a></p></li>
+<li><p><a class="reference internal" href="#id4" id="id12">既存のパラメタファイル</a></p></li>
+<li><p><a class="reference internal" href="#id5" id="id13">モデルを切り替えるスイッチ</a></p></li>
+<li><p><a class="reference internal" href="#id6" id="id14">新しいモデルを足す</a></p></li>
+<li><p><a class="reference internal" href="#id7" id="id15">よく使うパラメタ</a></p></li>
+</ul>
+</nav>
+<section id="id3">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">設定の読み込み</a><a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">S2MFD</span>
+
+<span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">build_cfg</span><span class="p">(</span><span class="s1">'parameters/rempel06_paper.py'</span><span class="p">)</span>   <span class="c1"># 同梱のもの</span>
+<span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">build_cfg</span><span class="p">(</span><span class="s1">'/path/to/mymodel.py'</span><span class="p">)</span>            <span class="c1"># 自分のもの</span>
+<span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">build_cfg</span><span class="p">(</span><span class="s1">'parameters/rempel06_paper.py'</span><span class="p">,</span>   <span class="c1"># 値の上書き</span>
+                      <span class="n">ix</span><span class="o">=</span><span class="mi">216</span><span class="p">,</span> <span class="n">jx</span><span class="o">=</span><span class="mi">144</span><span class="p">,</span> <span class="n">alpha0</span><span class="o">=</span><span class="mf">25.0</span><span class="p">)</span>
+<span class="n">grid</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Grid</span><span class="o">.</span><span class="n">from_cfg</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">'parameters/xxx.py'</span></code> と書くと同梱の <code class="docutils literal notranslate"><span class="pre">S2MFD/parameters/</span></code> を読む。
+絶対パスを渡せば任意のファイルを読める。</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>基本量を変えると派生量も追随する。</strong> <code class="docutils literal notranslate"><span class="pre">defaults.py</span></code> は</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ett</span> <span class="o">=</span> <span class="mf">1.e11</span>
+<span class="n">rey</span> <span class="o">=</span> <span class="mi">700</span>
+<span class="n">uu0</span> <span class="o">=</span> <span class="n">rey</span><span class="o">*</span><span class="n">ett</span><span class="o">/</span><span class="n">RSUN</span>        <span class="c1"># &lt;- 派生量</span>
+</pre></div>
+</div>
+<p>のように書いてある。<code class="docutils literal notranslate"><span class="pre">build_cfg(...,</span> <span class="pre">rey=1400)</span></code> とすると <code class="docutils literal notranslate"><span class="pre">uu0</span></code> も
+再計算される (<code class="docutils literal notranslate"><span class="pre">build_cfg</span></code> が <a class="reference internal" href="api/S2MFD.Cfg.html#S2MFD.Cfg.resolve" title="S2MFD.Cfg.resolve"><code class="xref py py-meth docutils literal notranslate"><span class="pre">S2MFD.Cfg.resolve()</span></code></a> を呼ぶ)。</p>
+<p>ただし <strong>パラメタファイルが導出式と違う値を明示していた名前</strong>と、
+<strong>利用者が直接代入した名前</strong>は再計算されない。たとえば</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">build_cfg</span><span class="p">(</span><span class="s1">'parameters/alpha_omega.py'</span><span class="p">)</span>
+<span class="n">cfg</span><span class="o">.</span><span class="n">uu0</span> <span class="o">=</span> <span class="mi">500</span>        <span class="c1"># 直接代入したので以後 rey から再計算されない</span>
+<span class="n">cfg</span><span class="o">.</span><span class="n">rey</span> <span class="o">=</span> <span class="mi">1400</span>
+<span class="n">cfg</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>        <span class="c1"># uu0 は 500 のまま</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">build_cfg(...,</span> <span class="pre">resolve=False)</span></code> で再計算を止められる。</p>
+</div>
+</section>
+<section id="id4">
+<h2><a class="toc-backref" href="#id12" role="doc-backlink">既存のパラメタファイル</a><a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>ファイル</p></th>
+<th class="head"><p>内容</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">defaults.py</span></code></p></td>
+<td><p>既定値。<strong>直接編集しない</strong>。ほかは全部これを継承する</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alpha_omega.py</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\alpha\Omega\)</span> ダイナモ (運動学的)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">hotta10.py</span></code></p></td>
+<td><p>Hotta &amp; Yokoyama (2010) の設定</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rempel06.py</span></code></p></td>
+<td><p>Rempel (2006) の物理パラメタ。領域上端は 0.96
+<span class="math notranslate nohighlight">\(R_\odot\)</span> (数値的に安定な既定)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rempel06_paper.py</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\uparrow\)</span> を**論文どおり**の領域 (0.65-0.985
+<span class="math notranslate nohighlight">\(R_\odot\)</span>、北半球、108 <span class="math notranslate nohighlight">\(\times\)</span> 72、<code class="docutils literal notranslate"><span class="pre">margin=2</span></code>) に</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rempel06_2pt.py</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\uparrow\)</span> に 2 点集中の非一様格子を入れたもの</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">inference.py</span></code></p></td>
+<td><p>GA によるパラメタ推定用</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id5">
+<h2><a class="toc-backref" href="#id13" role="doc-backlink">モデルを切り替えるスイッチ</a><a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<p>背景場のプロファイルは <code class="docutils literal notranslate"><span class="pre">*_type</span></code> で選ぶ。分岐は <a class="reference internal" href="api/S2MFD.Setup.html#S2MFD.Setup" title="S2MFD.Setup"><code class="xref py py-class docutils literal notranslate"><span class="pre">S2MFD.Setup</span></code></a> に
+ある。</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 22.0%" />
+<col style="width: 48.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>スイッチ</p></th>
+<th class="head"><p>選べる値</p></th>
+<th class="head"><p>何を決めるか</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">differential_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'J08'</span></code>, <code class="docutils literal notranslate"><span class="pre">'H10'</span></code></p></td>
+<td><p>差動回転のプロファイル (運動学的モードのみ)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">meridional_circulation_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'J08'</span></code>, <code class="docutils literal notranslate"><span class="pre">'D99'</span></code>, <code class="docutils literal notranslate"><span class="pre">'H10'</span></code></p></td>
+<td><p>子午面流 (同上)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">diffusive_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'J08'</span></code>, <code class="docutils literal notranslate"><span class="pre">'H10'</span></code>, <code class="docutils literal notranslate"><span class="pre">'R06'</span></code></p></td>
+<td><p>磁気拡散 <span class="math notranslate nohighlight">\(\eta_t(r)\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alpha_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'BL'</span></code>, <code class="docutils literal notranslate"><span class="pre">'normal'</span></code>, <code class="docutils literal notranslate"><span class="pre">'R06'</span></code>, <code class="docutils literal notranslate"><span class="pre">'H10'</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\alpha\)</span> 効果の形</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dynamics</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'kinematic'</span></code>, <code class="docutils literal notranslate"><span class="pre">'full'</span></code>, <code class="docutils literal notranslate"><span class="pre">'hydro'</span></code></p></td>
+<td><p>誘導方程式だけか、流体も解くか、磁場なしか</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">boundary_condition_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'vertical'</span></code>, <code class="docutils literal notranslate"><span class="pre">'potential'</span></code>, <code class="docutils literal notranslate"><span class="pre">'R06'</span></code></p></td>
+<td><p>磁場の動径境界条件</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rsst_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'const'</span></code>, <code class="docutils literal notranslate"><span class="pre">'mach'</span></code></p></td>
+<td><p>音速抑制の掛け方 (動力学モード)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id6">
+<h2><a class="toc-backref" href="#id14" role="doc-backlink">新しいモデルを足す</a><a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<p>例として「差動回転のプロファイルに新しい形 <code class="docutils literal notranslate"><span class="pre">'H22'</span></code> を足す」場合。</p>
+<p><strong>1. 分岐を書く。</strong> <code class="docutils literal notranslate"><span class="pre">S2MFD/setup.py</span></code> の該当メソッドに <code class="docutils literal notranslate"><span class="pre">elif</span></code> を足す。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">build_differential_rotation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">differential_type</span> <span class="o">==</span> <span class="s1">'J08'</span><span class="p">:</span>
+        <span class="o">...</span>
+    <span class="k">elif</span> <span class="n">cfg</span><span class="o">.</span><span class="n">differential_type</span> <span class="o">==</span> <span class="s1">'H22'</span><span class="p">:</span>
+        <span class="c1"># cfg から必要な値を読み、self.om に (ixg, jxg) を作る</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">om</span> <span class="o">=</span> <span class="o">...</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">'unknown differential_type: </span><span class="si">{</span><span class="n">cfg</span><span class="o">.</span><span class="n">differential_type</span><span class="si">!r}</span><span class="s1">'</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>2. パラメタファイルを作る。</strong> 既存を継承して差分だけ書く。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">"""Hotta et al. (2022) の差動回転プロファイル."""</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">S2MFD.parameters.hotta10</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>      <span class="c1"># noqa: F401,F403</span>
+
+<span class="n">differential_type</span> <span class="o">=</span> <span class="s1">'H22'</span>
+<span class="n">my_new_parameter</span> <span class="o">=</span> <span class="mf">1.234</span>
+</pre></div>
+</div>
+<p><strong>3. テストを書く。</strong> 最低でも次の 2 つ。</p>
+<ul class="simple">
+<li><p>プロファイルが期待する形になっているか (境界値・単調性・
+解析解との比較)</p></li>
+<li><p><strong>既存のモデルの結果が 1 ビットも変わっていないか</strong></p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">test_h22_does_not_change_j08</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">"""新しい分岐を足しても既定の挙動が変わらないこと。"""</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">make_cfg</span><span class="p">(</span><span class="s1">'parameters/hotta10.py'</span><span class="p">)</span>
+    <span class="n">grid</span> <span class="o">=</span> <span class="n">make_grid</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+    <span class="n">setup</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Setup</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">setup</span><span class="o">.</span><span class="n">om</span><span class="p">,</span> <span class="n">expected_om</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p><strong>既存の挙動をビット一致で固定してから変える。</strong> この
+リポジトリでは、キーワード引数への書き換えや <code class="docutils literal notranslate"><span class="pre">ana/</span></code> の添字修正など、
+「壊していないこと」をビット一致で確かめてから進めている
+(<a class="reference internal" href="verification.html"><span class="doc">検証されていること</span></a>)。</p>
+</div>
+</section>
+<section id="id7">
+<h2><a class="toc-backref" href="#id15" role="doc-backlink">よく使うパラメタ</a><a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<p>動力学モード (Rempel 2006) で意味を持つもの。単位は <strong>CGS</strong>。</p>
+<table class="docutils align-default" id="id8">
+<caption><span class="caption-text">領域と格子</span><a class="headerlink" href="#id8" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>名前</p></th>
+<th class="head"><p>意味</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ix</span></code>, <code class="docutils literal notranslate"><span class="pre">jx</span></code></p></td>
+<td><p>物理セル数 (動径、余緯度)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">margin</span></code></p></td>
+<td><p>ゴースト層の数。<strong>SLD を使うなら 2 以上</strong> (リミタが境界面の
+2 セル先を見る)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rrmin</span></code>, <code class="docutils literal notranslate"><span class="pre">rrmax</span></code></p></td>
+<td><p>領域の内外半径 [cm]</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">thmin</span></code>, <code class="docutils literal notranslate"><span class="pre">thmax</span></code></p></td>
+<td><p>余緯度の範囲。<code class="docutils literal notranslate"><span class="pre">thmax</span> <span class="pre">=</span> <span class="pre">pi/2</span></code> で北半球のみ</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grid_stretch</span></code></p></td>
+<td><p>0 で一様。&gt;0 で <code class="docutils literal notranslate"><span class="pre">grid_stretch_center</span></code> 付近に点を集める。
+配列にすると複数箇所に同時に集中できる</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default" id="id9">
+<caption><span class="caption-text">物理</span><a class="headerlink" href="#id9" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">om0</span></code></p></th>
+<th class="head"><p>剛体回転の角速度 [rad/s]</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">nu0</span></code>, <code class="docutils literal notranslate"><span class="pre">kappa0</span></code></p></td>
+<td><p>対流層の乱流粘性・熱伝導 [cm<sup>2</sup>/s]</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">lambda0</span></code>, <code class="docutils literal notranslate"><span class="pre">lambda_n</span></code>, <code class="docutils literal notranslate"><span class="pre">lambda_tilt_deg</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\Lambda\)</span> 効果の振幅・緯度依存の次数・傾き</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">eta_c</span></code>, <code class="docutils literal notranslate"><span class="pre">eta_bc</span></code>, <code class="docutils literal notranslate"><span class="pre">eta_cz</span></code></p></td>
+<td><p>磁気拡散 (放射層・対流層底・対流層) [cm<sup>2</sup>/s]</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alpha0</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\alpha\)</span> 効果の振幅 [cm/s]</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">alpha_quenching</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\alpha\)</span> クエンチングを掛けるか。<strong>論文の非運動学的ランは
+False</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">magnetic_buoyancy</span></code></p></td>
+<td><p>動径運動量に磁気圧勾配を含めるか (表 1 の列 4/6/8 は False)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rsst_zeta</span></code></p></td>
+<td><p>音速抑制の係数 (100 で音速 1/100)</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default" id="id10">
+<caption><span class="caption-text">数値</span><a class="headerlink" href="#id10" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">sld_cs_factor</span></code></p></th>
+<th class="head"><p>人工拡散 (SLD) の強さ。<strong>論文に対応物がない数値パラメタ</strong>。
+小さいほど散逸が弱いが、粗い格子では発散する</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cfl_safety</span></code></p></td>
+<td><p>CFL 安全率。指定しなければ von Neumann 解析の中立点の 0.9 倍を
+自動で使う</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">artificial_diffusion</span></code></p></td>
+<td><p>False で人工拡散を全部切る (対照実験用)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">magnetic_open_boundary</span></code></p></td>
+<td><p>磁場の人工拡散フラックスを動径境界で開ける。反対称境界
+(<code class="docutils literal notranslate"><span class="pre">'R06'</span></code>) を使うときに必要</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cont_flag</span></code></p></td>
+<td><p>True (既定) なら既存の <code class="docutils literal notranslate"><span class="pre">datadir</span></code> があれば黙って再開する</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="dynamic.html" class="btn btn-neutral float-left" title="動力学モード (非運動学的ダイナモ)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tutorial_rempel.html" class="btn btn-neutral float-right" title="Rempel (2006) を再現する" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, S2MFD project.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      Version: 
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+      
+      
+      <dl>
+        <dt>Versions</dt>
+        
+          <dd><a href=""></a></dd>
+        
+      </dl>
+      
+      <br>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

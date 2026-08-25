@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.setup &mdash; S2MFD 0.2.1.dev106 documentation</title>
+  <title>S2MFD.setup &mdash; S2MFD 0.2.1.dev211 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
@@ -13,7 +13,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=490931b2"></script>
+      <script src="../../_static/documentation_options.js?v=7430afd0"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -44,6 +44,11 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reading_the_code.html">コードを読むための Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dynamic.html">動力学モード (非運動学的ダイナモ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../parameters.html">パラメタファイルと新しいモデルの足し方</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial_rempel.html">Rempel (2006) を再現する</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../verification.html">検証されていること</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../inference.html">Parameter Inference (GA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api_reference.html">API reference</a></li>
@@ -76,6 +81,8 @@
   <h1>Source code for S2MFD.setup</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">S2MFD.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">drr2</span><span class="p">,</span> <span class="n">dth2</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">S2MFD.npz_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">NpzIO</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.special</span><span class="w"> </span><span class="kn">import</span> <span class="n">erf</span>
 
@@ -130,7 +137,159 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">ibase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">rrc</span><span class="p">))</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">build_alpha</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">build_flow</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">build_flow</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'dynamics'</span><span class="p">,</span> <span class="s1">'kinematic'</span><span class="p">)</span> <span class="o">!=</span> <span class="s1">'kinematic'</span><span class="p">:</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">build_turbulent_transport</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">build_lambda</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Setup.build_turbulent_transport">
+<a class="viewcode-back" href="../../api/S2MFD.Setup.html#S2MFD.Setup.build_turbulent_transport">[docs]</a>
+   <span class="k">def</span><span class="w"> </span><span class="nf">build_turbulent_transport</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
+<span class="w">      </span><span class="sd">"""乱流粘性 ν_t(r) と乱流熱伝導 κ_t(r) を構築する (Rempel 2005 式 27-30)。</span>
+
+<span class="sd">      .. math::</span>
+<span class="sd">         \\nu_\\Lambda &amp;= \\frac{\\nu_0}{2}</span>
+<span class="sd">            \\left[1+\\tanh\\frac{r-r_{\\rm tran}+\\Delta}{d_{\\kappa\\nu}}\\right]</span>
+<span class="sd">            f_c(r) \\\\</span>
+<span class="sd">         f_c(r) &amp;= \\frac12\\left[1+\\tanh\\frac{r-r_{\\rm bc}}{d_{\\rm bc}}\\right],</span>
+<span class="sd">         \\quad</span>
+<span class="sd">         \\Delta = d_{\\kappa\\nu}\\,{\\rm artanh}(2\\alpha_{\\kappa\\nu}-1)</span>
+
+<span class="sd">      :math:`\\Delta` は「:math:`r=r_{\\rm tran}` で</span>
+<span class="sd">      :math:`\\nu_\\Lambda=\\alpha_{\\kappa\\nu}\\nu_0` になる」ようにずらす量。</span>
+
+<span class="sd">      拡散項用とΛ効果用で粘性が違う</span>
+<span class="sd">      ------------------------------</span>
+<span class="sd">      Rempel 2005 §2.4 は、**Λ効果による角運動量輸送**には上の</span>
+<span class="sd">      プロファイルをそのまま使い、**レイノルズ応力の拡散項**に使う粘性には</span>
+<span class="sd">      対流層値の 2%(熱伝導は 0.2%)の下限を張る、としている。</span>
+
+<span class="sd">      理由は下部境界の :math:`\\Omega_1=0` 条件との間にせん断層</span>
+<span class="sd">      (タコクライン)を現実的な時間で形成させるため。放射層で粘性が</span>
+<span class="sd">      ゼロまで落ちると、そこに角運動量を運べず定常解に到達しない。</span>
+
+<span class="sd">      なお「2% にする」は原文では放射層に限定した書き方になっていないが、</span>
+<span class="sd">      対流層全体で 2% にすると論文表 1 の</span>
+<span class="sd">      :math:`Q_\\nu^\\Omega/Q_\\Lambda=0.574`</span>
+<span class="sd">      (粘性散逸がΛ効果入力の 57%)と桁が合わなくなるため、下限として</span>
+<span class="sd">      解釈している。</span>
+<span class="sd">      """</span>
+      <span class="n">rr</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">rr</span>
+      <span class="n">dkn</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">d_kn</span>
+      <span class="c1"># r = r_tran で alpha_kn * nu0 になるようにずらす</span>
+      <span class="n">shift</span> <span class="o">=</span> <span class="n">dkn</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arctanh</span><span class="p">(</span><span class="mf">2.0</span><span class="o">*</span><span class="n">cfg</span><span class="o">.</span><span class="n">alpha_kn</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span>
+      <span class="n">fc</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">tanh</span><span class="p">((</span><span class="n">rr</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">rr_bc</span><span class="p">)</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">d_bc</span><span class="p">))</span>
+      <span class="n">shape</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">tanh</span><span class="p">((</span><span class="n">rr</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">r_tran</span> <span class="o">+</span> <span class="n">shift</span><span class="p">)</span><span class="o">/</span><span class="n">dkn</span><span class="p">))</span><span class="o">*</span><span class="n">fc</span>
+
+      <span class="c1"># 数値安定性のための増幅係数。既定は 1.0 (論文どおり)。</span>
+      <span class="c1"># 本実装は SSP-RK2 + 中心差分で数値散逸を持たないため、Rempel の</span>
+      <span class="c1"># MacCormack (交互風上/風下) が暗黙に持つ散逸を補う必要がある場合に</span>
+      <span class="c1"># 使う。論文からの逸脱なので、1.0 でない値を使ったら必ず記録すること。</span>
+      <span class="c1"># Λ効果用の粘性には掛けない (駆動の強さを変えないため)。</span>
+      <span class="n">fnu</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'nu_numerical_factor'</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+      <span class="n">fkp</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'kappa_numerical_factor'</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">nu_lam</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">nu0</span><span class="o">*</span><span class="n">shape</span>                          <span class="c1"># Λ効果用</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">nu_dif</span> <span class="o">=</span> <span class="n">fnu</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">nu0</span><span class="o">*</span><span class="n">shape</span><span class="p">,</span>
+                                   <span class="n">cfg</span><span class="o">.</span><span class="n">nu_floor_frac</span><span class="o">*</span><span class="n">cfg</span><span class="o">.</span><span class="n">nu0</span><span class="p">)</span>  <span class="c1"># 拡散項用</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">kappa_t</span> <span class="o">=</span> <span class="n">fkp</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">kappa0</span><span class="o">*</span><span class="n">shape</span><span class="p">,</span>
+                                    <span class="n">cfg</span><span class="o">.</span><span class="n">kappa_floor_frac</span><span class="o">*</span><span class="n">cfg</span><span class="o">.</span><span class="n">kappa0</span><span class="p">)</span>
+
+      <span class="c1"># r 面上の値 (面 i はセル i-1 と i の境界)。拡散フラックスの係数として</span>
+      <span class="c1"># 隣接2セルで同一の値を使うために必要。</span>
+      <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'nu_lam'</span><span class="p">,</span> <span class="s1">'nu_dif'</span><span class="p">,</span> <span class="s1">'kappa_t'</span><span class="p">):</span>
+         <span class="n">arr</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+         <span class="n">face</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+         <span class="n">face</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="n">arr</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+         <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">'_m'</span><span class="p">,</span> <span class="n">face</span><span class="p">)</span></div>
+
+
+   <span class="k">def</span><span class="w"> </span><span class="nf">_r_max</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
+<span class="w">      </span><span class="sd">"""Rempel の :math:`r_{\\max}` (Λ 効果と α 効果の基準半径) を返す。</span>
+
+<span class="sd">      論文では計算領域の上端そのもの (:math:`0.985R_\\odot`) だが、本実装は</span>
+<span class="sd">      数値安定性のために領域を切り詰めて走らせることがある。そのとき</span>
+<span class="sd">      ``grid.rrmax`` をそのまま使うと**駆動の位置まで一緒に動いてしまう**:</span>
+
+<span class="sd">      * Λ 効果 (2005 式 33): :math:`\\tanh((r_{\\max}-r)/d)` の遷移層</span>
+<span class="sd">      * α 効果 (2006 式 17): :math:`\\max[0,1-(r-r_{\\max})^2/d_\\alpha^2]`</span>
+<span class="sd">        は湧き出しを :math:`r&gt;r_{\\max}-d_\\alpha` に閉じ込める</span>
+<span class="sd">        (論文 §2.2 は "confines the poloidal source term above</span>
+<span class="sd">        :math:`r=0.935R_\\odot`" と明記)</span>
+
+<span class="sd">      ``cfg.r_max`` を明示すれば領域と切り離せる。指定がなければ従来どおり</span>
+<span class="sd">      ``grid.rrmax`` に追随する。</span>
+
+<span class="sd">      **警告について**: Rempel (2005) §2.5 は</span>
+<span class="sd">      "we require a vanishing angular momentum flux at the top boundary"</span>
+<span class="sd">      と述べており、:math:`\\tanh((r_{\\max}-r)/d)` はそのための遷移層である。</span>
+<span class="sd">      :math:`r_{\\max}` を領域上端からずらすと Λ フラックスが上部境界で</span>
+<span class="sd">      ゼロにならず、stress-free 条件と整合しなくなる。したがって</span>
+<span class="sd">      「領域を切り詰めたまま駆動だけ論文の位置に置く」ことは近似ですらない。</span>
+<span class="sd">      両者がずれている場合は警告を出す。</span>
+<span class="sd">      """</span>
+      <span class="n">r_max</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'r_max'</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">r_max</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+         <span class="k">return</span> <span class="n">grid</span><span class="o">.</span><span class="n">rrmax</span>
+      <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">r_max</span> <span class="o">-</span> <span class="n">grid</span><span class="o">.</span><span class="n">rrmax</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-6</span><span class="o">*</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="p">:</span>
+         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"cfg.r_max (</span><span class="si">{</span><span class="n">r_max</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> RSUN) が計算領域の上端 "</span>
+            <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">grid</span><span class="o">.</span><span class="n">rrmax</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> RSUN) と違います。Λ 効果の遷移層 "</span>
+            <span class="sa">f</span><span class="s2">"tanh((r_max-r)/d) は上部境界で角運動量フラックスを消すための"</span>
+            <span class="sa">f</span><span class="s2">"もの (Rempel 2005 §2.5) なので、ずれていると上部境界を通って"</span>
+            <span class="sa">f</span><span class="s2">"角運動量が出入りします。論文を再現するなら領域上端を "</span>
+            <span class="sa">f</span><span class="s2">"0.985 RSUN にしてください。"</span><span class="p">,</span>
+            <span class="ne">UserWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">r_max</span>
+
+<div class="viewcode-block" id="Setup.build_lambda">
+<a class="viewcode-back" href="../../api/S2MFD.Setup.html#S2MFD.Setup.build_lambda">[docs]</a>
+   <span class="k">def</span><span class="w"> </span><span class="nf">build_lambda</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
+<span class="w">      </span><span class="sd">"""Λ効果 (非等方レイノルズ応力) のプロファイルを構築する。</span>
+
+<span class="sd">      Rempel (2005) 式 (14)-(16)。角運動量フラックスを回転軸方向から</span>
+<span class="sd">      角度 ``cfg.lambda_tilt_deg`` だけ傾けた向きに与える:</span>
+
+<span class="sd">      .. math::</span>
+<span class="sd">         \\Lambda_{r\\varphi} = L\\cos(\\theta+\\varepsilon), \\quad</span>
+<span class="sd">         \\Lambda_{\\theta\\varphi} = -L\\sin(\\theta+\\varepsilon)</span>
+
+<span class="sd">      振幅は :math:`L \\propto \\sin^n\\theta\\cos\\theta</span>
+<span class="sd">      \\tanh((r_{\\max}-r)/d)` で、対流層上端で滑らかにゼロになる。</span>
+
+<span class="sd">      全球格子での赤道対称性</span>
+<span class="sd">      ----------------------</span>
+<span class="sd">      齋藤 (2024) のコードは北半球 :math:`[0,\\pi/2]` のみを解くので傾き</span>
+<span class="sd">      :math:`\\varepsilon` の符号を考える必要がない。S2MFD は全球</span>
+<span class="sd">      :math:`[0,\\pi]` を解くため、そのまま使うと赤道対称性が壊れる。</span>
+
+<span class="sd">      :math:`q_L` が偶関数であるためには :math:`F^r` が偶、</span>
+<span class="sd">      :math:`F^\\theta` が奇でなければならず、幾何因子 :math:`\\sin^2\\theta`</span>
+<span class="sd">      が偶であることから :math:`\\Lambda_{r\\varphi}` は偶、</span>
+<span class="sd">      :math:`\\Lambda_{\\theta\\varphi}` は奇である必要がある。振幅 L は</span>
+<span class="sd">      :math:`\\cos\\theta` に比例して奇なので、傾き角を</span>
+<span class="sd">      :math:`\\varepsilon\\,\\mathrm{sgn}(\\cos\\theta)` として南半球で符号を</span>
+<span class="sd">      反転させるとこの条件を満たす (物理的にも、傾きは両半球で鏡像になる)。</span>
+<span class="sd">      """</span>
+      <span class="n">n</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'lambda_n'</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)</span>
+      <span class="n">dl</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'lambda_d'</span><span class="p">,</span> <span class="mf">0.025</span><span class="o">*</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="p">)</span>
+      <span class="n">lam0</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'lambda0'</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+      <span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'lambda_tilt_deg'</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">))</span>
+
+      <span class="n">ff</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">sinTH</span><span class="o">**</span><span class="n">n</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">cosTH</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">tanh</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_r_max</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span> <span class="o">-</span> <span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="p">)</span><span class="o">/</span><span class="n">dl</span><span class="p">)</span>
+      <span class="c1"># 規格化は物理セルの最大値で取る (ゴーストセルは外挿なので除く)</span>
+      <span class="n">i0</span><span class="p">,</span> <span class="n">i1</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">ixg</span> <span class="o">-</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span>
+      <span class="n">j0</span><span class="p">,</span> <span class="n">j1</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">jxg</span> <span class="o">-</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span>
+      <span class="n">amp</span> <span class="o">=</span> <span class="n">ff</span><span class="p">[</span><span class="n">i0</span><span class="p">:</span><span class="n">i1</span><span class="p">,</span> <span class="n">j0</span><span class="p">:</span><span class="n">j1</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+      <span class="n">L</span> <span class="o">=</span> <span class="n">lam0</span><span class="o">*</span><span class="n">cfg</span><span class="o">.</span><span class="n">om0</span><span class="o">*</span><span class="n">ff</span><span class="o">/</span><span class="n">amp</span>
+
+      <span class="c1"># 傾きの符号を半球ごとに反転させる (赤道対称性の保持)</span>
+      <span class="n">sgn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">cosTH</span><span class="p">)</span>
+      <span class="n">ce</span><span class="p">,</span> <span class="n">se</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">eps</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">lam_rp</span> <span class="o">=</span> <span class="n">L</span><span class="o">*</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">cosTH</span><span class="o">*</span><span class="n">ce</span> <span class="o">-</span> <span class="n">sgn</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">sinTH</span><span class="o">*</span><span class="n">se</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">lam_tp</span> <span class="o">=</span> <span class="o">-</span><span class="n">L</span><span class="o">*</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">sinTH</span><span class="o">*</span><span class="n">ce</span> <span class="o">+</span> <span class="n">sgn</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">cosTH</span><span class="o">*</span><span class="n">se</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Setup.build_rotation">
@@ -144,7 +303,7 @@
          <span class="bp">self</span><span class="o">.</span><span class="n">om</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">omc</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">erf</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrc</span><span class="p">)</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">dh1</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">ome</span> <span class="o">+</span> <span class="n">cfg</span><span class="o">.</span><span class="n">a2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">cosTH</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">cfg</span><span class="o">.</span><span class="n">a4</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">cosTH</span><span class="o">**</span><span class="mi">4</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">omc</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown differential_type: </span><span class="si">{</span><span class="n">cfg</span><span class="o">.</span><span class="n">differential_type</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">omrr</span> <span class="o">=</span> <span class="n">drr2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">om</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">omrr</span> <span class="o">=</span> <span class="n">drr2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">om</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">drr2</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">omth</span> <span class="o">=</span> <span class="n">dth2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">om</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">dth</span><span class="p">)</span><span class="o">/</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span></div>
 
 
@@ -157,9 +316,16 @@
          <span class="bp">self</span><span class="o">.</span><span class="n">et</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">etc</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">ett</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">etc</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">erf</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrc</span><span class="p">)</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">d</span><span class="p">))</span>
       <span class="k">elif</span> <span class="n">cfg</span><span class="o">.</span><span class="n">diffusive_type</span> <span class="o">==</span> <span class="s1">'H10'</span><span class="p">:</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">et</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">etc</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">cfg</span><span class="o">.</span><span class="n">ett</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">erf</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrc</span><span class="p">)</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">dh1</span><span class="p">))</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">cfg</span><span class="o">.</span><span class="n">ets</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">erf</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">r1</span><span class="p">)</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">dh2</span><span class="p">))</span>
+      <span class="k">elif</span> <span class="n">cfg</span><span class="o">.</span><span class="n">diffusive_type</span> <span class="o">==</span> <span class="s1">'R06'</span><span class="p">:</span>
+         <span class="c1"># Rempel (2006) 式 (13)-(15)</span>
+         <span class="c1">#   eta_t = eta_c + f_c(r)[eta_bc - eta_c + f_cz(r)(eta_cz - eta_bc)]</span>
+         <span class="n">fc</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">tanh</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">rr_bc</span><span class="p">)</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">d_bc</span><span class="p">))</span>
+         <span class="n">fcz</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">tanh</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">r_cz</span><span class="p">)</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">d_cz</span><span class="p">))</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">et</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">eta_c</span> <span class="o">+</span> <span class="n">fc</span><span class="o">*</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">eta_bc</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">eta_c</span>
+                                   <span class="o">+</span> <span class="n">fcz</span><span class="o">*</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">eta_cz</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">eta_bc</span><span class="p">))</span>
       <span class="k">else</span><span class="p">:</span>
          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown diffusive_type: </span><span class="si">{</span><span class="n">cfg</span><span class="o">.</span><span class="n">diffusive_type</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">etrr</span> <span class="o">=</span> <span class="n">drr2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">et</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">)</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">etrr</span> <span class="o">=</span> <span class="n">drr2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">et</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">drr2</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Setup.build_alpha">
@@ -179,6 +345,26 @@
          <span class="bp">self</span><span class="o">.</span><span class="n">so</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">so0</span><span class="o">*</span><span class="mi">3</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="mi">4</span> \
             <span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">erf</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrc</span><span class="p">)</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">d</span><span class="p">))</span> \
                <span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">sinTH</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">cosTH</span>
+      <span class="k">elif</span> <span class="n">cfg</span><span class="o">.</span><span class="n">alpha_type</span> <span class="o">==</span> <span class="s1">'R06'</span><span class="p">:</span>
+         <span class="c1"># Rempel (2006) 式 (16)-(19)。B_phi の動径平均に比例する非局所ソース</span>
+         <span class="c1">#   S = alpha0 * Bbar_phi(theta) * f_alpha(r) * g_alpha(theta)</span>
+         <span class="c1"># ここでは r, theta 依存の形状 f_alpha*g_alpha だけを so に入れ、</span>
+         <span class="c1"># Bbar_phi(theta) との積は時間積分カーネル側で取る</span>
+         <span class="c1"># (so に B_phi を含められないため)。</span>
+         <span class="n">fal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_r_max</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span>
+                          <span class="o">/</span> <span class="n">cfg</span><span class="o">.</span><span class="n">d_alpha</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+         <span class="n">gnum</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">sinTH</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">cosTH</span>
+         <span class="n">i0</span><span class="p">,</span> <span class="n">i1</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">ixg</span> <span class="o">-</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span>
+         <span class="n">j0</span><span class="p">,</span> <span class="n">j1</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">jxg</span> <span class="o">-</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">so</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">alpha0</span><span class="o">*</span><span class="n">fal</span><span class="o">*</span><span class="n">gnum</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">gnum</span><span class="p">[</span><span class="n">i0</span><span class="p">:</span><span class="n">i1</span><span class="p">,</span> <span class="n">j0</span><span class="p">:</span><span class="n">j1</span><span class="p">])</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+         <span class="c1"># B_phi を平均する放物線カーネル h(r): r_h_bot と r_h_top でゼロ、</span>
+         <span class="c1"># 中間でピーク。int h(r) dr = 1 に規格化する。</span>
+         <span class="n">hker</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span> <span class="o">-</span> <span class="n">cfg</span><span class="o">.</span><span class="n">r_h_bot</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">r_h_top</span> <span class="o">-</span> <span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="p">))</span>
+         <span class="n">hker</span><span class="p">[:</span><span class="n">i0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+         <span class="n">hker</span><span class="p">[</span><span class="n">i1</span><span class="p">:]</span> <span class="o">=</span> <span class="mf">0.0</span>
+         <span class="n">norm</span> <span class="o">=</span> <span class="p">(</span><span class="n">hker</span><span class="o">*</span><span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">alpha_kernel</span> <span class="o">=</span> <span class="n">hker</span><span class="o">/</span><span class="n">norm</span> <span class="k">if</span> <span class="n">norm</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">hker</span>
       <span class="k">elif</span> <span class="n">cfg</span><span class="o">.</span><span class="n">alpha_type</span> <span class="o">==</span> <span class="s1">'H10'</span><span class="p">:</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">so</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">so1</span><span class="o">*</span><span class="mf">0.25</span> \
             <span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">erf</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">r4</span><span class="p">)</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">dh4</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">erf</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">-</span><span class="n">cfg</span><span class="o">.</span><span class="n">r5</span><span class="p">)</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">dh5</span><span class="p">))</span> \

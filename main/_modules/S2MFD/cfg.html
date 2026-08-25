@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.cfg &mdash; S2MFD 0.2.1.dev106 documentation</title>
+  <title>S2MFD.cfg &mdash; S2MFD 0.2.1.dev211 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
@@ -13,7 +13,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=490931b2"></script>
+      <script src="../../_static/documentation_options.js?v=7430afd0"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -44,6 +44,11 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reading_the_code.html">コードを読むための Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dynamic.html">動力学モード (非運動学的ダイナモ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../parameters.html">パラメタファイルと新しいモデルの足し方</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial_rempel.html">Rempel (2006) を再現する</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../verification.html">検証されていること</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../inference.html">Parameter Inference (GA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api_reference.html">API reference</a></li>
@@ -267,6 +272,69 @@
         <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="n">b</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="build_cfg">
+<a class="viewcode-back" href="../../api/S2MFD.build_cfg.html#S2MFD.build_cfg">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_cfg</span><span class="p">(</span><span class="n">parameter_file</span><span class="o">=</span><span class="s1">'parameters/defaults.py'</span><span class="p">,</span> <span class="n">datadir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">resolve</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">overrides</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""パラメタファイルから :class:`Cfg` を作り, 必要なら値を上書きする.</span>
+
+<span class="sd">    設定を作る入口をここ 1 つにするための関数。実行スクリプトも解析</span>
+<span class="sd">    スクリプトもテストもこれを使う。</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    parameter_file : str</span>
+<span class="sd">        パラメタファイル。``'parameters/xxx.py'`` のように書くと</span>
+<span class="sd">        パッケージ同梱のものを読む (``S2MFD/parameters/`` 以下)。</span>
+<span class="sd">        絶対パスを渡せば任意のファイルも読める。</span>
+<span class="sd">    datadir : str or pathlib.Path, optional</span>
+<span class="sd">        出力先。末尾のスラッシュは自動で補う (現実装はパスを文字列</span>
+<span class="sd">        連結するため必須)。</span>
+<span class="sd">    resolve : bool</span>
+<span class="sd">        ``True`` (既定) なら上書きのあとに :meth:`Cfg.resolve` を呼び、</span>
+<span class="sd">        **基本量の変更を派生量に反映する**。</span>
+
+<span class="sd">        これを呼ばないと ``build_cfg(..., rey=1400)`` としても</span>
+<span class="sd">        ``uu0 = rey*ett/RSUN`` が古いままになる (実測: ``uu0`` が 0 の</span>
+<span class="sd">        まま変わらない)。:class:`~S2MFD.Simulation` の初期化では自動で</span>
+<span class="sd">        呼ばれるが、動力学モードの実行スクリプトは ``Simulation`` を</span>
+<span class="sd">        作らないので、ここで呼ぶ必要がある。</span>
+
+<span class="sd">        パラメタファイルが導出式と**違う値を明示していた**名前と、</span>
+<span class="sd">        利用者が直接代入した名前は再計算されない</span>
+<span class="sd">        (:meth:`Cfg.resolve` を参照)。</span>
+<span class="sd">    **overrides</span>
+<span class="sd">        ``cfg`` の属性を上書きする。</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Cfg</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    論文設定を 216x144 で:</span>
+
+<span class="sd">    &gt;&gt;&gt; import S2MFD</span>
+<span class="sd">    &gt;&gt;&gt; cfg = S2MFD.build_cfg('parameters/rempel06_paper.py', ix=216, jx=144)</span>
+<span class="sd">    &gt;&gt;&gt; grid = S2MFD.Grid.from_cfg(cfg)</span>
+
+<span class="sd">    基本量を変えると派生量も追随する:</span>
+
+<span class="sd">    &gt;&gt;&gt; cfg = S2MFD.build_cfg('parameters/alpha_omega.py', rey=1400)</span>
+<span class="sd">    &gt;&gt;&gt; round(cfg.uu0)          # uu0 = rey*ett/RSUN</span>
+<span class="sd">    2011</span>
+<span class="sd">    """</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">Cfg</span><span class="p">(</span><span class="n">parameter_file</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">datadir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">datadir</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">datadir</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)</span> <span class="o">+</span> <span class="s1">'/'</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">overrides</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">resolve</span><span class="p">:</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">cfg</span></div>
+
 </pre></div>
 
            </div>

@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>poloidal_mag &mdash; S2MFD 0.2.1.dev106 documentation</title>
+  <title>poloidal_mag &mdash; S2MFD 0.2.1.dev211 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
@@ -14,13 +14,13 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=490931b2"></script>
+      <script src="../_static/documentation_options.js?v=7430afd0"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="advection" href="S2MFD.physics.advection.html" />
+    <link rel="next" title="poloidal_from_potential" href="S2MFD.physics.poloidal_from_potential.html" />
     <link rel="prev" title="boundary_condition" href="S2MFD.physics.boundary_condition.html" /> 
 </head>
 
@@ -47,6 +47,11 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reading_the_code.html">コードを読むための Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic.html">動力学モード (非運動学的ダイナモ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parameters.html">パラメタファイルと新しいモデルの足し方</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial_rempel.html">Rempel (2006) を再現する</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../verification.html">検証されていること</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../inference.html">Parameter Inference (GA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api_reference.html">API reference</a><ul class="current">
@@ -60,6 +65,7 @@
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.rk_combine.html">rk_combine</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.boundary_condition.html">boundary_condition</a></li>
 <li class="toctree-l4 current"><a class="current reference internal" href="#">poloidal_mag</a></li>
+<li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.poloidal_from_potential.html">poloidal_from_potential</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.advection.html">advection</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.diffusion.html">diffusion</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.omega_effect.html">omega_effect</a></li>
@@ -107,7 +113,7 @@
 <h1>poloidal_mag<a class="headerlink" href="#poloidal-mag" title="Link to this heading"></a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="S2MFD.physics.poloidal_mag">
-<span class="sig-prename descclassname"><span class="pre">S2MFD.physics.</span></span><span class="sig-name descname"><span class="pre">poloidal_mag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Aph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sinTH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dth</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/physics/physics_core.html#poloidal_mag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.physics.poloidal_mag" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">S2MFD.physics.</span></span><span class="sig-name descname"><span class="pre">poloidal_mag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Aph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sinTH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drr2_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dth</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/physics/physics_core.html#poloidal_mag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.physics.poloidal_mag" title="Link to this definition"></a></dt>
 <dd><p>Calculate the poloidal magnetic field.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -115,7 +121,11 @@
 <li><p><strong>Aph</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Longitudinal vector potential</p></li>
 <li><p><strong>RR</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Radial coordinate</p></li>
 <li><p><strong>sinTH</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>)</p></li>
-<li><p><strong>drr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Radial grid spacing</p></li>
+<li><p><strong>drr2</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – <strong>2 セル幅**の動径格子間隔 ``grid.drr2``. 中心差分の分母なので
+``grid.drr`` (1 セル幅) を渡すと :math:`B_theta` がちょうど 2 倍に
+なる. 2026-08-23 に実際に起き、ローレンツ力が過大になっていた
+(``doc/dev_records/2026-08-23_mistakes.md``).
+**新しい呼び出しは :func:`poloidal_from_potential` を使うこと。</strong></p></li>
 <li><p><strong>dth</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Colatitudinal grid spacing</p></li>
 </ul>
 </dd>
@@ -139,7 +149,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="S2MFD.physics.boundary_condition.html" class="btn btn-neutral float-left" title="boundary_condition" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="S2MFD.physics.advection.html" class="btn btn-neutral float-right" title="advection" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="S2MFD.physics.poloidal_from_potential.html" class="btn btn-neutral float-right" title="poloidal_from_potential" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

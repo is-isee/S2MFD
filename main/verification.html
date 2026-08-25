@@ -1,0 +1,369 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>検証されていること &mdash; S2MFD 0.2.1.dev211 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=7430afd0"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Parameter Inference (GA)" href="inference.html" />
+    <link rel="prev" title="Rempel (2006) を再現する" href="tutorial_rempel.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            S2MFD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reading_the_code.html">コードを読むための Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dynamic.html">動力学モード (非運動学的ダイナモ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">パラメタファイルと新しいモデルの足し方</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_rempel.html">Rempel (2006) を再現する</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">検証されていること</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id3">保存則</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">エネルギー収支</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">収束次数</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id6">ビット一致で固定してあるもの</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id7">線形安定性</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">過去のバグを固定した回帰テスト</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">S2MFD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">検証されていること</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/verification.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1>検証されていること<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+<p>共同利用で使ってもらうために、<strong>何がどの精度で確かめられているか</strong>を
+一覧にする。すべて <code class="docutils literal notranslate"><span class="pre">pytest</span></code> で自動的に走る (213 本)。</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pytest<span class="w">              </span><span class="c1"># 通常テスト (約 2 分)</span>
+pytest<span class="w"> </span>-m<span class="w"> </span>slow<span class="w">      </span><span class="c1"># 長時間ベンチマークも含む</span>
+</pre></div>
+</div>
+<nav class="contents local" id="id2">
+<p class="topic-title">内容</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#id3" id="id10">保存則</a></p></li>
+<li><p><a class="reference internal" href="#id4" id="id11">エネルギー収支</a></p></li>
+<li><p><a class="reference internal" href="#id5" id="id12">収束次数</a></p></li>
+<li><p><a class="reference internal" href="#id6" id="id13">ビット一致で固定してあるもの</a></p></li>
+<li><p><a class="reference internal" href="#id7" id="id14">線形安定性</a></p></li>
+<li><p><a class="reference internal" href="#id8" id="id15">過去のバグを固定した回帰テスト</a></p></li>
+</ul>
+</nav>
+<section id="id3">
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">保存則</a><a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 26.0%" />
+<col style="width: 20.0%" />
+<col style="width: 54.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>量</p></th>
+<th class="head"><p>精度</p></th>
+<th class="head"><p>中身</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>角運動量</p></td>
+<td><p><span class="math notranslate nohighlight">\(10^{-15}\)</span> 以下</p></td>
+<td><p><span class="math notranslate nohighlight">\(\int \rho_0\varpi^2\Omega\,dV\)</span> が境界フラックスを差し引いて
+machine precision で保存する。右辺をすべて発散形で離散化してある</p></td>
+</tr>
+<tr class="row-odd"><td><p>質量</p></td>
+<td><p><span class="math notranslate nohighlight">\(10^{-15}\)</span> 以下</p></td>
+<td><p>音速抑制法を使うので保存量は
+<span class="math notranslate nohighlight">\(\int(\rho_0+\zeta^2\rho_1)\,dV\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>境界フラックス</p></td>
+<td><p>厳密</p></td>
+<td><p>人工拡散も含め、境界面のフラックスをゼロにしてある
+(磁場だけは反対称境界のときに開けられる)</p></td>
+</tr>
+</tbody>
+</table>
+<figure class="align-default" id="id9">
+<a class="reference internal image-reference" href="_images/reference_model.png"><img alt="_images/reference_model.png" src="_images/reference_model.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">保存則を確かめながら緩和させた参照モデル。</span><a class="headerlink" href="#id9" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+<section id="id4">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">エネルギー収支</a><a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>Rempel (2006) 式 (20)-(22) の 3 つの収支式を、<strong>診断とカーネルを
+独立に評価して突き合わせる</strong>。原論文が表 1 の注で明記している精度は
+0.001。</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+<col style="width: 42.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>収支式</p></th>
+<th class="head"><p>108 <span class="math notranslate nohighlight">\(\times\)</span> 72</p></th>
+<th class="head"><p>288 <span class="math notranslate nohighlight">\(\times\)</span> 192</p></th>
+<th class="head"><p>主な誤差源</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><ol class="arabic simple" start="20">
+<li><p><span class="math notranslate nohighlight">\(E_\Omega\)</span></p></li>
+</ol>
+</td>
+<td><p>0.0044</p></td>
+<td><p>0.00046</p></td>
+<td><p>離散化</p></td>
+</tr>
+<tr class="row-odd"><td><ol class="arabic simple" start="21">
+<li><p><span class="math notranslate nohighlight">\(E_M\)</span></p></li>
+</ol>
+</td>
+<td><p>0.0109</p></td>
+<td><p>0.00124</p></td>
+<td><p>離散化 (圧力と重力の部分積分)</p></td>
+</tr>
+<tr class="row-even"><td><ol class="arabic simple" start="22">
+<li><p><span class="math notranslate nohighlight">\(E_B\)</span></p></li>
+</ol>
+</td>
+<td><p><span class="math notranslate nohighlight">\(1.3\times10^{-5}\)</span></p></td>
+<td><p>—</p></td>
+<td><p>離散化 (<span class="math notranslate nohighlight">\(Q_\eta\)</span> の正定値形)</p></td>
+</tr>
+</tbody>
+</table>
+<figure class="align-default">
+<a class="reference internal image-reference" href="_images/energy_budget.png"><img alt="_images/energy_budget.png" src="_images/energy_budget.png" style="width: 100%;" />
+</a>
+</figure>
+<p><strong>論文の格子</strong> <span class="math notranslate nohighlight">\(N_r=108\)</span> <strong>では (21) の残差が論文自身の精度の
+10 倍ある。</strong> これは「論文の数値が未収束である」ことの独立な証拠になる。</p>
+</section>
+<section id="id5">
+<h2><a class="toc-backref" href="#id12" role="doc-backlink">収束次数</a><a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 34.0%" />
+<col style="width: 22.0%" />
+<col style="width: 44.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>対象</p></th>
+<th class="head"><p>実測次数</p></th>
+<th class="head"><p>備考</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>空間離散化 (一様格子)</p></td>
+<td><p>2.00</p></td>
+<td><p>製造解による</p></td>
+</tr>
+<tr class="row-odd"><td><p>空間離散化 (非一様格子)</p></td>
+<td><p>2.00</p></td>
+<td><p>伸縮格子でも落ちない</p></td>
+</tr>
+<tr class="row-even"><td><p>差動回転 (解像度)</p></td>
+<td><p>2.2 - 2.4</p></td>
+<td><p><span class="math notranslate nohighlight">\(c_s\)</span> を固定した外挿</p></td>
+</tr>
+<tr class="row-odd"><td><p>収支式の残差</p></td>
+<td><p><span class="math notranslate nohighlight">\(\sim 2\)</span></p></td>
+<td><p>上の表</p></td>
+</tr>
+</tbody>
+</table>
+<figure class="align-default">
+<a class="reference internal image-reference" href="_images/convergence_dr.png"><img alt="_images/convergence_dr.png" src="_images/convergence_dr.png" style="width: 100%;" />
+</a>
+</figure>
+</section>
+<section id="id6">
+<h2><a class="toc-backref" href="#id13" role="doc-backlink">ビット一致で固定してあるもの</a><a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<p>数値が「だいたい合う」のではなく <strong>1 ビットも変わらない</strong>ことを
+確かめてある。書き換えても壊れていないことを保証するため。</p>
+<ul class="simple">
+<li><p><strong>半球計算と全球計算</strong> — 右辺 5 成分がビット一致する
+(<code class="docutils literal notranslate"><span class="pre">margin</span> <span class="pre">&gt;=</span> <span class="pre">2</span></code> が必須。SLD のリミタが境界面の 2 セル先を見るため)</p></li>
+<li><p><strong>融合カーネルと参照実装</strong> — 誘導方程式の速い実装と、読みやすい
+参照実装が一致する</p></li>
+<li><p><strong>キーワード呼び出しへの書き換え</strong> — 引数の取り違えを防ぐために
+位置引数をキーワードにしたが、結果は変わらない</p></li>
+</ul>
+</section>
+<section id="id7">
+<h2><a class="toc-backref" href="#id14" role="doc-backlink">線形安定性</a><a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<p>von Neumann 解析をコード化してある
+(<code class="xref py py-mod docutils literal notranslate"><span class="pre">S2MFD.physics.stability</span></code>)。中央差分 + SSP-RK2 は拡散がないと
+無条件不安定なので、<strong>CFL 安全率を人工拡散と解像度から自動決定する</strong>。</p>
+<ul class="simple">
+<li><p>中立点 <span class="math notranslate nohighlight">\(S_0\)</span> は解像度とともに上がる
+(72 <span class="math notranslate nohighlight">\(\times\)</span> 48 で 0.274、288 <span class="math notranslate nohighlight">\(\times\)</span> 192 で 0.506)</p></li>
+<li><p>拡散 CFL は物理拡散と人工拡散の <strong>和</strong> で決める
+(max では過小評価になり、両者が同程度の領域で安全余裕が落ちる)</p></li>
+</ul>
+</section>
+<section id="id8">
+<h2><a class="toc-backref" href="#id15" role="doc-backlink">過去のバグを固定した回帰テスト</a><a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<p>見つけた誤りは**同じ形で再発しないようにテストで固定する**。</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 34.0%" />
+<col style="width: 66.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>誤り</p></th>
+<th class="head"><p>固定しているもの</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poloidal_mag</span></code> の引数取り違え</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">grid.drr</span></code> を渡すと <span class="math notranslate nohighlight">\(B_\theta\)</span> が 2 倍になること、および
+本体・解析・実行スクリプトが <code class="docutils literal notranslate"><span class="pre">poloidal_mag</span></code> を直接呼んでいない
+こと (<code class="docutils literal notranslate"><span class="pre">poloidal_from_potential</span></code> に集約)</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(Q_L^\Omega\)</span> への <span class="math notranslate nohighlight">\(\Omega_0\)</span> の混入</p></td>
+<td><p><span class="math notranslate nohighlight">\(Q_L^\Omega\)</span> が <code class="docutils literal notranslate"><span class="pre">cfg.om0</span></code> の値に依存しないこと
+(解析的に厳密ゼロの項が離散で残り、本物の信号の 8 倍あった)</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(dE_\Omega/dt\)</span> への <span class="math notranslate nohighlight">\(\Omega_0\)</span> の混入</p></td>
+<td><p><span class="math notranslate nohighlight">\(E_\Omega\)</span> を使うと残差が <span class="math notranslate nohighlight">\(E_{\rm DR}\)</span> の 20 倍以上に
+なること</p></td>
+</tr>
+<tr class="row-odd"><td><p>磁場の角ゴーストが埋まらない</p></td>
+<td><p>4 隅のゴーストが正しく埋まること</p></td>
+</tr>
+<tr class="row-even"><td><p>未初期化ゴーストを読む</p></td>
+<td><p>境界条件をフィルタの前に掛けること</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ana/</span></code> のゴーストセル添字</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">surface_index</span></code> が margin=1/2 のどちらでも物理セルを指すこと、
+margin=1 では従来の <code class="docutils literal notranslate"><span class="pre">[-2]</span></code> と一致すること</p></td>
+</tr>
+<tr class="row-even"><td><p>下部境界を論文どおりにすると発散</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rempel06*.py</span></code> が対称境界を使っていること、2 つの境界条件の違いが
+「境界面で <span class="math notranslate nohighlight">\(B_\Phi\)</span> が消えるかどうか」だけであること</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>誤りの一覧と、その背後にある**繰り返している失敗のパターン**は
+<code class="docutils literal notranslate"><span class="pre">doc/dev_records/2026-08-23_mistakes.md</span></code> にまとめてある。
+数字を出す前にその中身を確かめる、1 回の測定で結論を言わない、
+一次資料を後回しにしない、「今回の修正で取り切れた」と思わない。</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tutorial_rempel.html" class="btn btn-neutral float-left" title="Rempel (2006) を再現する" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="inference.html" class="btn btn-neutral float-right" title="Parameter Inference (GA)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, S2MFD project.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      Version: 
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+      
+      
+      <dl>
+        <dt>Versions</dt>
+        
+          <dd><a href=""></a></dd>
+        
+      </dl>
+      
+      <br>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

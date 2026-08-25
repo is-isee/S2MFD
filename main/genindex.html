@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; S2MFD 0.2.1.dev106 documentation</title>
+  <title>Index &mdash; S2MFD 0.2.1.dev211 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
@@ -13,7 +13,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=490931b2"></script>
+      <script src="_static/documentation_options.js?v=7430afd0"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -44,6 +44,11 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reading_the_code.html">コードを読むための Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dynamic.html">動力学モード (非運動学的ダイナモ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">パラメタファイルと新しいモデルの足し方</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_rempel.html">Rempel (2006) を再現する</a></li>
+<li class="toctree-l1"><a class="reference internal" href="verification.html">検証されていること</a></li>
 <li class="toctree-l1"><a class="reference internal" href="inference.html">Parameter Inference (GA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference.html">API reference</a></li>
@@ -187,17 +192,23 @@
       </ul></li>
       <li><a href="api/S2MFD.physics.boundary_condition.html#S2MFD.physics.boundary_condition">boundary_condition() (in module S2MFD.physics)</a>
 </li>
+      <li><a href="api/S2MFD.Setup.html#S2MFD.Setup.build_alpha">build_alpha() (S2MFD.Setup method)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/S2MFD.Setup.html#S2MFD.Setup.build_alpha">build_alpha() (S2MFD.Setup method)</a>
+      <li><a href="api/S2MFD.build_cfg.html#S2MFD.build_cfg">build_cfg() (in module S2MFD)</a>
 </li>
       <li><a href="api/S2MFD.Setup.html#S2MFD.Setup.build_diffusivity">build_diffusivity() (S2MFD.Setup method)</a>
 </li>
       <li><a href="api/S2MFD.Setup.html#S2MFD.Setup.build_flow">build_flow() (S2MFD.Setup method)</a>
 </li>
+      <li><a href="api/S2MFD.Setup.html#S2MFD.Setup.build_lambda">build_lambda() (S2MFD.Setup method)</a>
+</li>
       <li><a href="api/S2MFD.Legendre.html#S2MFD.Legendre.build_potential_operator">build_potential_operator() (S2MFD.Legendre method)</a>
 </li>
       <li><a href="api/S2MFD.Setup.html#S2MFD.Setup.build_rotation">build_rotation() (S2MFD.Setup method)</a>
+</li>
+      <li><a href="api/S2MFD.Setup.html#S2MFD.Setup.build_turbulent_transport">build_turbulent_transport() (S2MFD.Setup method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -285,7 +296,11 @@
 </li>
       <li><a href="api/S2MFD.tools.drr1.html#S2MFD.tools.drr1">drr1() (in module S2MFD.tools)</a>
 </li>
+      <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.drr2">drr2 (S2MFD.Grid attribute)</a>
+</li>
       <li><a href="api/S2MFD.tools.drr2.html#S2MFD.tools.drr2">drr2() (in module S2MFD.tools)</a>
+</li>
+      <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.drrm">drrm (S2MFD.Grid attribute)</a>
 </li>
       <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.dth">dth (S2MFD.Grid attribute)</a>
 </li>
@@ -339,20 +354,22 @@
         <li><a href="api/S2MFD.inference.metrics.fitness.html#S2MFD.inference.metrics.fitness">(in module S2MFD.inference.metrics)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/S2MFD.inference.GAResult.html#S2MFD.inference.GAResult.fitness_history">fitness_history (S2MFD.inference.GAResult attribute)</a>
 
       <ul>
         <li><a href="api/S2MFD.inference.genetic.GAResult.html#S2MFD.inference.genetic.GAResult.fitness_history">(S2MFD.inference.genetic.GAResult attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/S2MFD.inference.DynamoProblem.html#S2MFD.inference.DynamoProblem.fitness_kind">fitness_kind (S2MFD.inference.DynamoProblem attribute)</a>
 
       <ul>
         <li><a href="api/S2MFD.inference.problem.DynamoProblem.html#S2MFD.inference.problem.DynamoProblem.fitness_kind">(S2MFD.inference.problem.DynamoProblem attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.from_cfg">from_cfg() (S2MFD.Grid class method)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -642,6 +659,8 @@
         <li><a href="api/S2MFD.inference.genetic.GAConfig.html#S2MFD.inference.genetic.GAConfig.pin_cpus">(S2MFD.inference.genetic.GAConfig attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/S2MFD.physics.poloidal_from_potential.html#S2MFD.physics.poloidal_from_potential">poloidal_from_potential() (in module S2MFD.physics)</a>
+</li>
       <li><a href="api/S2MFD.physics.poloidal_mag.html#S2MFD.physics.poloidal_mag">poloidal_mag() (in module S2MFD.physics)</a>
 </li>
       <li><a href="api/S2MFD.inference.GAResult.html#S2MFD.inference.GAResult.population">population (S2MFD.inference.GAResult attribute)</a>
@@ -665,6 +684,8 @@
       <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.rr">rr (S2MFD.Grid attribute)</a>
 </li>
       <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.RRm">RRm (S2MFD.Grid attribute)</a>
+</li>
+      <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.rrm">rrm (S2MFD.Grid attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -802,6 +823,12 @@
         <li><a href="api/S2MFD.inference.problem.DynamoProblem.html#S2MFD.inference.problem.DynamoProblem.stage1_params">(S2MFD.inference.problem.DynamoProblem attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.stretch">stretch (S2MFD.Grid attribute)</a>
+</li>
+      <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.stretch_center">stretch_center (S2MFD.Grid attribute)</a>
+</li>
+      <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.stretch_width">stretch_width (S2MFD.Grid attribute)</a>
+</li>
       <li><a href="api/S2MFD.tools.sunspot_proxy.html#S2MFD.tools.sunspot_proxy">sunspot_proxy() (in module S2MFD.tools)</a>
 </li>
   </ul></td>
@@ -890,6 +917,8 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/S2MFD.Grid.html#S2MFD.Grid.wfm">wfm (S2MFD.Grid attribute)</a>
+</li>
       <li><a href="api/S2MFD.inference.DynamoProblem.html#S2MFD.inference.DynamoProblem.window_length">window_length (S2MFD.inference.DynamoProblem attribute)</a>
 
       <ul>

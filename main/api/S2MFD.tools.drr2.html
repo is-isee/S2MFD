@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>drr2 &mdash; S2MFD 0.2.1.dev106 documentation</title>
+  <title>drr2 &mdash; S2MFD 0.2.1.dev211 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=490931b2"></script>
+      <script src="../_static/documentation_options.js?v=7430afd0"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
@@ -47,6 +47,11 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reading_the_code.html">コードを読むための Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic.html">動力学モード (非運動学的ダイナモ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parameters.html">パラメタファイルと新しいモデルの足し方</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial_rempel.html">Rempel (2006) を再現する</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../verification.html">検証されていること</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../inference.html">Parameter Inference (GA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api_reference.html">API reference</a><ul class="current">
@@ -101,13 +106,13 @@
 <h1>drr2<a class="headerlink" href="#drr2" title="Link to this heading"></a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="S2MFD.tools.drr2">
-<span class="sig-prename descclassname"><span class="pre">S2MFD.tools.</span></span><span class="sig-name descname"><span class="pre">drr2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/tools/tools.html#drr2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.tools.drr2" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">S2MFD.tools.</span></span><span class="sig-name descname"><span class="pre">drr2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drr2_</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/tools/tools.html#drr2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.tools.drr2" title="Link to this definition"></a></dt>
 <dd><p>To calculate 2nd order accuracy derivative in r direction</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>qq</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Quantity to be differentiated (2D)</p></li>
-<li><p><strong>drr</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Grid spacing in r direction</p></li>
+<li><p><strong>drr2</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – <code class="docutils literal notranslate"><span class="pre">rr[i+1]-rr[i-1]</span></code> (<code class="docutils literal notranslate"><span class="pre">grid.drr2</span></code>, 1D)。一様格子なら 2*drr。</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

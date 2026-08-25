@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.grid &mdash; S2MFD 0.2.1.dev106 documentation</title>
+  <title>S2MFD.grid &mdash; S2MFD 0.2.1.dev211 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
@@ -13,7 +13,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=490931b2"></script>
+      <script src="../../_static/documentation_options.js?v=7430afd0"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -44,6 +44,11 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reading_the_code.html">コードを読むための Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dynamic.html">動力学モード (非運動学的ダイナモ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../parameters.html">パラメタファイルと新しいモデルの足し方</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial_rempel.html">Rempel (2006) を再現する</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../verification.html">検証されていること</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../inference.html">Parameter Inference (GA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api_reference.html">API reference</a></li>
@@ -76,6 +81,9 @@
   <h1>Source code for S2MFD.grid</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.special</span><span class="w"> </span><span class="kn">import</span> <span class="n">erf</span>
+
+<span class="n">_SQRT_PI_2</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">S2MFD.npz_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">NpzIO</span>
 
@@ -84,7 +92,7 @@
 <a class="viewcode-back" href="../../api/S2MFD.Grid.html#S2MFD.Grid">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Grid</span><span class="p">(</span><span class="n">NpzIO</span><span class="p">):</span>
-<span class="w">   </span><span class="sd">"""</span>
+<span class="w">   </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">   Class for managing the grid data.</span>
 
 <span class="sd">   Attributes</span>
@@ -107,10 +115,24 @@
 <span class="sd">      Minimum value for the colatitudinal direction.</span>
 <span class="sd">   thmax : float</span>
 <span class="sd">      Maximum value for the colatitudial direction.</span>
-<span class="sd">   drr : float</span>
-<span class="sd">      Radial grid spacing.</span>
+<span class="sd">   drr : numpy.ndarray</span>
+<span class="sd">      Radial cell width ``rrm[i+1] - rrm[i]`` (ixg,). 非一様格子では</span>
+<span class="sd">      i に依存する。``stretch = 0`` なら全要素が等しい。</span>
+<span class="sd">   drrm : numpy.ndarray</span>
+<span class="sd">      隣り合うセル中心の距離 ``rr[i] - rr[i-1]`` (ixg,)。**面での勾配**\ は</span>
+<span class="sd">      これで割る。一様格子では ``drr`` と一致するが、非一様格子では</span>
+<span class="sd">      別物なので混同しないこと。</span>
+<span class="sd">   drr2 : numpy.ndarray</span>
+<span class="sd">      ``rr[i+1] - rr[i-1]`` (ixg,)。セル中心での 2 セル幅の中心差分用。</span>
 <span class="sd">   dth : float</span>
-<span class="sd">      Colatitudinal grid spacing.</span>
+<span class="sd">      Colatitudinal grid spacing (緯度方向は一様のまま)。</span>
+<span class="sd">   stretch : float</span>
+<span class="sd">      動径方向の格子集中度。0 で一様。&gt;0 で ``stretch_center`` 付近に</span>
+<span class="sd">      点を集める (点の密度が ``1 + stretch*exp(-((r-rc)/w)^2)`` に比例)。</span>
+<span class="sd">   stretch_center, stretch_width : float or sequence</span>
+<span class="sd">      集中させる半径とその幅 [cm]。``stretch_width = 0`` で自動</span>
+<span class="sd">      (領域幅の 15%)。配列にすると複数箇所に同時に集中できる</span>
+<span class="sd">      (例: タコクラインと表面)。</span>
 <span class="sd">   rr : numpy.ndarray</span>
 <span class="sd">      Array of radial grid points.</span>
 <span class="sd">   th : numpy.ndarray</span>
@@ -143,9 +165,16 @@
    <span class="n">rrmax</span><span class="p">:</span> <span class="nb">float</span>
    <span class="n">thmin</span><span class="p">:</span> <span class="nb">float</span>
    <span class="n">thmax</span><span class="p">:</span> <span class="nb">float</span>
-   <span class="n">drr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+   <span class="n">stretch</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="mf">0.0</span>
+   <span class="n">stretch_center</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="mf">0.0</span>
+   <span class="n">stretch_width</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="mf">0.0</span>
+   <span class="n">drr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+   <span class="n">drrm</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+   <span class="n">drr2</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
    <span class="n">dth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
    <span class="n">rr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+   <span class="n">rrm</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+   <span class="n">wfm</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
    <span class="n">th</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
    
    <span class="n">RR</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -158,16 +187,160 @@
    <span class="n">X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
    <span class="n">Y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
    
+<div class="viewcode-block" id="Grid.from_cfg">
+<a class="viewcode-back" href="../../api/S2MFD.Grid.html#S2MFD.Grid.from_cfg">[docs]</a>
+   <span class="nd">@classmethod</span>
+   <span class="k">def</span><span class="w"> </span><span class="nf">from_cfg</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">cfg</span><span class="p">):</span>
+<span class="w">      </span><span class="sd">"""``Cfg`` から格子を作る.</span>
+
+<span class="sd">      設定ファイルに格子の指定がどう書かれていても、格子の作り方が</span>
+<span class="sd">      **1 箇所に決まる**ようにするための入口。伸縮格子の既定値</span>
+<span class="sd">      (``grid_stretch`` など) はここでだけ解釈する。</span>
+
+<span class="sd">      Examples</span>
+<span class="sd">      --------</span>
+<span class="sd">      &gt;&gt;&gt; import S2MFD</span>
+<span class="sd">      &gt;&gt;&gt; cfg = S2MFD.build_cfg('parameters/rempel06_paper.py')</span>
+<span class="sd">      &gt;&gt;&gt; grid = S2MFD.Grid.from_cfg(cfg)</span>
+<span class="sd">      &gt;&gt;&gt; grid.ix, grid.jx</span>
+<span class="sd">      (108, 72)</span>
+<span class="sd">      """</span>
+      <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+         <span class="n">ix</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">ix</span><span class="p">,</span> <span class="n">jx</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">jx</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">margin</span><span class="p">,</span>
+         <span class="n">rrmin</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrmin</span><span class="p">,</span> <span class="n">rrmax</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrmax</span><span class="p">,</span>
+         <span class="n">thmin</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">thmin</span><span class="p">,</span> <span class="n">thmax</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">thmax</span><span class="p">,</span>
+         <span class="n">stretch</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'grid_stretch'</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+         <span class="n">stretch_center</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'grid_stretch_center'</span><span class="p">,</span>
+                                <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrmin</span> <span class="o">+</span> <span class="n">cfg</span><span class="o">.</span><span class="n">rrmax</span><span class="p">)),</span>
+         <span class="n">stretch_width</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'grid_stretch_width'</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+      <span class="p">)</span></div>
+
+
+   <span class="k">def</span><span class="w"> </span><span class="nf">_face_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">      </span><span class="sd">"""セル境界 (面) の半径を ixg+1 個返す。</span>
+
+<span class="sd">      点の密度を **物理半径 :math:`r` の関数**として与え、その積分</span>
+<span class="sd">      :math:`k(r)` を Newton 法で逆に引く。</span>
+
+<span class="sd">      .. math::</span>
+<span class="sd">         \\rho(r) = 1 + \\sum_i a_i</span>
+<span class="sd">             \\exp\\!\\left[-\\left(\\frac{r-r_i}{w_i}\\right)^2\\right],</span>
+<span class="sd">         \\qquad</span>
+<span class="sd">         k(r) = C\\!\\int_{r_{\\min}}^{r}\\!\\rho(r')\\,dr'</span>
+
+<span class="sd">      積分は誤差関数で**解析的に**書ける:</span>
+
+<span class="sd">      .. math::</span>
+<span class="sd">         \\int \\exp\\!\\left[-\\left(\\frac{r-r_i}{w_i}\\right)^2\\right] dr</span>
+<span class="sd">         = \\frac{w_i\\sqrt{\\pi}}{2}\\,{\\rm erf}\\!</span>
+<span class="sd">           \\left(\\frac{r-r_i}{w_i}\\right)</span>
+
+<span class="sd">      ので :math:`k(r)` は :math:`C^\\infty`。逆写像は Newton 法</span>
+<span class="sd">      (:math:`k'=C\\rho` も解析的) で機械精度まで収束させるため、</span>
+<span class="sd">      **格子生成に補間を一切使わない**。</span>
+
+<span class="sd">      ``stretch`` / ``stretch_center`` / ``stretch_width`` はスカラーでも</span>
+<span class="sd">      配列でもよい。配列にすると複数の領域 (タコクラインと表面など) に</span>
+<span class="sd">      同時に点を集められる。</span>
+
+<span class="sd">      なぜ解析的な写像でなければならないか</span>
+<span class="sd">      ------------------------------------</span>
+<span class="sd">      当初は「点の密度を数値積分して逆に引く」方式にしていたが、</span>
+<span class="sd">      区分線形補間のせいで格子間隔関数が :math:`C^0` にしかならず、</span>
+<span class="sd">      **その折れ目が 1 次の誤差を注入して全体が 1 次精度に落ちた**</span>
+<span class="sd">      (``scratchpad/order_test.py`` で実測: 面平均の収束次数が 0.9)。</span>
+<span class="sd">      :math:`C^\\infty` の写像に変えるだけで 2 次に戻る</span>
+<span class="sd">      (``order2.py``: 単純平均 2.00、拡散 2.00、解の誤差 2.01)。</span>
+<span class="sd">      格子生成器の滑らかさが離散化の次数を決める、という教訓。</span>
+
+<span class="sd">      ``stretch == 0`` のときは一様格子の式をそのまま返す。指数関数を</span>
+<span class="sd">      経由すると丸めで最終桁が動き、既存結果との**ビット一致**が</span>
+<span class="sd">      壊れるためで、ここは意図的に分岐している。</span>
+<span class="sd">      """</span>
+      <span class="n">dxi</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rrmax</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrmin</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">ix</span>
+      <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">margin</span>
+      <span class="n">amp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stretch</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">amp</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">):</span>
+         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrmin</span> <span class="o">+</span> <span class="n">dxi</span><span class="o">*</span><span class="n">k</span>
+
+      <span class="n">cen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stretch_center</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+      <span class="n">wid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stretch_width</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+      <span class="c1"># 幅 0 は「自動」= 領域幅の 15%</span>
+      <span class="n">wid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">wid</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.15</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rrmax</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrmin</span><span class="p">),</span> <span class="n">wid</span><span class="p">)</span>
+      <span class="n">cen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">cen</span><span class="p">,</span> <span class="n">amp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+      <span class="n">wid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">wid</span><span class="p">,</span> <span class="n">amp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+      <span class="k">def</span><span class="w"> </span><span class="nf">density</span><span class="p">(</span><span class="n">r</span><span class="p">):</span>
+         <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+         <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">w</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">amp</span><span class="p">,</span> <span class="n">cen</span><span class="p">,</span> <span class="n">wid</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="o">+</span> <span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">((</span><span class="n">r</span> <span class="o">-</span> <span class="n">c</span><span class="p">)</span><span class="o">/</span><span class="n">w</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+         <span class="k">return</span> <span class="n">out</span>
+
+      <span class="k">def</span><span class="w"> </span><span class="nf">kk</span><span class="p">(</span><span class="n">r</span><span class="p">):</span>
+         <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrmin</span>
+         <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">w</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">amp</span><span class="p">,</span> <span class="n">cen</span><span class="p">,</span> <span class="n">wid</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="o">+</span> <span class="n">a</span><span class="o">*</span><span class="n">w</span><span class="o">*</span><span class="n">_SQRT_PI_2</span><span class="o">*</span><span class="p">(</span><span class="n">erf</span><span class="p">((</span><span class="n">r</span> <span class="o">-</span> <span class="n">c</span><span class="p">)</span><span class="o">/</span><span class="n">w</span><span class="p">)</span>
+                                        <span class="o">-</span> <span class="n">erf</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">rrmin</span> <span class="o">-</span> <span class="n">c</span><span class="p">)</span><span class="o">/</span><span class="n">w</span><span class="p">))</span>
+         <span class="k">return</span> <span class="n">out</span>
+
+      <span class="n">norm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ix</span><span class="o">/</span><span class="n">kk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rrmax</span><span class="p">)</span>
+      <span class="n">target</span> <span class="o">=</span> <span class="n">k</span><span class="o">/</span><span class="n">norm</span>                      <span class="c1"># k(r) = target を解く</span>
+      <span class="c1"># Newton 法。k は単調増加 (density &gt; 0) なので必ず収束する。</span>
+      <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrmin</span> <span class="o">+</span> <span class="n">dxi</span><span class="o">*</span><span class="n">k</span>               <span class="c1"># 一様格子を初期推定に使う</span>
+      <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">60</span><span class="p">):</span>
+         <span class="n">dr</span> <span class="o">=</span> <span class="p">(</span><span class="n">kk</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span><span class="o">/</span><span class="n">density</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+         <span class="n">r</span> <span class="o">=</span> <span class="n">r</span> <span class="o">-</span> <span class="n">dr</span>
+         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">dr</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">1.0e-12</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rrmax</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrmin</span><span class="p">):</span>
+            <span class="k">break</span>
+      <span class="c1"># ゴーストセルは端の間隔で線形に延長する (領域外まで密度関数を</span>
+      <span class="c1"># 使うと、集中点の裾で間隔が不自然に変わることがある)</span>
+      <span class="n">h0</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="p">(</span><span class="n">norm</span><span class="o">*</span><span class="n">density</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rrmin</span><span class="p">))</span>
+      <span class="n">h1</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="p">(</span><span class="n">norm</span><span class="o">*</span><span class="n">density</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rrmax</span><span class="p">))</span>
+      <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">k</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrmin</span> <span class="o">+</span> <span class="n">h0</span><span class="o">*</span><span class="n">k</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+      <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">k</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrmax</span> <span class="o">+</span> <span class="n">h1</span><span class="o">*</span><span class="p">(</span><span class="n">k</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ix</span><span class="p">),</span> <span class="n">r</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">r</span>
+
    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
       <span class="c1"># dr,dθの設定</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">ixg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ix</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">margin</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">jxg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jx</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">margin</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">drr</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rrmax</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrmin</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">ix</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">dth</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thmax</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">thmin</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">jx</span>
 
-      <span class="c1">#座標rrの設定 (セル中心、ゴーストセル込み)</span>
-      <span class="n">rr0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrmin</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">drr</span><span class="o">*</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">margin</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">rr</span> <span class="o">=</span> <span class="n">rr0</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">drr</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="p">)</span>
+      <span class="c1"># --- 動径方向の格子 -----------------------------------------------</span>
+      <span class="c1"># 有限体積なので **面が主** で、セル中心は面の中点にする。こうすると</span>
+      <span class="c1"># sum(q*drr) が厳密に体積積分になり、発散のテレスコープがそのまま</span>
+      <span class="c1"># 成り立つ (非一様でも保存は機械精度)。</span>
+      <span class="c1">#</span>
+      <span class="c1"># ゴーストセルも含めて ixg+1 枚の面を作る。面の位置は伸縮写像</span>
+      <span class="c1">#   xi -&gt; R(xi),   R' = 1/(rho(xi) * I)</span>
+      <span class="c1"># で決める。rho は点の密度で、stretch = 0 なら rho = 1 となり</span>
+      <span class="c1"># **一様格子と厳密に一致する** (回帰の安全弁)。</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">rrm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_face_positions</span><span class="p">()</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stretch</span><span class="p">)</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">):</span>
+         <span class="c1"># 一様格子は従来の式をそのまま使う。面の差を取ると丸めで最終桁が</span>
+         <span class="c1"># 動き、既存結果とのビット一致が壊れるため。</span>
+         <span class="n">dxi</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rrmax</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrmin</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">ix</span>
+         <span class="n">rr0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrmin</span> <span class="o">+</span> <span class="n">dxi</span><span class="o">*</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">margin</span><span class="p">)</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">rr</span> <span class="o">=</span> <span class="n">rr0</span> <span class="o">+</span> <span class="n">dxi</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="p">)</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">drr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="p">,</span> <span class="n">dxi</span><span class="p">)</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">drrm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="p">,</span> <span class="n">dxi</span><span class="p">)</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">drr2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="p">,</span> <span class="mf">2.0</span><span class="o">*</span><span class="n">dxi</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">rr</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rrm</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrm</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">drr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrm</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrm</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">drrm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="p">)</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">drrm</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rr</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">drrm</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">drrm</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">drr2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="p">)</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">drr2</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rr</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">drr2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">drrm</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">drr2</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">drrm</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+      <span class="c1"># 面への線形補間の重み: q_face[i] = wm[i]*q[i-1] + (1-wm[i])*q[i]</span>
+      <span class="c1"># 一様格子では厳密に 0.5 になる (ビット一致の保証)。</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">wfm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stretch</span><span class="p">)</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">):</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">wfm</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rr</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrm</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="p">])</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">drrm</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
 
       <span class="c1">#座標thの設定</span>
       <span class="n">th0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thmin</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dth</span><span class="o">*</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">margin</span><span class="p">)</span>
@@ -177,7 +350,14 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">RRm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">RR</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">THm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TH</span><span class="p">)</span>
       
-      <span class="bp">self</span><span class="o">.</span><span class="n">RRm</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="p">,:]</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">RR</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="p">,:]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">RR</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="mi">1</span><span class="p">,:])</span>
+      <span class="c1"># 面の位置は「セル中心の平均」ではなく **本物の面**を入れる。</span>
+      <span class="c1"># 一様格子では代数的には両者が一致するので、丸めまで含めて従来と</span>
+      <span class="c1"># 同じ値になるよう旧式をそのまま使う (ビット一致の保証)。</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stretch</span><span class="p">)</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">):</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">RRm</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="p">,:]</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">RR</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="p">,:]</span>
+                                       <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">RR</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="o">-</span><span class="mi">1</span><span class="p">,:])</span>
+      <span class="k">else</span><span class="p">:</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">RRm</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rrm</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">ixg</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">THm</span><span class="p">[:,</span><span class="mi">1</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">jxg</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TH</span><span class="p">[:,</span><span class="mi">1</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">jxg</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">TH</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">jxg</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
       
       <span class="bp">self</span><span class="o">.</span><span class="n">sinTH</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TH</span><span class="p">)</span>

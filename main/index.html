@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD Documentation &mdash; S2MFD 0.2.1.dev106 documentation</title>
+  <title>S2MFD Documentation &mdash; S2MFD 0.2.1.dev211 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
@@ -14,7 +14,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=490931b2"></script>
+      <script src="_static/documentation_options.js?v=7430afd0"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -46,6 +46,11 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reading_the_code.html">コードを読むための Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dynamic.html">動力学モード (非運動学的ダイナモ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">パラメタファイルと新しいモデルの足し方</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_rempel.html">Rempel (2006) を再現する</a></li>
+<li class="toctree-l1"><a class="reference internal" href="verification.html">検証されていること</a></li>
 <li class="toctree-l1"><a class="reference internal" href="inference.html">Parameter Inference (GA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference.html">API reference</a></li>
@@ -90,6 +95,60 @@
 <li class="toctree-l2"><a class="reference internal" href="usage.html#id6">解析スクリプト</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#id7">数値の厳密さと速度</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#id8">テスト</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reading_the_code.html">コードを読むための Python</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reading_the_code.html#id2">0. 先に地図を持つ</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reading_the_code.html#id3">1. クラス — 「まとめて持ち歩くための箱」</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reading_the_code.html#id8">2. クラスに付く 4 つの飾り</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reading_the_code.html#id9">3. デコレータの正体 (<code class="docutils literal notranslate"><span class="pre">&#64;</span></code> の付いた行)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reading_the_code.html#id12">4. 関数を作る関数 (クロージャ)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reading_the_code.html#lambda">5. 辞書と <code class="docutils literal notranslate"><span class="pre">lambda</span></code> を「表」として使う</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reading_the_code.html#id16">6. 引数と属性の小道具</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reading_the_code.html#import">7. モジュール、<code class="docutils literal notranslate"><span class="pre">import</span></code>、設定ファイルの読み込み</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reading_the_code.html#numpy">8. numpy の約束事</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reading_the_code.html#numba-python">9. numba — Python のループを速くする</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reading_the_code.html#id22">10. 位置で当てず、名前で引く</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reading_the_code.html#id23">11. 詰まったときにやること</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reading_the_code.html#id24">まとめ</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dynamic.html">動力学モード (非運動学的ダイナモ)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="dynamic.html#id3">何を解いているか</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamic.html#id4">参照モデル (磁場なし)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamic.html#id5">ダイナモ</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamic.html#id6">エネルギー収支</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamic.html#id7">収束性</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamic.html#id8">原論文との比較</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamic.html#id9">論文からの意図的な逸脱</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamic.html#id10">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">パラメタファイルと新しいモデルの足し方</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="parameters.html#id3">設定の読み込み</a></li>
+<li class="toctree-l2"><a class="reference internal" href="parameters.html#id4">既存のパラメタファイル</a></li>
+<li class="toctree-l2"><a class="reference internal" href="parameters.html#id5">モデルを切り替えるスイッチ</a></li>
+<li class="toctree-l2"><a class="reference internal" href="parameters.html#id6">新しいモデルを足す</a></li>
+<li class="toctree-l2"><a class="reference internal" href="parameters.html#id7">よく使うパラメタ</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_rempel.html">Rempel (2006) を再現する</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_rempel.html#id2">0. 5 分で動かしてみる</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_rempel.html#id3">1. 参照モデルを緩和させる</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_rempel.html#id4">2. 磁場を入れてダイナモを回す</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_rempel.html#id5">3. 表 1 と突き合わせる</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_rempel.html#id6">4. エネルギー収支を確かめる</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_rempel.html#id7">5. 収束性を調べる</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial_rempel.html#id8">よくある落とし穴</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="verification.html">検証されていること</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="verification.html#id3">保存則</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verification.html#id4">エネルギー収支</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verification.html#id5">収束次数</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verification.html#id6">ビット一致で固定してあるもの</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verification.html#id7">線形安定性</a></li>
+<li class="toctree-l2"><a class="reference internal" href="verification.html#id8">過去のバグを固定した回帰テスト</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="inference.html">Parameter Inference (GA)</a><ul>

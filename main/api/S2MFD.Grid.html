@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Grid &mdash; S2MFD 0.2.1.dev106 documentation</title>
+  <title>Grid &mdash; S2MFD 0.2.1.dev211 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=490931b2"></script>
+      <script src="../_static/documentation_options.js?v=7430afd0"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
@@ -47,6 +47,11 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reading_the_code.html">コードを読むための Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic.html">動力学モード (非運動学的ダイナモ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parameters.html">パラメタファイルと新しいモデルの足し方</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial_rempel.html">Rempel (2006) を再現する</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../verification.html">検証されていること</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../inference.html">Parameter Inference (GA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api_reference.html">API reference</a><ul class="current">
@@ -103,7 +108,7 @@
 <h1>Grid<a class="headerlink" href="#grid" title="Link to this heading"></a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="S2MFD.Grid">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">Grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">jx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">margin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rrmin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rrmax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">thmin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">thmax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/grid.html#Grid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Grid" title="Link to this definition"></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">S2MFD.</span></span><span class="sig-name descname"><span class="pre">Grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">jx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">margin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rrmin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rrmax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">thmin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">thmax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">stretch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stretch_center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stretch_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/grid.html#Grid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Grid" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">NpzIO</span></code></p>
 <p>Class for managing the grid data.</p>
 <dl class="field-list simple">
@@ -118,8 +123,18 @@
 <li><p><strong>rrmax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Maximum value for the radial direction.</p></li>
 <li><p><strong>thmin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Minimum value for the colatitudinal direction.</p></li>
 <li><p><strong>thmax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Maximum value for the colatitudial direction.</p></li>
-<li><p><strong>drr</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Radial grid spacing.</p></li>
-<li><p><strong>dth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Colatitudinal grid spacing.</p></li>
+<li><p><strong>drr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Radial cell width <code class="docutils literal notranslate"><span class="pre">rrm[i+1]</span> <span class="pre">-</span> <span class="pre">rrm[i]</span></code> (ixg,). 非一様格子では
+i に依存する。<code class="docutils literal notranslate"><span class="pre">stretch</span> <span class="pre">=</span> <span class="pre">0</span></code> なら全要素が等しい。</p></li>
+<li><p><strong>drrm</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – 隣り合うセル中心の距離 <code class="docutils literal notranslate"><span class="pre">rr[i]</span> <span class="pre">-</span> <span class="pre">rr[i-1]</span></code> (ixg,)。<strong>面での勾配</strong>は
+これで割る。一様格子では <code class="docutils literal notranslate"><span class="pre">drr</span></code> と一致するが、非一様格子では
+別物なので混同しないこと。</p></li>
+<li><p><strong>drr2</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – <code class="docutils literal notranslate"><span class="pre">rr[i+1]</span> <span class="pre">-</span> <span class="pre">rr[i-1]</span></code> (ixg,)。セル中心での 2 セル幅の中心差分用。</p></li>
+<li><p><strong>dth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Colatitudinal grid spacing (緯度方向は一様のまま)。</p></li>
+<li><p><strong>stretch</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – 動径方向の格子集中度。0 で一様。&gt;0 で <code class="docutils literal notranslate"><span class="pre">stretch_center</span></code> 付近に
+点を集める (点の密度が <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">+</span> <span class="pre">stretch*exp(-((r-rc)/w)^2)</span></code> に比例)。</p></li>
+<li><p><strong>stretch_width</strong> (<a class="reference internal" href="#S2MFD.Grid.stretch_center" title="S2MFD.Grid.stretch_center"><em>stretch_center</em></a><em>,</em>) – 集中させる半径とその幅 [cm]。<code class="docutils literal notranslate"><span class="pre">stretch_width</span> <span class="pre">=</span> <span class="pre">0</span></code> で自動
+(領域幅の 15%)。配列にすると複数箇所に同時に集中できる
+(例: タコクラインと表面)。</p></li>
 <li><p><strong>rr</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Array of radial grid points.</p></li>
 <li><p><strong>th</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Array of colatitudinal grid points.</p></li>
 <li><p><strong>RR</strong> (<em>numpy.ndarray:</em>) – Radial coordinate np.meshgrid array.</p></li>
@@ -161,6 +176,12 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Grid.drr" title="S2MFD.Grid.drr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">drr</span></code></a></p></td>
 <td><p></p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Grid.drr2" title="S2MFD.Grid.drr2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">drr2</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Grid.drrm" title="S2MFD.Grid.drrm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">drrm</span></code></a></p></td>
+<td><p></p></td>
+</tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Grid.dth" title="S2MFD.Grid.dth"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dth</span></code></a></p></td>
 <td><p></p></td>
 </tr>
@@ -182,16 +203,28 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Grid.rr" title="S2MFD.Grid.rr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rr</span></code></a></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Grid.rrmax" title="S2MFD.Grid.rrmax"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rrmax</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Grid.rrm" title="S2MFD.Grid.rrm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rrm</span></code></a></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Grid.rrmin" title="S2MFD.Grid.rrmin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rrmin</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Grid.rrmax" title="S2MFD.Grid.rrmax"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rrmax</span></code></a></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Grid.sinTH" title="S2MFD.Grid.sinTH"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sinTH</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Grid.rrmin" title="S2MFD.Grid.rrmin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rrmin</span></code></a></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Grid.sinTHm" title="S2MFD.Grid.sinTHm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sinTHm</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Grid.sinTH" title="S2MFD.Grid.sinTH"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sinTH</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Grid.sinTHm" title="S2MFD.Grid.sinTHm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sinTHm</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Grid.stretch" title="S2MFD.Grid.stretch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stretch</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Grid.stretch_center" title="S2MFD.Grid.stretch_center"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stretch_center</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Grid.stretch_width" title="S2MFD.Grid.stretch_width"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stretch_width</span></code></a></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Grid.th" title="S2MFD.Grid.th"><code class="xref py py-obj docutils literal notranslate"><span class="pre">th</span></code></a></p></td>
@@ -202,6 +235,17 @@
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Grid.thmin" title="S2MFD.Grid.thmin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">thmin</span></code></a></p></td>
 <td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Grid.wfm" title="S2MFD.Grid.wfm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wfm</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods Summary</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Grid.from_cfg" title="S2MFD.Grid.from_cfg"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_cfg</span></code></a>(cfg)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Cfg</span></code> から格子を作る.</p></td>
 </tr>
 </tbody>
 </table>
@@ -243,7 +287,17 @@
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="S2MFD.Grid.drr">
-<span class="sig-name descname"><span class="pre">drr</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;dataclasses._MISSING_TYPE</span> <span class="pre">object&gt;</span></span><a class="headerlink" href="#S2MFD.Grid.drr" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">drr</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><span class="pre">ndarray</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;dataclasses._MISSING_TYPE</span> <span class="pre">object&gt;</span></span><a class="headerlink" href="#S2MFD.Grid.drr" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="S2MFD.Grid.drr2">
+<span class="sig-name descname"><span class="pre">drr2</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><span class="pre">ndarray</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;dataclasses._MISSING_TYPE</span> <span class="pre">object&gt;</span></span><a class="headerlink" href="#S2MFD.Grid.drr2" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="S2MFD.Grid.drrm">
+<span class="sig-name descname"><span class="pre">drrm</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><span class="pre">ndarray</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;dataclasses._MISSING_TYPE</span> <span class="pre">object&gt;</span></span><a class="headerlink" href="#S2MFD.Grid.drrm" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -282,6 +336,11 @@
 <dd></dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="S2MFD.Grid.rrm">
+<span class="sig-name descname"><span class="pre">rrm</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><span class="pre">ndarray</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;dataclasses._MISSING_TYPE</span> <span class="pre">object&gt;</span></span><a class="headerlink" href="#S2MFD.Grid.rrm" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="S2MFD.Grid.rrmax">
 <span class="sig-name descname"><span class="pre">rrmax</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;dataclasses._MISSING_TYPE</span> <span class="pre">object&gt;</span></span><a class="headerlink" href="#S2MFD.Grid.rrmax" title="Link to this definition"></a></dt>
 <dd></dd></dl>
@@ -302,6 +361,21 @@
 <dd></dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="S2MFD.Grid.stretch">
+<span class="sig-name descname"><span class="pre">stretch</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span><a class="headerlink" href="#S2MFD.Grid.stretch" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="S2MFD.Grid.stretch_center">
+<span class="sig-name descname"><span class="pre">stretch_center</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span><a class="headerlink" href="#S2MFD.Grid.stretch_center" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="S2MFD.Grid.stretch_width">
+<span class="sig-name descname"><span class="pre">stretch_width</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span><a class="headerlink" href="#S2MFD.Grid.stretch_width" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="S2MFD.Grid.th">
 <span class="sig-name descname"><span class="pre">th</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><span class="pre">ndarray</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;dataclasses._MISSING_TYPE</span> <span class="pre">object&gt;</span></span><a class="headerlink" href="#S2MFD.Grid.th" title="Link to this definition"></a></dt>
 <dd></dd></dl>
@@ -316,9 +390,32 @@
 <span class="sig-name descname"><span class="pre">thmin</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;dataclasses._MISSING_TYPE</span> <span class="pre">object&gt;</span></span><a class="headerlink" href="#S2MFD.Grid.thmin" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="S2MFD.Grid.wfm">
+<span class="sig-name descname"><span class="pre">wfm</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><span class="pre">ndarray</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;dataclasses._MISSING_TYPE</span> <span class="pre">object&gt;</span></span><a class="headerlink" href="#S2MFD.Grid.wfm" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<p class="rubric">Methods Documentation</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Grid.from_cfg">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_cfg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/grid.html#Grid.from_cfg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Grid.from_cfg" title="Link to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">Cfg</span></code> から格子を作る.</p>
+<p>設定ファイルに格子の指定がどう書かれていても、格子の作り方が
+<a href="#id1"><span class="problematic" id="id2">**</span></a>1 箇所に決まる**ようにするための入口。伸縮格子の既定値
+(<code class="docutils literal notranslate"><span class="pre">grid_stretch</span></code> など) はここでだけ解釈する。</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">S2MFD</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">build_cfg</span><span class="p">(</span><span class="s1">'parameters/rempel06_paper.py'</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">grid</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Grid</span><span class="o">.</span><span class="n">from_cfg</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">grid</span><span class="o">.</span><span class="n">ix</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">jx</span>
+<span class="go">(108, 72)</span>
+</pre></div>
+</div>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="S2MFD.Grid.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">jx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">margin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rrmin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rrmax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">thmin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">thmax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#S2MFD.Grid.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">jx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">margin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rrmin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rrmax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">thmin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">thmax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">stretch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stretch_center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stretch_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#S2MFD.Grid.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>

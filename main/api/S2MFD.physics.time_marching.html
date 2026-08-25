@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>time_marching &mdash; S2MFD 0.2.1.dev106 documentation</title>
+  <title>time_marching &mdash; S2MFD 0.2.1.dev211 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=490931b2"></script>
+      <script src="../_static/documentation_options.js?v=7430afd0"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
@@ -47,6 +47,11 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reading_the_code.html">コードを読むための Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic.html">動力学モード (非運動学的ダイナモ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parameters.html">パラメタファイルと新しいモデルの足し方</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial_rempel.html">Rempel (2006) を再現する</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../verification.html">検証されていること</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../inference.html">Parameter Inference (GA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api_reference.html">API reference</a><ul class="current">
@@ -60,6 +65,7 @@
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.rk_combine.html">rk_combine</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.boundary_condition.html">boundary_condition</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.poloidal_mag.html">poloidal_mag</a></li>
+<li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.poloidal_from_potential.html">poloidal_from_potential</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.advection.html">advection</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.diffusion.html">diffusion</a></li>
 <li class="toctree-l4"><a class="reference internal" href="S2MFD.physics.omega_effect.html">omega_effect</a></li>
@@ -123,13 +129,20 @@
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
+<li><p><em>tuple of numpy.ndarray</em> –</p>
+<ul>
 <li><p>Bphm : Updated longitudinal magnetic field</p></li>
 <li><p>Aphm : Updated longitudinal vector potential</p></li>
 </ul>
+</li>
+<li><p><em>.. warning::</em> – <strong>出力のゴーストセルは未初期化**である (出力配列は ``np.empty_like``
+で確保し, カーネルは物理セルしか書かない)。入力のゴーストとも違う
+任意の値が入る。**呼び出し側は直後に必ず</strong>
+<code class="xref py py-func docutils literal notranslate"><span class="pre">boundary_condition()</span></code>
+<strong>を掛けること。</strong> 人工拡散などゴーストを読む処理をその前に挟むと、
+未初期化メモリを拾う (実測では相対 1e-10 程度の影響)。</p></li>
+</ul>
 </p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a> of <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)">numpy.ndarray</a></p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>

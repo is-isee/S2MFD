@@ -1,0 +1,1199 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>コードを読むための Python &mdash; S2MFD 0.2.1.dev211 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=7430afd0"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="動力学モード (非運動学的ダイナモ)" href="dynamic.html" />
+    <link rel="prev" title="Usage" href="usage.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            S2MFD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">コードを読むための Python</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id2">0. 先に地図を持つ</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">1. クラス — 「まとめて持ち歩くための箱」</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id4">1.1 なぜ必要か</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">1.2 一番小さいクラス</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#self">1.3 <code class="docutils literal notranslate"><span class="pre">self</span></code> の正体</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">1.4 ふつうの関数との違いは「状態が残る」こと</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">1.5 実物を見る</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">2. クラスに付く 4 つの飾り</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dataclass-init">2.1 <code class="docutils literal notranslate"><span class="pre">&#64;dataclass</span></code> — <code class="docutils literal notranslate"><span class="pre">__init__</span></code> を書かなくてよくする</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classmethod">2.2 <code class="docutils literal notranslate"><span class="pre">&#64;classmethod</span></code> — もう一つの作り方</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#property">2.3 <code class="docutils literal notranslate"><span class="pre">&#64;property</span></code> — 括弧のいらないメソッド</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#npzio">2.4 継承とミックスイン — <code class="docutils literal notranslate"><span class="pre">NpzIO</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id9">3. デコレータの正体 (<code class="docutils literal notranslate"><span class="pre">&#64;</span></code> の付いた行)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id10">3.1 <code class="docutils literal notranslate"><span class="pre">&#64;</span></code> は関数の書き換え</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id11">3.2 デコレータを <strong>返す</strong> 関数</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id12">4. 関数を作る関数 (クロージャ)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id13">4.1 作ったものを取っておく (辞書によるキャッシュ)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#lambda">5. 辞書と <code class="docutils literal notranslate"><span class="pre">lambda</span></code> を「表」として使う</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id14">5.1 分岐の代わりの辞書</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id15">5.2 <code class="docutils literal notranslate"><span class="pre">lambda</span></code> = 名前のない小さな関数</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id16">6. 引数と属性の小道具</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id17">6.1 キーワード引数と既定値</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#kwargs">6.2 <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code> — 残り全部を辞書で受け取る</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#getattr-obj">6.3 <code class="docutils literal notranslate"><span class="pre">getattr(obj,</span> <span class="pre">'名前',</span> <span class="pre">既定値)</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#import">7. モジュール、<code class="docutils literal notranslate"><span class="pre">import</span></code>、設定ファイルの読み込み</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id18">7.1 <code class="docutils literal notranslate"><span class="pre">import</span></code> のかたち</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#importlib-py">7.2 <code class="docutils literal notranslate"><span class="pre">importlib</span></code> — <code class="docutils literal notranslate"><span class="pre">.py</span></code> を設定ファイルとして読む</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#numpy">8. numpy の約束事</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id19">8.1 スライスは <strong>コピーではない</strong></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#margin">8.2 ゴーストセルと <code class="docutils literal notranslate"><span class="pre">margin</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#drr-drrm-drr2">8.3 <code class="docutils literal notranslate"><span class="pre">drr</span></code> / <code class="docutils literal notranslate"><span class="pre">drrm</span></code> / <code class="docutils literal notranslate"><span class="pre">drr2</span></code> の区別</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id20">8.4 ブロードキャスト</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#numba-python">9. numba — Python のループを速くする</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id21">9.1 なぜ要るか</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#njit">9.2 <code class="docutils literal notranslate"><span class="pre">&#64;njit</span></code> の性質</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#prange">9.3 <code class="docutils literal notranslate"><span class="pre">prange</span></code> と並列化</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fastmath">9.4 <code class="docutils literal notranslate"><span class="pre">fastmath</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id22">10. 位置で当てず、名前で引く</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id23">11. 詰まったときにやること</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id24">まとめ</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dynamic.html">動力学モード (非運動学的ダイナモ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">パラメタファイルと新しいモデルの足し方</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_rempel.html">Rempel (2006) を再現する</a></li>
+<li class="toctree-l1"><a class="reference internal" href="verification.html">検証されていること</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">S2MFD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">コードを読むための Python</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/reading_the_code.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="python">
+<h1>コードを読むための Python<a class="headerlink" href="#python" title="Link to this heading"></a></h1>
+<p>この章は <strong>S2MFD のコードを読むときに出てくる Python の書き方</strong>を、
+出てくる順にひとつずつ説明する。物理や数値計算の中身は
+<a class="reference internal" href="dynamic.html"><span class="doc">動力学モード (非運動学的ダイナモ)</span></a> に、使い方は <a class="reference internal" href="usage.html"><span class="doc">Usage</span></a> にある。</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>前提にしている知識は次だけ。</strong></p>
+<ul class="simple">
+<li><p>変数、<code class="docutils literal notranslate"><span class="pre">if</span></code>、<code class="docutils literal notranslate"><span class="pre">for</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">def</span></code> で関数を作って <code class="docutils literal notranslate"><span class="pre">return</span></code> で返す</p></li>
+<li><p>リストと辞書 (<code class="docutils literal notranslate"><span class="pre">[1,2,3]</span></code>、<code class="docutils literal notranslate"><span class="pre">{'a':1}</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">numpy</span> <span class="pre">as</span> <span class="pre">np</span></code> して配列を作り、足したり掛けたりする</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">class</span></code> は知らないものとして書いてある。デコレータ (<code class="docutils literal notranslate"><span class="pre">&#64;</span></code> の付いた
+行)、クロージャ、<code class="docutils literal notranslate"><span class="pre">**kwargs</span></code> なども全部この章で説明する。</p>
+</div>
+<nav class="contents local" id="id1">
+<p class="topic-title">内容</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#id2" id="id25">0. 先に地図を持つ</a></p></li>
+<li><p><a class="reference internal" href="#id3" id="id26">1. クラス — 「まとめて持ち歩くための箱」</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id4" id="id27">1.1 なぜ必要か</a></p></li>
+<li><p><a class="reference internal" href="#id5" id="id28">1.2 一番小さいクラス</a></p></li>
+<li><p><a class="reference internal" href="#self" id="id29">1.3 <code class="docutils literal notranslate"><span class="pre">self</span></code> の正体</a></p></li>
+<li><p><a class="reference internal" href="#id6" id="id30">1.4 ふつうの関数との違いは「状態が残る」こと</a></p></li>
+<li><p><a class="reference internal" href="#id7" id="id31">1.5 実物を見る</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#id8" id="id32">2. クラスに付く 4 つの飾り</a></p>
+<ul>
+<li><p><a class="reference internal" href="#dataclass-init" id="id33">2.1 <code class="docutils literal notranslate"><span class="pre">&#64;dataclass</span></code> — <code class="docutils literal notranslate"><span class="pre">__init__</span></code> を書かなくてよくする</a></p></li>
+<li><p><a class="reference internal" href="#classmethod" id="id34">2.2 <code class="docutils literal notranslate"><span class="pre">&#64;classmethod</span></code> — もう一つの作り方</a></p></li>
+<li><p><a class="reference internal" href="#property" id="id35">2.3 <code class="docutils literal notranslate"><span class="pre">&#64;property</span></code> — 括弧のいらないメソッド</a></p></li>
+<li><p><a class="reference internal" href="#npzio" id="id36">2.4 継承とミックスイン — <code class="docutils literal notranslate"><span class="pre">NpzIO</span></code></a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#id9" id="id37">3. デコレータの正体 (<code class="docutils literal notranslate"><span class="pre">&#64;</span></code> の付いた行)</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id10" id="id38">3.1 <code class="docutils literal notranslate"><span class="pre">&#64;</span></code> は関数の書き換え</a></p></li>
+<li><p><a class="reference internal" href="#id11" id="id39">3.2 デコレータを <strong>返す</strong> 関数</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#id12" id="id40">4. 関数を作る関数 (クロージャ)</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id13" id="id41">4.1 作ったものを取っておく (辞書によるキャッシュ)</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#lambda" id="id42">5. 辞書と <code class="docutils literal notranslate"><span class="pre">lambda</span></code> を「表」として使う</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id14" id="id43">5.1 分岐の代わりの辞書</a></p></li>
+<li><p><a class="reference internal" href="#id15" id="id44">5.2 <code class="docutils literal notranslate"><span class="pre">lambda</span></code> = 名前のない小さな関数</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#id16" id="id45">6. 引数と属性の小道具</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id17" id="id46">6.1 キーワード引数と既定値</a></p></li>
+<li><p><a class="reference internal" href="#kwargs" id="id47">6.2 <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code> — 残り全部を辞書で受け取る</a></p></li>
+<li><p><a class="reference internal" href="#getattr-obj" id="id48">6.3 <code class="docutils literal notranslate"><span class="pre">getattr(obj,</span> <span class="pre">'名前',</span> <span class="pre">既定値)</span></code></a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#import" id="id49">7. モジュール、<code class="docutils literal notranslate"><span class="pre">import</span></code>、設定ファイルの読み込み</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id18" id="id50">7.1 <code class="docutils literal notranslate"><span class="pre">import</span></code> のかたち</a></p></li>
+<li><p><a class="reference internal" href="#importlib-py" id="id51">7.2 <code class="docutils literal notranslate"><span class="pre">importlib</span></code> — <code class="docutils literal notranslate"><span class="pre">.py</span></code> を設定ファイルとして読む</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#numpy" id="id52">8. numpy の約束事</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id19" id="id53">8.1 スライスは <strong>コピーではない</strong></a></p></li>
+<li><p><a class="reference internal" href="#margin" id="id54">8.2 ゴーストセルと <code class="docutils literal notranslate"><span class="pre">margin</span></code></a></p></li>
+<li><p><a class="reference internal" href="#drr-drrm-drr2" id="id55">8.3 <code class="docutils literal notranslate"><span class="pre">drr</span></code> / <code class="docutils literal notranslate"><span class="pre">drrm</span></code> / <code class="docutils literal notranslate"><span class="pre">drr2</span></code> の区別</a></p></li>
+<li><p><a class="reference internal" href="#id20" id="id56">8.4 ブロードキャスト</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#numba-python" id="id57">9. numba — Python のループを速くする</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id21" id="id58">9.1 なぜ要るか</a></p></li>
+<li><p><a class="reference internal" href="#njit" id="id59">9.2 <code class="docutils literal notranslate"><span class="pre">&#64;njit</span></code> の性質</a></p></li>
+<li><p><a class="reference internal" href="#prange" id="id60">9.3 <code class="docutils literal notranslate"><span class="pre">prange</span></code> と並列化</a></p></li>
+<li><p><a class="reference internal" href="#fastmath" id="id61">9.4 <code class="docutils literal notranslate"><span class="pre">fastmath</span></code></a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#id22" id="id62">10. 位置で当てず、名前で引く</a></p></li>
+<li><p><a class="reference internal" href="#id23" id="id63">11. 詰まったときにやること</a></p></li>
+<li><p><a class="reference internal" href="#id24" id="id64">まとめ</a></p></li>
+</ul>
+</nav>
+<section id="id2">
+<h2><a class="toc-backref" href="#id25" role="doc-backlink">0. 先に地図を持つ</a><a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>本体 <code class="docutils literal notranslate"><span class="pre">S2MFD/</span></code> は 8,000 行ほどで、思っているより小さい。</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 34.0%" />
+<col style="width: 12.0%" />
+<col style="width: 54.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>ファイル</p></th>
+<th class="head"><p>行数</p></th>
+<th class="head"><p>中身</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">physics/hydro.py</span></code></p></td>
+<td><p>889</p></td>
+<td><p>流体 (密度・エントロピー・角運動量・子午面流) の右辺</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">physics/dynamic.py</span></code></p></td>
+<td><p>851</p></td>
+<td><p>動力学モードの時間積分を束ねる <code class="docutils literal notranslate"><span class="pre">DynamicSolver</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">physics/physics_core.py</span></code></p></td>
+<td><p>766</p></td>
+<td><p>磁場の誘導方程式。<strong>計算の心臓部</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">physics/artdif.py</span></code></p></td>
+<td><p>560</p></td>
+<td><p>人工拡散 (slope-limited diffusion)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">simulation.py</span></code></p></td>
+<td><p>378</p></td>
+<td><p>運動学モードの実行ループ</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">setup.py</span></code> / <code class="docutils literal notranslate"><span class="pre">stratification.py</span></code> / <code class="docutils literal notranslate"><span class="pre">grid.py</span></code> / <code class="docutils literal notranslate"><span class="pre">cfg.py</span></code></p></td>
+<td><p>235-333</p></td>
+<td><p>背景場・成層・格子・設定</p></td>
+</tr>
+<tr class="row-even"><td><p>その他</p></td>
+<td><p>&lt; 320</p></td>
+<td><p>境界条件、エネルギー収支、安定性、遺伝的アルゴリズムなど</p></td>
+</tr>
+</tbody>
+</table>
+<p>読む順としては <code class="docutils literal notranslate"><span class="pre">cfg.py</span></code> → <code class="docutils literal notranslate"><span class="pre">grid.py</span></code> → <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> →
+<code class="docutils literal notranslate"><span class="pre">physics/physics_core.py</span></code> が素直。前の 3 つは「準備」、最後が「計算」。</p>
+<p>そして、<strong>言語機能としては驚くほど何も使っていない</strong>。本体 8,000 行の中に</p>
+<ul class="simple">
+<li><p>メタクラス、<code class="docutils literal notranslate"><span class="pre">__getattr__</span></code>、<code class="docutils literal notranslate"><span class="pre">__slots__</span></code> … <strong>0 個</strong></p></li>
+<li><p>ジェネレータ (<code class="docutils literal notranslate"><span class="pre">yield</span></code>) … <strong>0 個</strong></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">functools</span></code>、型注釈 (<code class="docutils literal notranslate"><span class="pre">typing</span></code>)、<code class="docutils literal notranslate"><span class="pre">async</span></code> … <strong>0 個</strong></p></li>
+<li><p>クラスの継承 (<code class="docutils literal notranslate"><span class="pre">super()</span></code>) … <strong>1 か所だけ</strong></p></li>
+</ul>
+<p>つまり、この章に書いてあることさえ分かれば、他に隠し球はない。</p>
+</section>
+<section id="id3">
+<h2><a class="toc-backref" href="#id26" role="doc-backlink">1. クラス — 「まとめて持ち歩くための箱」</a><a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<section id="id4">
+<h3><a class="toc-backref" href="#id27" role="doc-backlink">1.1 なぜ必要か</a><a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>数値計算では、ほとんどの関数が同じものを欲しがる。半径の配列、角度の
+配列、格子間隔、粘性係数、境界の位置……。素直に関数の引数にすると
+こうなる。実際 <code class="docutils literal notranslate"><span class="pre">physics_core.py</span></code> の一番内側の計算関数は</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">rr</span><span class="p">,</span> <span class="n">sth</span><span class="p">,</span> <span class="n">rrm</span><span class="p">,</span> <span class="n">sthm</span><span class="p">,</span> <span class="n">drr</span><span class="p">,</span> <span class="n">drrm</span><span class="p">,</span> <span class="n">drr2_</span><span class="p">,</span> <span class="n">dth</span><span class="p">,</span>
+           <span class="n">urr</span><span class="p">,</span> <span class="n">uth</span><span class="p">,</span> <span class="n">et</span><span class="p">,</span> <span class="n">etrr</span><span class="p">,</span> <span class="n">omrr</span><span class="p">,</span> <span class="n">omth</span><span class="p">,</span> <span class="n">so</span><span class="p">,</span> <span class="n">ibase</span><span class="p">,</span> <span class="n">alpha_code</span><span class="p">,</span>
+           <span class="n">inv_rr</span><span class="p">,</span> <span class="n">inv_rr2</span><span class="p">,</span> <span class="n">inv_sth</span><span class="p">,</span> <span class="n">inv_sth2</span><span class="p">,</span> <span class="n">alpha_fac</span><span class="p">,</span> <span class="n">Bphm</span><span class="p">,</span> <span class="n">Aphm</span><span class="p">,</span>
+           <span class="n">urr_u</span><span class="p">,</span> <span class="n">urr_v</span><span class="p">,</span> <span class="n">uth_u</span><span class="p">,</span> <span class="n">uth_v</span><span class="p">,</span> <span class="n">et_u</span><span class="p">,</span> <span class="n">et_v</span><span class="p">,</span> <span class="n">etrr_u</span><span class="p">,</span> <span class="n">etrr_v</span><span class="p">,</span>
+           <span class="n">omth_u</span><span class="p">,</span> <span class="n">omth_v</span><span class="p">,</span> <span class="n">so_u</span><span class="p">,</span> <span class="n">so_v</span><span class="p">):</span>
+</pre></div>
+</div>
+<p><strong>引数が 39 個ある</strong>。これを人間が毎回書くのは無理だし、順番を 1 つ
+間違えれば静かに間違った答えが出る (実際に起きた。10 節を見よ)。</p>
+<p>そこで、関係するものをひとかたまりにして名前を付ける。それがクラス。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">time_marching</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">setup</span><span class="p">):</span>   <span class="c1"># 引数 6 個</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">cfg</span></code> は設定一式、<code class="docutils literal notranslate"><span class="pre">grid</span></code> は格子一式、<code class="docutils literal notranslate"><span class="pre">setup</span></code> は背景場一式。
+39 個が 3 個に減っている。<code class="docutils literal notranslate"><span class="pre">time_marching</span></code> の中で <code class="docutils literal notranslate"><span class="pre">grid.drr</span></code>、
+<code class="docutils literal notranslate"><span class="pre">grid.dth</span></code> のように取り出して、39 個の引数に展開してから
+<code class="docutils literal notranslate"><span class="pre">kernel</span></code> を呼ぶ。<strong>クラスは「引数の束」だと思ってよい。</strong></p>
+</section>
+<section id="id5">
+<h3><a class="toc-backref" href="#id28" role="doc-backlink">1.2 一番小さいクラス</a><a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Box</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">b</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">total</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span>
+</pre></div>
+</div>
+<p>使い方:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">Box</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>      <span class="c1"># ここで __init__ が呼ばれる</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="o">.</span><span class="n">a</span>
+<span class="go">3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="o">.</span><span class="n">total</span><span class="p">()</span>
+<span class="go">7</span>
+</pre></div>
+</div>
+<p>読み方はこうだ。</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">class</span> <span class="pre">Box:</span></code></dt><dd><p>「<code class="docutils literal notranslate"><span class="pre">Box</span></code> という種類の箱を定義する」という宣言。この行だけでは
+まだ箱は 1 つも作られていない。<strong>設計図を書いただけ。</strong></p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">=</span> <span class="pre">Box(3,</span> <span class="pre">4)</span></code></dt><dd><p>設計図から箱を 1 つ作る。作られた箱を <strong>インスタンス</strong>という。
+<code class="docutils literal notranslate"><span class="pre">Box(3,</span> <span class="pre">4)</span></code> と書くと Python が自動的に <code class="docutils literal notranslate"><span class="pre">__init__</span></code> を呼ぶ。</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">self</span></code></dt><dd><p><strong>「いま作られている、あるいはいま操作されている箱そのもの」</strong>。
+ここが最初の関門なので、次で丁寧にやる。</p>
+</dd>
+</dl>
+</section>
+<section id="self">
+<h3><a class="toc-backref" href="#id29" role="doc-backlink">1.3 <code class="docutils literal notranslate"><span class="pre">self</span></code> の正体</a><a class="headerlink" href="#self" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">self</span></code> は魔法ではなく、<strong>ただの第 1 引数</strong>である。次の 2 行は
+Python の内部ではまったく同じ意味になる。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">x</span><span class="o">.</span><span class="n">total</span><span class="p">()</span>          <span class="c1"># ふだんこう書く</span>
+<span class="n">Box</span><span class="o">.</span><span class="n">total</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>       <span class="c1"># 実際に起きているのはこれ</span>
+</pre></div>
+</div>
+<p>つまり <code class="docutils literal notranslate"><span class="pre">x.total()</span></code> と書くと、Python が <code class="docutils literal notranslate"><span class="pre">x</span></code> を勝手に第 1 引数として
+渡している。だから <code class="docutils literal notranslate"><span class="pre">def</span> <span class="pre">total(self):</span></code> の <code class="docutils literal notranslate"><span class="pre">self</span></code> には <code class="docutils literal notranslate"><span class="pre">x</span></code> が入る。</p>
+<p><code class="docutils literal notranslate"><span class="pre">self.a</span> <span class="pre">=</span> <span class="pre">a</span></code> の意味も同じで、「この箱の <code class="docutils literal notranslate"><span class="pre">a</span></code> という引き出しに、
+引数の <code class="docutils literal notranslate"><span class="pre">a</span></code> を入れる」。左の <code class="docutils literal notranslate"><span class="pre">self.a</span></code> と右の <code class="docutils literal notranslate"><span class="pre">a</span></code> は別物である。</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p><code class="docutils literal notranslate"><span class="pre">self</span></code> という名前に意味はない。<code class="docutils literal notranslate"><span class="pre">def</span> <span class="pre">total(hako):</span></code> と書いて
+<code class="docutils literal notranslate"><span class="pre">hako.a</span></code> としても動く。全員が <code class="docutils literal notranslate"><span class="pre">self</span></code> と書く約束になっているだけ。</p>
+</div>
+</section>
+<section id="id6">
+<h3><a class="toc-backref" href="#id30" role="doc-backlink">1.4 ふつうの関数との違いは「状態が残る」こと</a><a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<p>関数は呼ぶたびに何も覚えていない。クラスは覚えている。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g1</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Grid</span><span class="o">.</span><span class="n">from_cfg</span><span class="p">(</span><span class="n">cfg1</span><span class="p">)</span>     <span class="c1"># 108x72 の格子</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g2</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Grid</span><span class="o">.</span><span class="n">from_cfg</span><span class="p">(</span><span class="n">cfg2</span><span class="p">)</span>     <span class="c1"># 216x144 の格子</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g1</span><span class="o">.</span><span class="n">ix</span><span class="p">,</span> <span class="n">g2</span><span class="o">.</span><span class="n">ix</span>
+<span class="go">(108, 216)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">g1</span></code> と <code class="docutils literal notranslate"><span class="pre">g2</span></code> は同じ設計図から作られた別の箱で、中身は独立している。
+解像度を振る実験ができるのはこのおかげ。</p>
+</section>
+<section id="id7">
+<h3><a class="toc-backref" href="#id31" role="doc-backlink">1.5 実物を見る</a><a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<p>対話的に触るのが一番早い。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">S2MFD</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">build_cfg</span><span class="p">(</span><span class="s1">'parameters/rempel06_paper.py'</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">grid</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Grid</span><span class="o">.</span><span class="n">from_cfg</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">grid</span><span class="o">.</span><span class="n">rr</span><span class="o">.</span><span class="n">shape</span>          <span class="c1"># 半径の配列の形</span>
+<span class="go">(112,)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="o">.</span><span class="n">shape</span>          <span class="c1"># 半径の 2 次元配列</span>
+<span class="go">(112, 76)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="n">grid</span><span class="p">)][:</span><span class="mi">6</span><span class="p">]</span>    <span class="c1"># 箱の引き出しを全部見る</span>
+<span class="go">['ix', 'jx', 'margin', 'rrmin', 'rrmax', 'thmin']</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">vars(obj)</span></code> で中身が全部見られる。<strong>知らないクラスに出会ったら、
+まず ``vars()`` を打つ。</strong></p>
+</section>
+</section>
+<section id="id8">
+<h2><a class="toc-backref" href="#id32" role="doc-backlink">2. クラスに付く 4 つの飾り</a><a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<p>S2MFD のクラスに出てくる <code class="docutils literal notranslate"><span class="pre">&#64;</span></code> 付きの行は 4 種類しかない。</p>
+<section id="dataclass-init">
+<h3><a class="toc-backref" href="#id33" role="doc-backlink">2.1 <code class="docutils literal notranslate"><span class="pre">&#64;dataclass</span></code> — <code class="docutils literal notranslate"><span class="pre">__init__</span></code> を書かなくてよくする</a><a class="headerlink" href="#dataclass-init" title="Link to this heading"></a></h3>
+<p>引き出しの名前を並べるだけのクラスで、<code class="docutils literal notranslate"><span class="pre">__init__</span></code> に
+<code class="docutils literal notranslate"><span class="pre">self.a</span> <span class="pre">=</span> <span class="pre">a</span></code> を延々と書くのは退屈である。<code class="docutils literal notranslate"><span class="pre">&#64;dataclass</span></code> を付けると
+Python がその <code class="docutils literal notranslate"><span class="pre">__init__</span></code> を自動生成してくれる。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GAConfig</span><span class="p">:</span>
+    <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.80</span>
+    <span class="n">max_generations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span>
+    <span class="n">mutation_probability</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span>
+</pre></div>
+</div>
+<p>これは「<code class="docutils literal notranslate"><span class="pre">__init__</span></code> の中で <code class="docutils literal notranslate"><span class="pre">self.threshold</span> <span class="pre">=</span> <span class="pre">threshold</span></code> などを
+書いたクラス」と同じ意味になる。既定値も付けられる。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">GAConfig</span><span class="p">()</span>                  <span class="c1"># 全部既定値</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">GAConfig</span><span class="p">(</span><span class="n">max_generations</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>   <span class="c1"># 一部だけ変える</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">threshold</span>
+<span class="go">0.8</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">float</span></code> や <code class="docutils literal notranslate"><span class="pre">int</span></code> の部分は <strong>型注釈</strong>という。Python はこれを
+チェックしない (<code class="docutils literal notranslate"><span class="pre">threshold</span></code> に文字列を入れても動いてしまう)。
+人間へのメモであり、<code class="docutils literal notranslate"><span class="pre">&#64;dataclass</span></code> にとっては「これは引き出しですよ」
+という目印でもある。</p>
+<p><code class="docutils literal notranslate"><span class="pre">grid.py</span></code> の <code class="docutils literal notranslate"><span class="pre">Grid</span></code> にはもう一段だけ細工がある。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ixg</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">field(init=False)</span></code> は「これは引き出しだが、<strong>外から渡すのではなく
+中で計算する</strong>」という指定。<code class="docutils literal notranslate"><span class="pre">ixg</span> <span class="pre">=</span> <span class="pre">ix</span> <span class="pre">+</span> <span class="pre">2*margin</span></code> なので、外から
+渡させたら矛盾しうる。矛盾させない仕組みである。</p>
+</section>
+<section id="classmethod">
+<h3><a class="toc-backref" href="#id34" role="doc-backlink">2.2 <code class="docutils literal notranslate"><span class="pre">&#64;classmethod</span></code> — もう一つの作り方</a><a class="headerlink" href="#classmethod" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Grid</span></code> は引数を 9 個取るが、ふつうは設定ファイルから全部決まる。
+そこで「<code class="docutils literal notranslate"><span class="pre">cfg</span></code> から作る」という専用の入口がある。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">from_cfg</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">cfg</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+        <span class="n">ix</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">ix</span><span class="p">,</span> <span class="n">jx</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">jx</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">margin</span><span class="p">,</span>
+        <span class="n">rrmin</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrmin</span><span class="p">,</span> <span class="n">rrmax</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">rrmax</span><span class="p">,</span>
+        <span class="o">...</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<p>読み方:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;classmethod</span></code> が付くと、第 1 引数が <code class="docutils literal notranslate"><span class="pre">self</span></code> (箱) ではなく
+<code class="docutils literal notranslate"><span class="pre">cls</span></code> (<strong>設計図そのもの</strong>) になる。ここでは <code class="docutils literal notranslate"><span class="pre">cls</span></code> は <code class="docutils literal notranslate"><span class="pre">Grid</span></code>。</p></li>
+<li><p>だから <code class="docutils literal notranslate"><span class="pre">cls(...)</span></code> は <code class="docutils literal notranslate"><span class="pre">Grid(...)</span></code> と書いたのと同じで、
+ふつうの作り方を呼んでいる。</p></li>
+<li><p>使うときは箱を作る前に呼ぶ: <code class="docutils literal notranslate"><span class="pre">S2MFD.Grid.from_cfg(cfg)</span></code>。</p></li>
+</ul>
+<p>なぜこうするか。<strong>格子の作り方を 1 か所に決めるため</strong>である。
+<code class="docutils literal notranslate"><span class="pre">getattr(cfg,</span> <span class="pre">'grid_stretch',</span> <span class="pre">0.0)</span></code> のような既定値の解釈がここに
+しかないので、実行スクリプトごとに違う格子ができる事故が起きない。</p>
+</section>
+<section id="property">
+<h3><a class="toc-backref" href="#id35" role="doc-backlink">2.3 <code class="docutils literal notranslate"><span class="pre">&#64;property</span></code> — 括弧のいらないメソッド</a><a class="headerlink" href="#property" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@property</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_top_is_pole</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""theta 方向の上端が極か (True) 赤道か (False)."""</span>
+    <span class="n">thmax</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'thmax'</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">thmax</span> <span class="o">-</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1.0e-9</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;property</span></code> が付くと、<strong>呼び出しの括弧が要らなくなる</strong>。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sol</span><span class="o">.</span><span class="n">_top_is_pole</span>        <span class="c1"># sol._top_is_pole() ではない</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>見た目は引き出し (<code class="docutils literal notranslate"><span class="pre">grid.ix</span></code> のような) だが、中身は毎回計算される。
+「<code class="docutils literal notranslate"><span class="pre">cfg</span></code> から決まるので保存しておくと食い違う」量に使う。</p>
+</section>
+<section id="npzio">
+<h3><a class="toc-backref" href="#id36" role="doc-backlink">2.4 継承とミックスイン — <code class="docutils literal notranslate"><span class="pre">NpzIO</span></code></a><a class="headerlink" href="#npzio" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">class</span> <span class="pre">Grid(NpzIO):</span></code> の括弧の中が <strong>親クラス</strong>。「<code class="docutils literal notranslate"><span class="pre">NpzIO</span></code> が
+持っている機能を <code class="docutils literal notranslate"><span class="pre">Grid</span></code> も持つ」という意味である。S2MFD では
+<code class="docutils literal notranslate"><span class="pre">NpzIO</span></code> を通じて <code class="docutils literal notranslate"><span class="pre">save</span></code> / <code class="docutils literal notranslate"><span class="pre">load</span></code> を配っているだけで、
+<strong>深い継承は一切していない</strong> (<code class="docutils literal notranslate"><span class="pre">super()</span></code> の呼び出しは全体で 1 か所)。</p>
+<p><code class="docutils literal notranslate"><span class="pre">npz_io.py</span></code> の全文は 40 行しかないので、そのまま読める。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">NpzIO</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savez</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="n">key</span><span class="p">:</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">files</span>
+        <span class="p">})</span>
+        <span class="k">return</span> <span class="n">obj</span>
+</pre></div>
+</div>
+<p>ここに 3 つ新しい道具が出てくる。</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">self.__dict__</span></code></dt><dd><p><strong>箱の引き出しは、実は辞書である。</strong> <code class="docutils literal notranslate"><span class="pre">grid.ix</span></code> は
+<code class="docutils literal notranslate"><span class="pre">grid.__dict__['ix']</span></code> と同じものを指す。<code class="docutils literal notranslate"><span class="pre">vars(grid)</span></code> はこの
+辞書を返しているだけ。だから <code class="docutils literal notranslate"><span class="pre">np.savez(filename,</span> <span class="pre">**self.__dict__)</span></code>
+は「引き出しを全部ファイルに書く」になる。</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">**</span></code> (辞書のばらし)</dt><dd><p><code class="docutils literal notranslate"><span class="pre">f(**{'a':1,</span> <span class="pre">'b':2})</span></code> は <code class="docutils literal notranslate"><span class="pre">f(a=1,</span> <span class="pre">b=2)</span></code> と同じ。辞書のキーを
+キーワード引数の名前として展開する。6 節で改めて扱う。</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">cls.__new__(cls)</span></code></dt><dd><p><strong>``__init__`` を通さずに空の箱を作る。</strong> <code class="docutils literal notranslate"><span class="pre">load</span></code> では中身を
+ファイルから入れるので、<code class="docutils literal notranslate"><span class="pre">__init__</span></code> の計算 (格子を作り直すなど) を
+もう一度やる必要がないし、やると保存した値と食い違いかねない。
+これは S2MFD の中で一番「裏技」に近い 1 行だが、ここ以外には
+出てこない。</p>
+</dd>
+</dl>
+</section>
+</section>
+<section id="id9">
+<h2><a class="toc-backref" href="#id37" role="doc-backlink">3. デコレータの正体 (<code class="docutils literal notranslate"><span class="pre">&#64;</span></code> の付いた行)</a><a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<section id="id10">
+<h3><a class="toc-backref" href="#id38" role="doc-backlink">3.1 <code class="docutils literal notranslate"><span class="pre">&#64;</span></code> は関数の書き換え</a><a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<p>デコレータには特別な文法上の意味はない。次の 2 つは完全に同じである。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@njit</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">advection</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">advection</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+    <span class="o">...</span>
+<span class="n">advection</span> <span class="o">=</span> <span class="n">njit</span><span class="p">(</span><span class="n">advection</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>つまり <code class="docutils literal notranslate"><span class="pre">&#64;なにか</span></code> は「<strong>定義した関数をその「なにか」に一度通して、
+返ってきたものを同じ名前に付け直す</strong>」という省略記法にすぎない。</p>
+<p><code class="docutils literal notranslate"><span class="pre">njit</span></code> は関数を受け取って「機械語にコンパイルする版の関数」を返す。
+<code class="docutils literal notranslate"><span class="pre">property</span></code> は関数を受け取って「括弧なしで読める版」を返す。
+<code class="docutils literal notranslate"><span class="pre">dataclass</span></code> はクラスを受け取って「<code class="docutils literal notranslate"><span class="pre">__init__</span></code> を足したクラス」を返す。
+やっていることは全部同じ形である。</p>
+</section>
+<section id="id11">
+<h3><a class="toc-backref" href="#id39" role="doc-backlink">3.2 デコレータを <strong>返す</strong> 関数</a><a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;njit(fastmath=False)</span></code> のように括弧が付くと一段深くなる。
+<code class="docutils literal notranslate"><span class="pre">njit(fastmath=False)</span></code> がまずデコレータを作り、それが関数に適用される。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@njit</span><span class="p">(</span><span class="n">fastmath</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">):</span> <span class="o">...</span>
+
+<span class="c1"># 同じ意味</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">):</span> <span class="o">...</span>
+<span class="n">deco</span> <span class="o">=</span> <span class="n">njit</span><span class="p">(</span><span class="n">fastmath</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>   <span class="c1"># ← デコレータを作る</span>
+<span class="n">f</span> <span class="o">=</span> <span class="n">deco</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>                   <span class="c1"># ← それを適用する</span>
+</pre></div>
+</div>
+<p>S2MFD ではこれを自前でも作っている。<code class="docutils literal notranslate"><span class="pre">S2MFD/physics/_jit.py</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">PARALLEL</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'S2MFD_PARALLEL'</span><span class="p">,</span> <span class="s1">'0'</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'0'</span><span class="p">,</span> <span class="s1">''</span><span class="p">,</span> <span class="s1">'false'</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""並列化して安全なカーネル用の njit デコレータ。"""</span>
+    <span class="k">return</span> <span class="n">njit</span><span class="p">(</span><span class="n">fastmath</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="n">PARALLEL</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">kernel</span></code> は関数ではなく <strong>デコレータを返す関数</strong>だから、使うときは
+必ず括弧が要る。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@kernel</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">slope_limited_flux</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>これで何が嬉しいか。<strong>環境変数 1 つで、全カーネルの並列化を一斉に
+切り替えられる。</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">S2MFD_PARALLEL</span><span class="o">=</span><span class="m">0</span><span class="w"> </span>python<span class="w"> </span>run.py<span class="w">     </span><span class="c1"># 逐次</span>
+<span class="nv">S2MFD_PARALLEL</span><span class="o">=</span><span class="m">4</span><span class="w"> </span>python<span class="w"> </span>run.py<span class="w">     </span><span class="c1"># 4 スレッド</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;njit(parallel=True)</span></code> と 21 か所 (<code class="docutils literal notranslate"><span class="pre">&#64;kernel()</span></code> を使っているカーネルの数)
+に直書きしてあったら、こうはできない。</p>
+</section>
+</section>
+<section id="id12">
+<h2><a class="toc-backref" href="#id40" role="doc-backlink">4. 関数を作る関数 (クロージャ)</a><a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
+<p>ここが本体で一番込み入った部分だが、<strong>込み入っている理由は性能だけ</strong>で
+ある。<code class="docutils literal notranslate"><span class="pre">physics_core.py:207</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_make_time_marching_kernel</span><span class="p">(</span><span class="n">fast</span><span class="p">,</span> <span class="n">nonlocal_alpha</span><span class="p">,</span> <span class="n">separable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""time_marching の内部カーネルを生成する。"""</span>
+
+    <span class="nd">@njit</span><span class="p">(</span><span class="n">fastmath</span><span class="o">=</span><span class="n">fast</span><span class="p">,</span> <span class="n">boundscheck</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="n">Aph</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+        <span class="o">...</span>
+        <span class="k">if</span> <span class="n">nonlocal_alpha</span><span class="p">:</span>          <span class="c1"># ← 外側の引数をここで使っている</span>
+            <span class="n">src</span> <span class="o">=</span> <span class="n">so</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">alpha_fac</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">src</span> <span class="o">=</span> <span class="n">so</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">*</span><span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">Bph</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="o">...</span>
+
+    <span class="k">return</span> <span class="n">kernel</span>
+</pre></div>
+</div>
+<p><strong>関数の中で関数を定義して、それを返している。</strong> 内側の <code class="docutils literal notranslate"><span class="pre">kernel</span></code> は
+外側の引数 <code class="docutils literal notranslate"><span class="pre">fast</span></code> / <code class="docutils literal notranslate"><span class="pre">nonlocal_alpha</span></code> を覚えたまま外に出ていく。
+このような「外側の変数を抱えた関数」を <strong>クロージャ</strong> という。</p>
+<p>なぜこうするか。<code class="docutils literal notranslate"><span class="pre">nonlocal_alpha</span></code> による分岐を <strong>内側の二重ループの中に
+残したくない</strong>からである。10 万セルを毎ステップ回るループの中に
+<code class="docutils literal notranslate"><span class="pre">if</span></code> があると、CPU のベクトル化が効かず 2 倍以上遅くなる。関数を作る
+時点で分岐を決めてしまえば、numba がコンパイルする時に <code class="docutils literal notranslate"><span class="pre">if</span></code> ごと
+消える。</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>クロージャは「引数を先に一部だけ埋めた関数」だと思うとよい。</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">kakezan</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">a</span><span class="o">*</span><span class="n">x</span>
+    <span class="k">return</span> <span class="n">f</span>
+
+<span class="n">nibai</span> <span class="o">=</span> <span class="n">kakezan</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>      <span class="c1"># a=2 を埋めた関数ができる</span>
+<span class="n">nibai</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>               <span class="c1"># -&gt; 20</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">_make_time_marching_kernel(True,</span> <span class="pre">False,</span> <span class="pre">False)</span></code> は、
+<code class="docutils literal notranslate"><span class="pre">fast=True,</span> <span class="pre">nonlocal_alpha=False,</span> <span class="pre">separable=False</span></code> を埋めた
+計算カーネルを作っている。それだけのこと。</p>
+</div>
+<section id="id13">
+<h3><a class="toc-backref" href="#id41" role="doc-backlink">4.1 作ったものを取っておく (辞書によるキャッシュ)</a><a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
+<p>numba のコンパイルは数秒かかるので、毎回作り直すと話にならない。
+一度作ったら辞書に入れておく。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_TIME_MARCHING_KERNELS</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_time_marching_kernel</span><span class="p">(</span><span class="n">fast</span><span class="p">,</span> <span class="n">nonlocal_alpha</span><span class="p">,</span> <span class="n">separable</span><span class="p">):</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">fast</span><span class="p">),</span> <span class="nb">bool</span><span class="p">(</span><span class="n">nonlocal_alpha</span><span class="p">),</span> <span class="nb">bool</span><span class="p">(</span><span class="n">separable</span><span class="p">))</span>
+    <span class="n">fn</span> <span class="o">=</span> <span class="n">_TIME_MARCHING_KERNELS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>                              <span class="c1"># まだ作っていない</span>
+        <span class="n">fn</span> <span class="o">=</span> <span class="n">_make_time_marching_kernel</span><span class="p">(</span><span class="o">*</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">_TIME_MARCHING_KERNELS</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">fn</span>
+    <span class="k">return</span> <span class="n">fn</span>
+</pre></div>
+</div>
+<p>新しい書き方が 3 つ。</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">key</span> <span class="pre">=</span> <span class="pre">(a,</span> <span class="pre">b,</span> <span class="pre">c)</span></code></dt><dd><p><strong>タプル</strong>。リストと違って中身を変えられない。変えられないものは
+辞書のキーにできる (リストはできない)。「3 つの真偽値の組」を
+1 つの名前として使っている。</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">辞書.get(key)</span></code></dt><dd><p><code class="docutils literal notranslate"><span class="pre">辞書[key]</span></code> はキーが無いとエラーになるが、<code class="docutils literal notranslate"><span class="pre">.get(key)</span></code> は
+<code class="docutils literal notranslate"><span class="pre">None</span></code> を返す。「あれば使う、なければ作る」の定型句。</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">f(*key)</span></code></dt><dd><p><code class="docutils literal notranslate"><span class="pre">*</span></code> はタプルやリストを <strong>位置引数にばらす</strong>。
+<code class="docutils literal notranslate"><span class="pre">f(*(1,2,3))</span></code> は <code class="docutils literal notranslate"><span class="pre">f(1,2,3)</span></code>。<code class="docutils literal notranslate"><span class="pre">**</span></code> が辞書をキーワード引数に
+ばらすのに対し、<code class="docutils literal notranslate"><span class="pre">*</span></code> は並びを位置引数にばらす。</p>
+</dd>
+</dl>
+<p>先頭のアンダースコア (<code class="docutils literal notranslate"><span class="pre">_TIME_MARCHING_KERNELS</span></code>、
+<code class="docutils literal notranslate"><span class="pre">_make_time_marching_kernel</span></code>) は「<strong>このファイルの中だけの都合</strong>。
+外から使わないでほしい」という慣習的な目印。Python は強制しない。</p>
+</section>
+</section>
+<section id="lambda">
+<h2><a class="toc-backref" href="#id42" role="doc-backlink">5. 辞書と <code class="docutils literal notranslate"><span class="pre">lambda</span></code> を「表」として使う</a><a class="headerlink" href="#lambda" title="Link to this heading"></a></h2>
+<section id="id14">
+<h3><a class="toc-backref" href="#id43" role="doc-backlink">5.1 分岐の代わりの辞書</a><a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ALPHA_CODE</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'BL'</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">'H10'</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">'normal'</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">'R06'</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>これは <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">alpha_type</span> <span class="pre">==</span> <span class="pre">'BL':</span> <span class="pre">code</span> <span class="pre">=</span> <span class="pre">0</span> <span class="pre">elif</span> <span class="pre">...</span></code> と同じことを表で
+書いたもの。<strong>新しい α 効果を足すときに 1 行足すだけで済む</strong>ので、
+分岐が散らばらない。</p>
+</section>
+<section id="id15">
+<h3><a class="toc-backref" href="#id44" role="doc-backlink">5.2 <code class="docutils literal notranslate"><span class="pre">lambda</span></code> = 名前のない小さな関数</a><a class="headerlink" href="#id15" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span>      <span class="c1"># これは</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span> <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span>   <span class="c1"># これと同じ</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">def</span></code> と違って <strong>式を 1 つ書くだけ</strong>で、<code class="docutils literal notranslate"><span class="pre">return</span></code> も書かない。
+表の中に式を埋め込みたいときに使う。<code class="docutils literal notranslate"><span class="pre">cfg.py:8</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_DERIVATIONS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s1">'ome'</span><span class="p">,</span> <span class="p">(</span><span class="s1">'com'</span><span class="p">,</span> <span class="s1">'RSUN'</span><span class="p">,</span> <span class="s1">'ett'</span><span class="p">),</span> <span class="k">lambda</span> <span class="n">com</span><span class="p">,</span> <span class="n">RSUN</span><span class="p">,</span> <span class="n">ett</span><span class="p">:</span> <span class="n">com</span><span class="o">/</span><span class="n">RSUN</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">ett</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">'omc'</span><span class="p">,</span> <span class="p">(</span><span class="s1">'ome'</span><span class="p">,),</span>               <span class="k">lambda</span> <span class="n">ome</span><span class="p">:</span> <span class="mf">0.92</span><span class="o">*</span><span class="n">ome</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">'c2'</span><span class="p">,</span>  <span class="p">(</span><span class="s1">'ome'</span><span class="p">,),</span>               <span class="k">lambda</span> <span class="n">ome</span><span class="p">:</span> <span class="mf">0.2</span><span class="o">*</span><span class="n">ome</span><span class="p">),</span>
+    <span class="o">...</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>読み方は「<code class="docutils literal notranslate"><span class="pre">ome</span></code> という量は <code class="docutils literal notranslate"><span class="pre">com</span></code>、<code class="docutils literal notranslate"><span class="pre">RSUN</span></code>、<code class="docutils literal notranslate"><span class="pre">ett</span></code> から
+<code class="docutils literal notranslate"><span class="pre">com/RSUN**2*ett</span></code> で決まる」。これが 8 行並んでいる。</p>
+<p>この表があるおかげで、<code class="docutils literal notranslate"><span class="pre">cfg.rey</span> <span class="pre">=</span> <span class="pre">1400</span></code> と基本量を書き換えたときに
+<code class="docutils literal notranslate"><span class="pre">cfg.resolve()</span></code> が派生量 <code class="docutils literal notranslate"><span class="pre">uu0</span></code> を計算し直せる。式が
+<code class="docutils literal notranslate"><span class="pre">defaults.py</span></code> の中に散らばっていたら、こうはいかない。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">_DERIVATIONS</span><span class="p">:</span>        <span class="c1"># 表を 1 行ずつ</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">])</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">[getattr(self,</span> <span class="pre">i)</span> <span class="pre">for</span> <span class="pre">i</span> <span class="pre">in</span> <span class="pre">inputs]</span></code></dt><dd><p><strong>リスト内包表記</strong>。<code class="docutils literal notranslate"><span class="pre">inputs</span></code> の各名前について <code class="docutils literal notranslate"><span class="pre">getattr</span></code> した
+結果を並べたリストを作る。<code class="docutils literal notranslate"><span class="pre">for</span></code> で 3 行書くのと同じ。</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">fn(*[...])</span></code></dt><dd><p>できたリストを <code class="docutils literal notranslate"><span class="pre">*</span></code> で位置引数にばらして <code class="docutils literal notranslate"><span class="pre">lambda</span></code> に渡す。</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">getattr</span></code> / <code class="docutils literal notranslate"><span class="pre">setattr</span></code></dt><dd><p>次節。</p>
+</dd>
+</dl>
+</section>
+</section>
+<section id="id16">
+<h2><a class="toc-backref" href="#id45" role="doc-backlink">6. 引数と属性の小道具</a><a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
+<section id="id17">
+<h3><a class="toc-backref" href="#id46" role="doc-backlink">6.1 キーワード引数と既定値</a><a class="headerlink" href="#id17" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">analyse</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">steady_yr</span><span class="o">=</span><span class="mf">20.0</span><span class="p">):</span>
+    <span class="o">...</span>
+
+<span class="n">analyse</span><span class="p">(</span><span class="s1">'v2_a125'</span><span class="p">)</span>                  <span class="c1"># steady_yr は 20.0</span>
+<span class="n">analyse</span><span class="p">(</span><span class="s1">'v2_a125'</span><span class="p">,</span> <span class="n">steady_yr</span><span class="o">=</span><span class="mf">40.0</span><span class="p">)</span>  <span class="c1"># 明示すると上書き</span>
+</pre></div>
+</div>
+<p>引数が多い関数では <strong>名前で渡す</strong>。順番を覚えなくてよくなり、
+読む人にも意味が分かる。S2MFD では引数の取り違えで実際にバグを出した
+ことがあるので (10 節)、<strong>新しい呼び出しは名前付きで書く</strong>決まりに
+している。</p>
+</section>
+<section id="kwargs">
+<h3><a class="toc-backref" href="#id47" role="doc-backlink">6.2 <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code> — 残り全部を辞書で受け取る</a><a class="headerlink" href="#kwargs" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">njit</span><span class="p">(</span><span class="n">fastmath</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="n">PARALLEL</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">kernel(cache=True)</span></code> と呼ぶと、関数の中では
+<code class="docutils literal notranslate"><span class="pre">kwargs</span> <span class="pre">=</span> <span class="pre">{'cache':</span> <span class="pre">True}</span></code> という辞書になる。そして
+<code class="docutils literal notranslate"><span class="pre">njit(...,</span> <span class="pre">**kwargs)</span></code> でまたばらして渡す。「<strong>自分は知らない引数を
+そのまま下に流す</strong>」ときの書き方。</p>
+<p>まとめると:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 78.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>書き方</p></th>
+<th class="head"><p>意味</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">f(*lst)</span></code></p></td>
+<td><p>リスト・タプルを位置引数にばらす</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">f(**dic)</span></code></p></td>
+<td><p>辞書をキーワード引数にばらす</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">def</span> <span class="pre">f(*args)</span></code></p></td>
+<td><p>余った位置引数をタプルで受ける (S2MFD では未使用)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">def</span> <span class="pre">f(**kwargs)</span></code></p></td>
+<td><p>余ったキーワード引数を辞書で受ける</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="getattr-obj">
+<h3><a class="toc-backref" href="#id48" role="doc-backlink">6.3 <code class="docutils literal notranslate"><span class="pre">getattr(obj,</span> <span class="pre">'名前',</span> <span class="pre">既定値)</span></code></a><a class="headerlink" href="#getattr-obj" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">obj.名前</span></code> は名前が無いとエラーになる。あるかどうか分からないときは</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">stretch</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">'grid_stretch'</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>と書く。「<code class="docutils literal notranslate"><span class="pre">cfg</span></code> に <code class="docutils literal notranslate"><span class="pre">grid_stretch</span></code> があればその値、無ければ <code class="docutils literal notranslate"><span class="pre">0.0</span></code>」。
+本体には <code class="docutils literal notranslate"><span class="pre">getattr</span></code> が 67 か所あるが、<strong>全部この 1 つの形</strong>である。</p>
+<p>なぜ要るか。パラメタファイルは古いものも新しいものも読めなければ
+ならないから。新しい機能 (伸縮格子) を足したとき、既存のパラメタ
+ファイルに <code class="docutils literal notranslate"><span class="pre">grid_stretch</span></code> を書き足して回らずに済む。</p>
+<p><code class="docutils literal notranslate"><span class="pre">setattr(obj,</span> <span class="pre">'名前',</span> <span class="pre">値)</span></code> はその逆で、名前を <strong>文字列で指定して</strong>
+代入する。5.2 の派生量の表のように、名前が実行時に決まるときに使う。</p>
+</section>
+</section>
+<section id="import">
+<h2><a class="toc-backref" href="#id49" role="doc-backlink">7. モジュール、<code class="docutils literal notranslate"><span class="pre">import</span></code>、設定ファイルの読み込み</a><a class="headerlink" href="#import" title="Link to this heading"></a></h2>
+<section id="id18">
+<h3><a class="toc-backref" href="#id50" role="doc-backlink">7.1 <code class="docutils literal notranslate"><span class="pre">import</span></code> のかたち</a><a class="headerlink" href="#id18" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>                    <span class="c1"># np.array(...)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">S2MFD.npz_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">NpzIO</span>        <span class="c1"># NpzIO をこの名前で使う</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">S2MFD.parameters.defaults</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>   <span class="c1"># 中身を全部持ってくる</span>
+</pre></div>
+</div>
+<p>3 つ目の <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">*</span></code> はふつう避けるべき書き方だが、
+<strong>パラメタファイルではわざと使っている</strong>。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># parameters/rempel06_paper.py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">S2MFD.parameters.rempel06</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="n">rrmax</span> <span class="o">=</span> <span class="mf">0.985</span><span class="o">*</span><span class="n">RSUN</span>     <span class="c1"># 差分だけ書く</span>
+</pre></div>
+</div>
+<p>「既定値を全部引き継いで、変えたいものだけ書く」が意図。</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>その代償として、<strong>パラメタファイルを ``grep`` しても値が出てこない
+ことがある</strong>。継承元から黙って入ってくるので、確かめたいときは
+ファイルを読むのではなく実際の値を出す。</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>grep<span class="w"> </span>boundary_condition_type<span class="w"> </span>S2MFD/parameters/rempel06_paper.py
+$<span class="w">                                      </span><span class="c1"># ← 1 行も出てこない</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">build_cfg</span><span class="p">(</span><span class="s1">'parameters/rempel06_paper.py'</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cfg</span><span class="o">.</span><span class="n">rrmax</span><span class="o">/</span><span class="n">cfg</span><span class="o">.</span><span class="n">RSUN</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">boundary_condition_type</span>
+<span class="go">(0.985, 'vertical')</span>
+</pre></div>
+</div>
+<p>値は継承元の <code class="docutils literal notranslate"><span class="pre">rempel06.py</span></code> から入っている。これは実際に見落としの
+原因になった (磁場の下部境界条件が論文の指定と違っていた)。
+<code class="docutils literal notranslate"><span class="pre">doc/dev_records/2026-08-23_paper_audit2.md</span></code> 参照。</p>
+</div>
+</section>
+<section id="importlib-py">
+<h3><a class="toc-backref" href="#id51" role="doc-backlink">7.2 <code class="docutils literal notranslate"><span class="pre">importlib</span></code> — <code class="docutils literal notranslate"><span class="pre">.py</span></code> を設定ファイルとして読む</a><a class="headerlink" href="#importlib-py" title="Link to this heading"></a></h3>
+<p>S2MFD の設定は YAML でも JSON でもなく <strong>Python ファイル</strong>である。
+<code class="docutils literal notranslate"><span class="pre">S2MFD/cfg.py</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">spec</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">spec_from_file_location</span><span class="p">(</span><span class="s2">"parameters"</span><span class="p">,</span> <span class="n">parameter_file</span><span class="p">)</span>
+<span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">module_from_spec</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
+<span class="n">spec</span><span class="o">.</span><span class="n">loader</span><span class="o">.</span><span class="n">exec_module</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>              <span class="c1"># ← ここで実行される</span>
+
+<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="n">module</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"__"</span><span class="p">):</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>やっていることは 3 段階。</p>
+<ol class="arabic simple">
+<li><p>指定されたパスの <code class="docutils literal notranslate"><span class="pre">.py</span></code> を <strong>モジュールとして読み込んで実行する</strong></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vars(module)</span></code> でそのファイルが定義した名前を全部取り出す
+(1.5 節の <code class="docutils literal notranslate"><span class="pre">vars</span></code> と同じもの。モジュールの引き出しも辞書である)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">__</span></code> で始まる Python 内部用のものを除いて、<code class="docutils literal notranslate"><span class="pre">setattr</span></code> で
+<code class="docutils literal notranslate"><span class="pre">cfg</span></code> の引き出しに移す</p></li>
+</ol>
+<p>つまり <code class="docutils literal notranslate"><span class="pre">cfg.rrmax</span></code> は、パラメタファイルに書いた <code class="docutils literal notranslate"><span class="pre">rrmax</span> <span class="pre">=</span> <span class="pre">...</span></code> が
+そのまま入っている。設定ファイルが Python なので
+<code class="docutils literal notranslate"><span class="pre">rrmax</span> <span class="pre">=</span> <span class="pre">0.985*RSUN</span></code> のように <strong>式が書ける</strong>のが利点である。</p>
+</section>
+</section>
+<section id="numpy">
+<h2><a class="toc-backref" href="#id52" role="doc-backlink">8. numpy の約束事</a><a class="headerlink" href="#numpy" title="Link to this heading"></a></h2>
+<p>言語機能ではないが、実際に間違えるのはここ。</p>
+<section id="id19">
+<h3><a class="toc-backref" href="#id53" role="doc-backlink">8.1 スライスは <strong>コピーではない</strong></a><a class="headerlink" href="#id19" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span>
+<span class="go">array([  0, 100,   2,   3,   4])</span>
+</pre></div>
+</div>
+<p>リストのスライスはコピーだが、<strong>numpy 配列のスライスは元の配列への
+「窓」(view) である</strong>。書き換えると元も変わる。</p>
+<p>これは欠点ではなく、この種のコードでは必須の性質である。境界条件を</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Bph</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>        <span class="c1"># 元の配列が直接書き換わる</span>
+</pre></div>
+</div>
+<p>と書けるのはこのおかげ。逆に、値を取っておきたいときは
+<code class="docutils literal notranslate"><span class="pre">a[1:4].copy()</span></code> と明示する必要がある。</p>
+</section>
+<section id="margin">
+<h3><a class="toc-backref" href="#id54" role="doc-backlink">8.2 ゴーストセルと <code class="docutils literal notranslate"><span class="pre">margin</span></code></a><a class="headerlink" href="#margin" title="Link to this heading"></a></h3>
+<p>差分法では隣のセルが要るので、計算領域の外側に <strong>ゴーストセル</strong>を
+<code class="docutils literal notranslate"><span class="pre">margin</span></code> 枚ぶん持つ。</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>|&lt;-- margin --&gt;|&lt;------ 物理セル ix 個 ------&gt;|&lt;-- margin --&gt;|
+ 0  1  2  ...                                        ixg-1
+
+ixg = ix + 2*margin
+</pre></div>
+</div>
+<p>配列 (<code class="docutils literal notranslate"><span class="pre">Bph</span></code> など) はすべて <code class="docutils literal notranslate"><span class="pre">(ixg,</span> <span class="pre">jxg)</span></code> の大きさで、<strong>そのうち
+本物は真ん中だけ</strong>。だから診断量を取るときは必ず物理セルに限る。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">m</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">margin</span>
+<span class="n">sl</span> <span class="o">=</span> <span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">ixg</span> <span class="o">-</span> <span class="n">m</span><span class="p">),</span> <span class="nb">slice</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">jxg</span> <span class="o">-</span> <span class="n">m</span><span class="p">))</span>
+<span class="n">B</span> <span class="o">=</span> <span class="n">Bph</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span>                   <span class="c1"># 物理セルだけ</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">B</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">slice(a,</span> <span class="pre">b)</span></code> は <code class="docutils literal notranslate"><span class="pre">a:b</span></code> を変数として持ち回れるようにしたもの。
+<code class="docutils literal notranslate"><span class="pre">Bph[sl]</span></code> は <code class="docutils literal notranslate"><span class="pre">Bph[m:ixg-m,</span> <span class="pre">m:jxg-m]</span></code> と同じ。</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>ゴーストセル込みで <code class="docutils literal notranslate"><span class="pre">max()</span></code> を取って、実際の 6 倍の磁場強度
+(1.5 T のところを 9 T) を報告したことがある。<strong>診断は必ず ``sl``
+を通す。</strong></p>
+</div>
+</section>
+<section id="drr-drrm-drr2">
+<h3><a class="toc-backref" href="#id55" role="doc-backlink">8.3 <code class="docutils literal notranslate"><span class="pre">drr</span></code> / <code class="docutils literal notranslate"><span class="pre">drrm</span></code> / <code class="docutils literal notranslate"><span class="pre">drr2</span></code> の区別</a><a class="headerlink" href="#drr-drrm-drr2" title="Link to this heading"></a></h3>
+<p>似た名前が 3 つあり、非一様格子では全部違う値になる。</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16.0%" />
+<col style="width: 30.0%" />
+<col style="width: 54.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>名前</p></th>
+<th class="head"><p>定義</p></th>
+<th class="head"><p>使うところ</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">drr</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rrm[i+1]</span> <span class="pre">-</span> <span class="pre">rrm[i]</span></code></p></td>
+<td><p>セルの幅。<strong>発散</strong> (フラックスの差) を割るとき</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">drrm</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rr[i]</span> <span class="pre">-</span> <span class="pre">rr[i-1]</span></code></p></td>
+<td><p>隣り合うセル中心の距離。<strong>面での勾配</strong>を作るとき</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">drr2</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rr[i+1]</span> <span class="pre">-</span> <span class="pre">rr[i-1]</span></code></p></td>
+<td><p>2 セル幅。<strong>セル中心での中心差分</strong>を作るとき</p></td>
+</tr>
+</tbody>
+</table>
+<p>一様格子では <code class="docutils literal notranslate"><span class="pre">drr</span> <span class="pre">==</span> <span class="pre">drrm</span></code> かつ <code class="docutils literal notranslate"><span class="pre">drr2</span> <span class="pre">==</span> <span class="pre">2*drr</span></code> になるので、
+取り違えても「ちょうど 2 倍」という素直な形でしか出ない。逆に非一様
+格子では 3 つとも別の値になる。論文再現の設定 (<code class="docutils literal notranslate"><span class="pre">grid_stretch</span> <span class="pre">=</span> <span class="pre">[2,</span> <span class="pre">3]</span></code>)
+で実際に見ると</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">i</span> <span class="o">=</span> <span class="mi">60</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">grid</span><span class="o">.</span><span class="n">drrm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">grid</span><span class="o">.</span><span class="n">drr2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>     <span class="c1"># [cm]</span>
+<span class="go">(3.3457e8, 3.2807e8, 6.6823e8)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">grid</span><span class="o">.</span><span class="n">drr2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">/</span><span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+<span class="go">1.9973                                          # 2 ではない</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">drr2</span></code> を渡すべきところに <code class="docutils literal notranslate"><span class="pre">drr</span></code> を渡して <span class="math notranslate nohighlight">\(B_\theta\)</span> が
+2 倍になっていたことがある (10 節)。<strong>エラーにはならない。</strong></p>
+</section>
+<section id="id20">
+<h3><a class="toc-backref" href="#id56" role="doc-backlink">8.4 ブロードキャスト</a><a class="headerlink" href="#id20" title="Link to this heading"></a></h3>
+<p>形の違う配列どうしの演算は、足りない軸を自動で伸ばして行われる。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">RR</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">rr</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">((112, 76), (112,))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">RR</span> <span class="o">*</span> <span class="n">rr</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>       <span class="c1"># これはエラーになる (76 と 112 が合わない)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">RR</span> <span class="o">*</span> <span class="n">rr</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">])</span><span class="o">.</span><span class="n">shape</span>    <span class="c1"># 縦ベクトルにしてから掛ける</span>
+<span class="go">(112, 76)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">rr[:,</span> <span class="pre">None]</span></code> は「<code class="docutils literal notranslate"><span class="pre">rr</span></code> に長さ 1 の軸を足して <code class="docutils literal notranslate"><span class="pre">(112,</span> <span class="pre">1)</span></code> にする」。
+S2MFD では <code class="docutils literal notranslate"><span class="pre">np.meshgrid</span></code> で最初から 2 次元の <code class="docutils literal notranslate"><span class="pre">RR</span></code> / <code class="docutils literal notranslate"><span class="pre">TH</span></code> を
+作ってあるので、この書き方はほとんど出てこない。</p>
+</section>
+</section>
+<section id="numba-python">
+<h2><a class="toc-backref" href="#id57" role="doc-backlink">9. numba — Python のループを速くする</a><a class="headerlink" href="#numba-python" title="Link to this heading"></a></h2>
+<section id="id21">
+<h3><a class="toc-backref" href="#id58" role="doc-backlink">9.1 なぜ要るか</a><a class="headerlink" href="#id21" title="Link to this heading"></a></h3>
+<p>Python の <code class="docutils literal notranslate"><span class="pre">for</span></code> ループは C や Fortran の 100 倍ほど遅い。108x72 の
+格子を 60 年ぶん (数百万ステップ) 回すには到底足りない。</p>
+<p>逃げ道は 2 つある。</p>
+<ol class="arabic simple">
+<li><p><strong>numpy でベクトル化する</strong> — <code class="docutils literal notranslate"><span class="pre">a[1:]</span> <span class="pre">-</span> <span class="pre">a[:-1]</span></code> のようにループを
+書かずに済ませる。速いが、複雑な式では中間配列がたくさんできて
+メモリ帯域を食う。</p></li>
+<li><p><strong>numba でコンパイルする</strong> — ループをそのまま書いて、機械語に
+翻訳してもらう。<strong>Fortran とほぼ同じ速さで、見た目は Python</strong>。</p></li>
+</ol>
+<p>S2MFD の心臓部は 2 を採っている。だから <code class="docutils literal notranslate"><span class="pre">physics_core.py</span></code> は
+「numpy らしくない」書き方に見える。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@njit</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">Bph</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="n">dth</span><span class="p">):</span>
+    <span class="n">ixg</span><span class="p">,</span> <span class="n">jxg</span> <span class="o">=</span> <span class="n">Bph</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ixg</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">jxg</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="o">...</span>
+</pre></div>
+</div>
+<p><strong>これは Fortran のコードを Python の文法で書いていると思ってよい。</strong>
+物理をやる人には、むしろこちらのほうが読みやすいはずである。</p>
+</section>
+<section id="njit">
+<h3><a class="toc-backref" href="#id59" role="doc-backlink">9.2 <code class="docutils literal notranslate"><span class="pre">&#64;njit</span></code> の性質</a><a class="headerlink" href="#njit" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;njit</span></code> を付けた関数には制約が付く。</p>
+<ul class="simple">
+<li><p><strong>最初の呼び出しで数秒コンパイルされる</strong>。2 回目以降は速い。
+「1 ステップ目だけ遅い」のはこれ。</p></li>
+<li><p><strong>numpy 配列と数値しか扱えない。</strong> 辞書、クラスのインスタンス、
+文字列などは基本的に渡せない。だから <code class="docutils literal notranslate"><span class="pre">kernel</span></code> の引数が 39 個に
+なる (<code class="docutils literal notranslate"><span class="pre">grid</span></code> を渡せないので中身をばらして渡すしかない)。</p></li>
+<li><p>Python の関数を中から呼べない (<code class="docutils literal notranslate"><span class="pre">&#64;njit</span></code> の付いた関数は呼べる)。</p></li>
+</ul>
+</section>
+<section id="prange">
+<h3><a class="toc-backref" href="#id60" role="doc-backlink">9.3 <code class="docutils literal notranslate"><span class="pre">prange</span></code> と並列化</a><a class="headerlink" href="#prange" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">numba</span><span class="w"> </span><span class="kn">import</span> <span class="n">prange</span>
+
+<span class="nd">@kernel</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">flux</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ixg</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>     <span class="c1"># ← range ではなく prange</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">prange</span></code> は「このループは並列に回してよい」という宣言。
+<code class="docutils literal notranslate"><span class="pre">parallel=True</span></code> でコンパイルされたときだけスレッドに展開され、
+そうでなければただの <code class="docutils literal notranslate"><span class="pre">range</span></code> になる (3.2 節)。</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>``prange`` にしてよいのは、繰り返しどうしに依存がなく、要素ごとに
+書き込むだけのループに限る。</strong> これを守れば結果はスレッド数に
+よらずビット単位で同一になる (足す順序が変わらないから)。</p>
+<p>総和 (<code class="docutils literal notranslate"><span class="pre">cell_integral</span></code> など) は <strong>意図的に逐次のまま</strong>にしてある。
+補正加算の順序が変わると質量・角運動量の保存が機械精度で壊れる。</p>
+</div>
+</section>
+<section id="fastmath">
+<h3><a class="toc-backref" href="#id61" role="doc-backlink">9.4 <code class="docutils literal notranslate"><span class="pre">fastmath</span></code></a><a class="headerlink" href="#fastmath" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">&#64;njit(fastmath=True)</span></code> は「浮動小数点の結合則を使ってよい」という
+許可で、除算を逆数の掛け算に置き換えるなどの最適化が効く。速いが
+<strong>結果がビット単位では変わる</strong>。S2MFD では</p>
+<ul class="simple">
+<li><p>計算カーネル: <code class="docutils literal notranslate"><span class="pre">fastmath=True</span></code> (約 17 倍速い)</p></li>
+<li><p>参照実装 <code class="docutils literal notranslate"><span class="pre">time_marching_reference</span></code>: <code class="docutils literal notranslate"><span class="pre">fastmath=False</span></code></p></li>
+</ul>
+<p>の 2 つを持ち、テストで両者を突き合わせている。</p>
+</section>
+</section>
+<section id="id22">
+<h2><a class="toc-backref" href="#id62" role="doc-backlink">10. 位置で当てず、名前で引く</a><a class="headerlink" href="#id22" title="Link to this heading"></a></h2>
+<p>この節だけは Python の説明ではなく、<strong>このコードで実際に起きた事故</strong>の
+話である。同じ型の間違いを 2 回している。</p>
+<p><strong>(1) 引数の位置</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># 間違い</span>
+<span class="n">Brr</span><span class="p">,</span> <span class="n">Bth</span> <span class="o">=</span> <span class="n">poloidal_mag</span><span class="p">(</span><span class="n">Aph</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">RR</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">sinTH</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">dth</span><span class="p">)</span>
+<span class="c1">#                                                      ^^^ drr2 のはず</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">drr</span></code> と <code class="docutils literal notranslate"><span class="pre">drr2</span></code> は型も形も同じなのでエラーにならない。一様格子では
+<span class="math notranslate nohighlight">\(B_\theta\)</span> がちょうど 2 倍になり、ローレンツ力が過大になった。
+しかも <strong>同じ間違いを 2 つのファイルで独立にやっていた</strong>。</p>
+<p>対策として、位置引数で呼ぶ入口をやめ、<code class="docutils literal notranslate"><span class="pre">grid</span></code> を渡すだけの
+<code class="xref py py-func docutils literal notranslate"><span class="pre">poloidal_from_potential()</span></code> を作った。
+テストが「本体と実行スクリプトが生のカーネルを直接呼んでいないこと」を
+確認している (<code class="docutils literal notranslate"><span class="pre">tests/test_physics_core.py</span></code>)。</p>
+<p><strong>(2) 配列の列の位置</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># 間違い</span>
+<span class="n">off</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">qkeys</span><span class="p">)</span>      <span class="c1"># 列数から引き算で位置を当てる</span>
+<span class="n">q_lambda</span> <span class="o">=</span> <span class="n">h</span><span class="p">[:,</span> <span class="n">off</span> <span class="o">+</span> <span class="n">qkeys</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">'Q_Lambda'</span><span class="p">)]</span>
+</pre></div>
+</div>
+<p>履歴配列の列を「全体の列数から引き算して」求めていた。あとから列を
+6 本足したときにずれ、<code class="docutils literal notranslate"><span class="pre">E_B</span></code> より後ろの列を <code class="docutils literal notranslate"><span class="pre">Q_Lambda</span></code> として読んで
+<strong>値が 100 分の 1 になった</strong>。正しくは、保存してある列名の表を引く。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># 正しい</span>
+<span class="n">idx</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">'hist_cols'</span><span class="p">])}</span>
+<span class="n">q_lambda</span> <span class="o">=</span> <span class="n">h</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">[</span><span class="s1">'Q_Lambda'</span><span class="p">]]</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">{k:</span> <span class="pre">v</span> <span class="pre">for</span> <span class="pre">...}</span></code> は <strong>辞書内包表記</strong>。<code class="docutils literal notranslate"><span class="pre">enumerate(lst)</span></code> は
+<code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">lst[0]),</span> <span class="pre">(1,</span> <span class="pre">lst[1]),</span> <span class="pre">...</span></code> を順に返す。</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>教訓は 1 つ。「位置を計算で当てる」のをやめ、名前で引く。</strong>
+引数はキーワードで渡す。列は名前の表で引く。値が桁で外れていたら、
+計算式より先に「読んでいる場所が正しいか」を疑う。</p>
+</div>
+</section>
+<section id="id23">
+<h2><a class="toc-backref" href="#id63" role="doc-backlink">11. 詰まったときにやること</a><a class="headerlink" href="#id23" title="Link to this heading"></a></h2>
+<p><strong>その 1: 対話で触る。</strong> 読んで考えるより速い。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">S2MFD</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">build_cfg</span><span class="p">(</span><span class="s1">'parameters/rempel06_paper.py'</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">grid</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">Grid</span><span class="o">.</span><span class="n">from_cfg</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">vars</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>          <span class="c1"># どんな引き出しがあるか</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">grid</span><span class="o">.</span><span class="n">drr</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span>               <span class="c1"># 実際の値</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">help</span><span class="p">(</span><span class="n">S2MFD</span><span class="o">.</span><span class="n">Grid</span><span class="o">.</span><span class="n">from_cfg</span><span class="p">)</span>  <span class="c1"># docstring を読む</span>
+</pre></div>
+</div>
+<p><strong>その 2: 型と形を出す。</strong> バグの半分はここで見つかる。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">margin</span><span class="p">),</span> <span class="n">cfg</span><span class="o">.</span><span class="n">margin</span>
+<span class="go">(&lt;class 'int'&gt;, 2)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Bph</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">Bph</span><span class="o">.</span><span class="n">dtype</span>
+<span class="go">((112, 76), dtype('float64'))</span>
+</pre></div>
+</div>
+<p><strong>その 3: テストを読む。</strong> <code class="docutils literal notranslate"><span class="pre">tests/</span></code> にはそのコードが
+「何を満たすべきか」が日本語の docstring 付きで書いてある。仕様書として
+読める。走らせるのは</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pytest<span class="w"> </span>tests/<span class="w"> </span>-q
+pytest<span class="w"> </span>tests/test_physics_core.py<span class="w"> </span>-q<span class="w"> </span>-k<span class="w"> </span>poloidal<span class="w">    </span><span class="c1"># 名前で絞る</span>
+</pre></div>
+</div>
+<p><strong>その 4: 小さく試す。</strong> 解像度を落とせば数秒で回る。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cfg</span> <span class="o">=</span> <span class="n">S2MFD</span><span class="o">.</span><span class="n">build_cfg</span><span class="p">(</span><span class="s1">'parameters/rempel06_paper.py'</span><span class="p">,</span> <span class="n">ix</span><span class="o">=</span><span class="mi">36</span><span class="p">,</span> <span class="n">jx</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>その 5: 記録を読む。</strong> <code class="docutils literal notranslate"><span class="pre">doc/dev_records/</span></code> に、実際に踏んだ間違いと
+その切り分け方が日付順に書いてある。特に
+<code class="docutils literal notranslate"><span class="pre">2026-08-23_mistakes.md</span></code> は失敗の型を分類したもので、
+同じ穴に落ちないために書かれている。</p>
+</section>
+<section id="id24">
+<h2><a class="toc-backref" href="#id64" role="doc-backlink">まとめ</a><a class="headerlink" href="#id24" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>出てくる書き方</p></th>
+<th class="head"><p>ひとことで言うと</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">class</span></code> / <code class="docutils literal notranslate"><span class="pre">self</span></code></p></td>
+<td><p>引数の束。<code class="docutils literal notranslate"><span class="pre">x.f()</span></code> は <code class="docutils literal notranslate"><span class="pre">C.f(x)</span></code> の略記</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;dataclass</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">__init__</span></code> の自動生成</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;classmethod</span></code></p></td>
+<td><p>別の作り方 (<code class="docutils literal notranslate"><span class="pre">Grid.from_cfg</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;property</span></code></p></td>
+<td><p>括弧のいらないメソッド</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;njit</span></code> などの <code class="docutils literal notranslate"><span class="pre">&#64;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">f</span> <span class="pre">=</span> <span class="pre">deco(f)</span></code> の略記</p></td>
+</tr>
+<tr class="row-odd"><td><p>デコレータを返す関数</p></td>
+<td><p>環境変数で全カーネルを一斉に切り替えるため</p></td>
+</tr>
+<tr class="row-even"><td><p>クロージャ (関数を返す関数)</p></td>
+<td><p>分岐を内側ループから消して速くするため</p></td>
+</tr>
+<tr class="row-odd"><td><p>辞書のキャッシュ</p></td>
+<td><p>コンパイル結果を取っておくため</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">lambda</span></code> と表</p></td>
+<td><p>派生量の式を 1 か所に集めるため</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">*</span></code> と <code class="docutils literal notranslate"><span class="pre">**</span></code></p></td>
+<td><p>並びを位置引数に / 辞書をキーワード引数にばらす</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">getattr(o,</span> <span class="pre">'x',</span> <span class="pre">既定)</span></code></p></td>
+<td><p>古いパラメタファイルでも動くようにするため</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">importlib</span></code></p></td>
+<td><p>設定ファイルを Python として実行するため</p></td>
+</tr>
+<tr class="row-even"><td><p>スライスは view</p></td>
+<td><p>境界条件を代入で書けるようにするため</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">margin</span></code> と <code class="docutils literal notranslate"><span class="pre">sl</span></code></p></td>
+<td><p>診断は物理セルだけに限るため</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prange</span></code> / <code class="docutils literal notranslate"><span class="pre">fastmath</span></code></p></td>
+<td><p>並列化と高速化。保存量に関わる総和は逐次のまま</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>言語としての難しさはここまでで打ち止め</strong>である。この先で難しいのは
+Python ではなく、差分法・境界条件・時間刻みの安定性のほうで、それは
+<a class="reference internal" href="dynamic.html"><span class="doc">動力学モード (非運動学的ダイナモ)</span></a> と <a class="reference internal" href="verification.html"><span class="doc">検証されていること</span></a> に書いてある。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="usage.html" class="btn btn-neutral float-left" title="Usage" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="dynamic.html" class="btn btn-neutral float-right" title="動力学モード (非運動学的ダイナモ)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, S2MFD project.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      Version: 
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+      
+      
+      <dl>
+        <dt>Versions</dt>
+        
+          <dd><a href=""></a></dd>
+        
+      </dl>
+      
+      <br>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

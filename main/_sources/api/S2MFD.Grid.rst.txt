@@ -18,6 +18,8 @@ Grid
       ~Grid.Y
       ~Grid.cosTH
       ~Grid.drr
+      ~Grid.drr2
+      ~Grid.drrm
       ~Grid.dth
       ~Grid.ix
       ~Grid.ixg
@@ -25,13 +27,24 @@ Grid
       ~Grid.jxg
       ~Grid.margin
       ~Grid.rr
+      ~Grid.rrm
       ~Grid.rrmax
       ~Grid.rrmin
       ~Grid.sinTH
       ~Grid.sinTHm
+      ~Grid.stretch
+      ~Grid.stretch_center
+      ~Grid.stretch_width
       ~Grid.th
       ~Grid.thmax
       ~Grid.thmin
+      ~Grid.wfm
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Grid.from_cfg
 
    .. rubric:: Attributes Documentation
 
@@ -43,6 +56,8 @@ Grid
    .. autoattribute:: Y
    .. autoattribute:: cosTH
    .. autoattribute:: drr
+   .. autoattribute:: drr2
+   .. autoattribute:: drrm
    .. autoattribute:: dth
    .. autoattribute:: ix
    .. autoattribute:: ixg
@@ -50,10 +65,19 @@ Grid
    .. autoattribute:: jxg
    .. autoattribute:: margin
    .. autoattribute:: rr
+   .. autoattribute:: rrm
    .. autoattribute:: rrmax
    .. autoattribute:: rrmin
    .. autoattribute:: sinTH
    .. autoattribute:: sinTHm
+   .. autoattribute:: stretch
+   .. autoattribute:: stretch_center
+   .. autoattribute:: stretch_width
    .. autoattribute:: th
    .. autoattribute:: thmax
    .. autoattribute:: thmin
+   .. autoattribute:: wfm
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_cfg

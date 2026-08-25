@@ -1,0 +1,544 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>動力学モード (非運動学的ダイナモ) &mdash; S2MFD 0.2.1.dev211 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=7430afd0"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="パラメタファイルと新しいモデルの足し方" href="parameters.html" />
+    <link rel="prev" title="コードを読むための Python" href="reading_the_code.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            S2MFD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reading_the_code.html">コードを読むための Python</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">動力学モード (非運動学的ダイナモ)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id3">何を解いているか</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">参照モデル (磁場なし)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">ダイナモ</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id6">エネルギー収支</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id7">収束性</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">原論文との比較</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id9">論文からの意図的な逸脱</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id10">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">パラメタファイルと新しいモデルの足し方</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_rempel.html">Rempel (2006) を再現する</a></li>
+<li class="toctree-l1"><a class="reference internal" href="verification.html">検証されていること</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inference.html">Parameter Inference (GA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">S2MFD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">動力学モード (非運動学的ダイナモ)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/dynamic.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1>動力学モード (非運動学的ダイナモ)<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+<p>S2MFD には 2 つのモードがある。</p>
+<dl class="simple">
+<dt><strong>運動学的モード</strong> (既定)</dt><dd><p>差動回転と子午面流を**外から与え**、誘導方程式だけを解く。
+Jouve et al. (2008) 準拠。<a class="reference internal" href="usage.html"><span class="doc">Usage</span></a> を参照。</p>
+</dd>
+<dt><strong>動力学モード</strong> (<code class="docutils literal notranslate"><span class="pre">cfg.dynamics</span> <span class="pre">=</span> <span class="pre">'full'</span></code>)</dt><dd><p>運動量・角運動量・連続の式・エントロピーの式も解き、<strong>磁場が
+差動回転と子午面流に反作用する</strong>。Rempel (2005, 2006) のモデル。
+この章はこちらを説明する。</p>
+</dd>
+</dl>
+<nav class="contents local" id="id2">
+<p class="topic-title">この章の内容</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#id3" id="id17">何を解いているか</a></p></li>
+<li><p><a class="reference internal" href="#id4" id="id18">参照モデル (磁場なし)</a></p></li>
+<li><p><a class="reference internal" href="#id5" id="id19">ダイナモ</a></p></li>
+<li><p><a class="reference internal" href="#id6" id="id20">エネルギー収支</a></p></li>
+<li><p><a class="reference internal" href="#id7" id="id21">収束性</a></p></li>
+<li><p><a class="reference internal" href="#id8" id="id22">原論文との比較</a></p></li>
+<li><p><a class="reference internal" href="#id9" id="id23">論文からの意図的な逸脱</a></p></li>
+<li><p><a class="reference internal" href="#id10" id="id24">参考文献</a></p></li>
+</ul>
+</nav>
+<section id="id3">
+<h2><a class="toc-backref" href="#id17" role="doc-backlink">何を解いているか</a><a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>軸対称 (<span class="math notranslate nohighlight">\(\partial/\partial\phi = 0\)</span>) の平均場 MHD を、音速を人為的に
+下げた圧縮性の形で解く。従属変数は</p>
+<div class="math notranslate nohighlight">
+\[\rho_1,\; v_r,\; v_\theta,\; \Omega_1,\; s_1,\; B_\Phi,\; A_\Phi\]</div>
+<p>で、<span class="math notranslate nohighlight">\(\rho_1\)</span> と <span class="math notranslate nohighlight">\(s_1\)</span> は球対称な背景 (<span class="math notranslate nohighlight">\(\rho_0\)</span>,
+<span class="math notranslate nohighlight">\(p_0\)</span>, <span class="math notranslate nohighlight">\(T_0\)</span>) からのずれ、<span class="math notranslate nohighlight">\(\Omega_1\)</span> は剛体回転
+<span class="math notranslate nohighlight">\(\Omega_0\)</span> からのずれ、<span class="math notranslate nohighlight">\(A_\Phi\)</span> はポロイダル磁場のベクトル
+ポテンシャル (<span class="math notranslate nohighlight">\(\nabla\cdot\boldsymbol{B}=0\)</span> を保証する)。</p>
+<p>方程式は Rempel (2006) の式 (1)-(7)。差動回転を駆動するのは
+<strong>:math:`Lambda` 効果</strong> (非拡散的なレイノルズ応力) で、子午面流はコリオリ力
+との不均衡から**自発的に生じる**。磁場は Babcock-Leighton 型の
+<span class="math notranslate nohighlight">\(\alpha\)</span> 効果で維持する。</p>
+<table class="docutils align-default" id="id11">
+<caption><span class="caption-text">主な要素</span><a class="headerlink" href="#id11" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 24.0%" />
+<col style="width: 76.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>要素</p></th>
+<th class="head"><p>実装</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\Lambda\)</span> 効果</p></td>
+<td><p>Rempel (2005) 式 (31)-(33)。<code class="xref py py-mod docutils literal notranslate"><span class="pre">S2MFD.setup</span></code> の <code class="docutils literal notranslate"><span class="pre">build_lambda</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>乱流粘性・熱伝導</p></td>
+<td><p>式 (27)-(30)。放射層では拡散項の粘性を対流層の 2 %、熱伝導を 0.2 %
+に落とす (<span class="math notranslate nohighlight">\(\Lambda\)</span> 効果に使う粘性には落とさない)</p></td>
+</tr>
+<tr class="row-even"><td><p>磁気拡散</p></td>
+<td><p>Rempel (2006) 式 (13)-(15)。3 段の tanh プロファイル</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\alpha\)</span> 効果</p></td>
+<td><p>式 (16)-(19)。対流層底 [0.71, 0.76] <span class="math notranslate nohighlight">\(R_\odot\)</span> の
+<span class="math notranslate nohighlight">\(B_\Phi\)</span> を放物線カーネルで平均し、表面近くに源を置く</p></td>
+</tr>
+<tr class="row-even"><td><p>音速抑制 (RSST)</p></td>
+<td><p>連続の式に <span class="math notranslate nohighlight">\(1/\zeta^2\)</span> を掛ける (<span class="math notranslate nohighlight">\(\zeta = 100\)</span>)。
+Rempel (2005) 式 (35)</p></td>
+</tr>
+<tr class="row-odd"><td><p>人工拡散</p></td>
+<td><p>Rempel (2014) の slope-limited diffusion (SLD)。<strong>論文にはない</strong>
+ので、その強さ <code class="docutils literal notranslate"><span class="pre">sld_cs_factor</span></code> は数値パラメタとして扱う</p></td>
+</tr>
+<tr class="row-even"><td><p>時間積分</p></td>
+<td><p>SSP-RK2 + 中心差分。CFL 安全率は von Neumann 解析の中立点から自動決定</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id4">
+<h2><a class="toc-backref" href="#id18" role="doc-backlink">参照モデル (磁場なし)</a><a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>まず磁場なしで流体を緩和させ、<span class="math notranslate nohighlight">\(\Lambda\)</span> 効果が作る差動回転と
+子午面流を得る。これが Rempel (2006) の「参照モデル」で、表 1 の列 2 に
+対応する。</p>
+<figure class="align-default" id="id12">
+<a class="reference internal image-reference" href="_images/reference_model.png"><img alt="_images/reference_model.png" src="_images/reference_model.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">緩和した参照モデル (288 <span class="math notranslate nohighlight">\(\times\)</span> 192, <code class="docutils literal notranslate"><span class="pre">sld_cs_factor</span></code> = 0.30)。
+(a) 差動回転。赤道が速く極が遅い。(b) 緯度ごとの動径分布 — 原論文
+図 1b に対応する。<span class="math notranslate nohighlight">\(r = 0.65\,R_\odot\)</span> で剛体回転を課しているので
+全緯度が 413 nHz に収束する。(c) 子午面流。表面で極向き、対流層底で
+赤道向きの 1 セル。(d) 拡散係数。<span class="math notranslate nohighlight">\(\eta_t\)</span> は対流層内で 3 桁変わる。
+<span class="math notranslate nohighlight">\(\Lambda\)</span> 効果に使う粘性 (破線) だけ放射層で下限を張らない。</span><a class="headerlink" href="#id12" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>走らせ方:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">runs</span><span class="o">/</span><span class="n">relax_scan</span><span class="o">.</span><span class="n">py</span> <span class="mi">108</span> <span class="mi">72</span> <span class="mi">40</span> <span class="n">uniform_rotation</span> <span class="n">myrun</span> \
+    <span class="n">sld_cs_factor</span><span class="o">=</span><span class="mf">0.30</span>
+</pre></div>
+</div>
+<p>引数は <code class="docutils literal notranslate"><span class="pre">解像度_r</span> <span class="pre">解像度_theta</span> <span class="pre">年数</span> <span class="pre">下部境界</span> <span class="pre">タグ</span></code>。<code class="docutils literal notranslate"><span class="pre">名前=値</span></code> で
+<code class="docutils literal notranslate"><span class="pre">cfg</span></code> を上書きできる。<code class="docutils literal notranslate"><span class="pre">S2MFD_PARFILE</span></code> でパラメタファイルを選ぶ
+(論文設定は <code class="docutils literal notranslate"><span class="pre">parameters/rempel06_paper.py</span></code>)。</p>
+</section>
+<section id="id5">
+<h2><a class="toc-backref" href="#id19" role="doc-backlink">ダイナモ</a><a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<p>緩和した状態に種磁場を入れ、ローレンツ力のフィードバックまで含めて回す。</p>
+<figure class="align-default" id="id13">
+<a class="reference internal image-reference" href="_images/butterfly_v2_a125.png"><img alt="_images/butterfly_v2_a125.png" src="_images/butterfly_v2_a125.png" style="width: 88%;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><span class="math notranslate nohighlight">\(\alpha_0 = 0.125\)</span> m s<sup>-1</sup> の解 (108 <span class="math notranslate nohighlight">\(\times\)</span> 72、
+60 年)。(a) 対流層底のトロイダル磁場の蝶形図。<strong>赤道向きに移動する</strong>
+活動帯が出る (子午面流による磁束輸送)。(b) 赤道・0.735
+<span class="math notranslate nohighlight">\(R_\odot\)</span> の <span class="math notranslate nohighlight">\(B_\Phi\)</span>。周期 18.1 年 (論文 18 年)。
+(c) 表面のトーショナル振動。極と緯度 60 度で位相が異なる。</span><a class="headerlink" href="#id13" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>走らせ方:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">runs</span><span class="o">/</span><span class="n">dynamo7</span><span class="o">.</span><span class="n">py</span> <span class="mi">108</span> <span class="mi">72</span> <span class="mi">0</span> <span class="mi">60</span> <span class="n">mydynamo</span> <span class="n">full</span> \
+    <span class="n">alpha0</span><span class="o">=</span><span class="mf">12.5</span> <span class="n">magnetic_buoyancy</span><span class="o">=</span><span class="mi">1</span> <span class="n">sld_cs_factor</span><span class="o">=</span><span class="mf">0.30</span> \
+    <span class="n">init</span><span class="o">=</span><span class="n">results_rempel</span><span class="o">/</span><span class="n">myrun</span><span class="o">/</span><span class="n">state</span><span class="o">.</span><span class="n">npz</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">full</span></code> を <code class="docutils literal notranslate"><span class="pre">kinematic</span></code> にするとローレンツ力を切る (論文 図 3 の参照解)。
+<code class="docutils literal notranslate"><span class="pre">alpha0</span></code> は cm/s。</p>
+</section>
+<section id="id6">
+<h2><a class="toc-backref" href="#id20" role="doc-backlink">エネルギー収支</a><a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<p>Rempel (2006) 式 (20)-(22) の収支をそのまま追える
+(<code class="xref py py-class docutils literal notranslate"><span class="pre">S2MFD.physics.energy.EnergyBudget</span></code>)。<strong>これはコードが正しく
+動いているかの最も強い検査</strong>でもある。</p>
+<figure class="align-default" id="id14">
+<a class="reference internal image-reference" href="_images/energy_budget.png"><img alt="_images/energy_budget.png" src="_images/energy_budget.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">(a) エネルギーの流れ (原論文 図 7) に**実測値**を書き込んだもの。
+括弧内は Rempel (2006) 表 1 列 5。8 項すべてが数パーセント以内で一致
+する。(b) 収支式の残差。<strong>原論文が表 1 の注で明記している精度
+0.001 を、論文の格子 (</strong> <span class="math notranslate nohighlight">\(N_r=108\)</span> <strong>) では 10 倍上回る。</strong>
+解像度とともに 2 次で消える。</span><a class="headerlink" href="#id14" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>左辺の</strong> <span class="math notranslate nohighlight">\(dE/dt\)</span> <strong>を落とさないこと。</strong> 定常だと思い込んで
+ゼロと置くと、成長中のダイナモでは残差が入力の 10-25 % に見える。</p>
+<p><span class="math notranslate nohighlight">\(E_\Omega\)</span> の時間微分は <strong>差動回転のエネルギー</strong>
+(<span class="math notranslate nohighlight">\(\Omega_1\)</span> だけ) で評価する。<span class="math notranslate nohighlight">\(\Omega_0\)</span> の項は全角運動量
+保存から解析的に厳密ゼロだが、離散では消えず、本物の信号の 40 倍
+残る。詳細は <code class="xref py py-meth docutils literal notranslate"><span class="pre">S2MFD.physics.energy.EnergyBudget.budget_residuals()</span></code>。</p>
+</div>
+<p>確認は:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">runs</span><span class="o">/</span><span class="n">budget_check</span><span class="o">.</span><span class="n">py</span> <span class="n">mydynamo</span>          <span class="c1"># ダイナモ</span>
+<span class="n">python</span> <span class="n">runs</span><span class="o">/</span><span class="n">budget_check</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">relax</span> <span class="n">myrun</span>     <span class="c1"># 磁場なし</span>
+</pre></div>
+</div>
+</section>
+<section id="id7">
+<h2><a class="toc-backref" href="#id21" role="doc-backlink">収束性</a><a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<p><strong>この実装の付加価値は、論文の数値が未収束であることを定量化した点にある。</strong></p>
+<p>解像度と人工拡散の 2 つの極限を独立に取る必要がある。片方だけ振っても
+収束先は分からない (人工拡散を弱めると DR は増え、解像度を上げると減る)。</p>
+<figure class="align-default" id="id15">
+<a class="reference internal image-reference" href="_images/convergence_dr.png"><img alt="_images/convergence_dr.png" src="_images/convergence_dr.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">(a) 差動回転の解像度依存。<span class="math notranslate nohighlight">\(c_s\)</span> (人工拡散の強さ) を固定して
+<span class="math notranslate nohighlight">\(N_r\to\infty\)</span> に外挿すると、<span class="math notranslate nohighlight">\(c_s = 0.30\)</span> と 0.10 が
+<strong>独立に 0.26-0.27 に来る</strong>。論文値は 0.27。
+(b) 固定解像度での人工拡散への依存の幅。解像度とともに 2 次で消える。
+つまり**二重極限は交換する**。</span><a class="headerlink" href="#id15" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>外挿の不確かさを小さく見積もらないこと (2026-08-25 に見直した)。</strong>
+<span class="math notranslate nohighlight">\({\rm DR} = {\rm DR}_\infty + aN^{-p}\)</span> を当てはめると、
+4 点ある <span class="math notranslate nohighlight">\(c_s = 0.30\)</span> の系列では</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 40.0%" />
+<col style="width: 30.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>当てはめ方</p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(c_s = 0.30\)</span> (4 点)</p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(c_s = 0.10\)</span> (3 点)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(p\)</span> も当てはめる</p></td>
+<td><p>0.2661 (p = 2.22)</p></td>
+<td><p>0.2642 (p = 2.42)</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(p = 2\)</span> 固定</p></td>
+<td><p>0.2638</p></td>
+<td><p>0.2532</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(p = 3\)</span> 固定</p></td>
+<td><p>0.2714</p></td>
+<td><p>0.2741</p></td>
+</tr>
+<tr class="row-odd"><td><p>1 点抜き</p></td>
+<td><p>0.2637 - 0.2686</p></td>
+<td><p>(3 点なので不可)</p></td>
+</tr>
+</tbody>
+</table>
+<p>となる。<strong>3 点の系列は自由度がゼロ</strong>で残差が出ず、<span class="math notranslate nohighlight">\(p\)</span> の
+仮定次第で 0.23 から 0.27 まで動く。さらに隣接 2 点の Richardson
+外挿 (<span class="math notranslate nohighlight">\(p=2\)</span>) は 0.355, 0.310, 0.284 とまだ動いており、
+<strong>漸近領域に入り切っていない</strong>。</p>
+<p>したがって言えるのは
+<span class="math notranslate nohighlight">\({\rm DR}_\infty = 0.266 \pm 0.003\)</span> (4 点の系列、1 点抜きの幅)
+まで。<strong>「二重極限は 0.264 ± 0.002」「N→∞ 後の :math:`c_s` 依存は
+0.0022 しかない」とは言えない</strong>(3 点系列自体の幅が <span class="math notranslate nohighlight">\(\pm 0.01\)</span>
+以上ある)。論文の 0.27 と整合する、というのが正確な主張である。</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>飽和判定に注意する。</strong> 人工拡散が弱く格子が粗いランは緩和の時定数が
+数百年になり、100 年走らせても飽和しない。傾きの閾値だけで判定すると
+未飽和のランを通してしまう。<code class="docutils literal notranslate"><span class="pre">runs/convergence.py</span></code> は緩和曲線
+<span class="math notranslate nohighlight">\(DR(t) = DR_\infty - A e^{-t/\tau}\)</span> を当てはめて「残りどれだけ
+動くか」を出す。</p>
+</div>
+<p>確認は:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">runs</span><span class="o">/</span><span class="n">convergence</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">extrap</span>
+</pre></div>
+</div>
+</section>
+<section id="id8">
+<h2><a class="toc-backref" href="#id22" role="doc-backlink">原論文との比較</a><a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<figure class="align-default" id="id16">
+<a class="reference internal image-reference" href="_images/table1_comparison.png"><img alt="_images/table1_comparison.png" src="_images/table1_comparison.png" style="width: 78%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Rempel (2006) 表 1 との比 (108 <span class="math notranslate nohighlight">\(\times\)</span> 72、60 年)。灰色の帯が
+<span class="math notranslate nohighlight">\(\pm 10\)</span> %。磁場の量とエネルギー交換項はほぼすべて帯の中に入る。</span><a class="headerlink" href="#id16" title="Link to this image"></a></p>
+<div class="legend">
+<p>外れているのは <strong>差動回転</strong>で 1.12-1.15 倍。これは参照モデルが
+108 <span class="math notranslate nohighlight">\(\times\)</span> 72 で 1.19 倍過大なことの持ち込みで、自分の
+運動学的参照解で規格化すると 0.96-0.99 になる。</p>
+</div>
+</figcaption>
+</figure>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>2026-08-25 訂正。</strong> ここには「トーショナル振動が
+<span class="math notranslate nohighlight">\(\alpha_0\)</span> の大きいほど過小 (0.67-0.70)」と書いてあったが、
+これは**振幅の測り方の誤り**だった。幅 18 年の移動平均で永年
+ドリフトを引き、両端を捨てていたが、解析区間も 20 年なので**残るのが
+2 年ぶんだけ**になり、「末尾 20 年の最大」が「どこか 2 年間の最大」に
+なっていた。区間内の 1 次トレンドを引く測り方に直すと</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><span class="math notranslate nohighlight">\(\alpha_0\)</span> [cm/s]</p></th>
+<th class="head"><p>90° 計算/論文</p></th>
+<th class="head"><p>60° 計算/論文</p></th>
+<th class="head"><p>(旧の値 90°)</p></th>
+<th class="head"><p>格子</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>12.5</p></td>
+<td><p>5.6 / 4.7 = 1.19</p></td>
+<td><p>4.4 / 3.5 = 1.26</p></td>
+<td><p>1.14</p></td>
+<td><p>108×72</p></td>
+</tr>
+<tr class="row-odd"><td><p>12.5</p></td>
+<td><p>5.2 / 4.7 = 1.10</p></td>
+<td><p>3.7 / 3.5 = 1.07</p></td>
+<td><p>—</p></td>
+<td><p>144×96</p></td>
+</tr>
+<tr class="row-even"><td><p>25.0</p></td>
+<td><p>11.7 / 11.5 = <strong>1.02</strong></p></td>
+<td><p>7.9 / 6.9 = 1.15</p></td>
+<td><p>0.69</p></td>
+<td><p>108×72</p></td>
+</tr>
+<tr class="row-odd"><td><p>50.0</p></td>
+<td><p>16.8 / 17.7 = <strong>0.95</strong></p></td>
+<td><p>8.4 / 8.3 = 1.01</p></td>
+<td><p>0.70</p></td>
+<td><p>108×72</p></td>
+</tr>
+</tbody>
+</table>
+<p>となり、<strong>すべて 1 割前後で合う</strong>。詳細は
+<code class="docutils literal notranslate"><span class="pre">doc/dev_records/2026-08-24_torsional_pole.md</span></code>。
+なお 20 年の区間に周期 18 年は 1.1 サイクルしか入らないので、
+1 次の当てはめが振動を一部吸って振幅を 1 割ほど過大に返す。
+<strong>論文値との比を 1 割の精度で議論してはいけない。</strong></p>
+</div>
+<p>確認は:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">runs</span><span class="o">/</span><span class="n">table1</span><span class="o">.</span><span class="n">py</span> <span class="n">mydynamo</span><span class="p">:</span><span class="mf">12.5</span>
+</pre></div>
+</div>
+</section>
+<section id="id9">
+<h2><a class="toc-backref" href="#id23" role="doc-backlink">論文からの意図的な逸脱</a><a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 26.0%" />
+<col style="width: 74.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>項目</p></th>
+<th class="head"><p>内容と理由</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>磁場の下部境界</p></td>
+<td><p>論文は <span class="math notranslate nohighlight">\(B_\Phi = 0\)</span> (反対称)。本実装の既定は
+<span class="math notranslate nohighlight">\(d(rB_\Phi)/dr = 0\)</span> (<strong>対称 = 閉じた境界</strong>)。
+<span class="math notranslate nohighlight">\(r=0.65\,R_\odot\)</span> は放射層の内部で、良導体なら磁場は
+蓄えられるべきである。論文自身が §3.2 で「<span class="math notranslate nohighlight">\(B_\Phi\)</span> だけは
+closed boundary condition ではない」と認めている。
+論文どおりにしたい場合は
+<strong>どちらでも 2.5 サイクルではダイナモが 0.06 % しか変わらない</strong>(下記)。
+<code class="docutils literal notranslate"><span class="pre">boundary_condition_type='R06',</span> <span class="pre">magnetic_open_boundary=1</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>数値スキーム</p></td>
+<td><p>論文は MacCormack (交互風上/風下)、本実装は SSP-RK2 + 中心差分
++ SLD 人工拡散。<strong>論文には人工拡散の項がない</strong>ので
+<code class="docutils literal notranslate"><span class="pre">sld_cs_factor</span></code> に対応物はない。これが「同じ 108 <span class="math notranslate nohighlight">\(\times\)</span> 72
+でも DR が違う」主因</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(R_\odot\)</span></p></td>
+<td><p>論文は <span class="math notranslate nohighlight">\(7\times10^8\)</span> m、本実装は真の値
+<span class="math notranslate nohighlight">\(6.96\times10^8\)</span> m。<span class="math notranslate nohighlight">\(Q_\Lambda\)</span> への影響は 0.7 %</p></td>
+</tr>
+</tbody>
+</table>
+<p>下部境界の対照実験 (108 <span class="math notranslate nohighlight">\(\times\)</span> 72 の運動学的ダイナモ、45 年
+= 2.5 サイクル、物理は同一):</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16.0%" />
+<col style="width: 42.0%" />
+<col style="width: 42.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><span class="math notranslate nohighlight">\(t\)</span> [yr]</p></th>
+<th class="head"><p>0.735 <span class="math notranslate nohighlight">\(R_\odot\)</span> 赤道の相対差</p></th>
+<th class="head"><p>放射層 (<span class="math notranslate nohighlight">\(r&lt;0.71\,R_\odot\)</span>) の磁束の相対差</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>5</p></td>
+<td><p><span class="math notranslate nohighlight">\(8.7\times10^{-13}\)</span></p></td>
+<td><p>3 %</p></td>
+</tr>
+<tr class="row-odd"><td><p>15</p></td>
+<td><p><span class="math notranslate nohighlight">\(1.4\times10^{-6}\)</span></p></td>
+<td><p>17 %</p></td>
+</tr>
+<tr class="row-even"><td><p>30</p></td>
+<td><p><span class="math notranslate nohighlight">\(3.3\times10^{-4}\)</span></p></td>
+<td><p>101 % (符号反転の時期)</p></td>
+</tr>
+<tr class="row-odd"><td><p>45</p></td>
+<td><p><span class="math notranslate nohighlight">\(6.4\times10^{-4}\)</span></p></td>
+<td><p>32 %</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>境界の影響は放射層に閉じ込められていて、対流層のダイナモには届かない</strong>。
+<span class="math notranslate nohighlight">\(\max|B_\Phi|\)</span> は 1.4169 対 1.4168 T、<span class="math notranslate nohighlight">\(\max|B_r|\)</span> は 5 桁一致。</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>放射層の磁気拡散時間は <span class="math notranslate nohighlight">\(L^2/\eta_c\)</span> = <strong>516 年 = 周期の 29 倍</strong>。
+45 年ではその 1/10 も見ていないので、<strong>数十サイクル後の蓄積の差は
+判定できていない</strong>。見るには数百年の積分が要る。</p>
+</div>
+<p>未解決として、収束解の <span class="math notranslate nohighlight">\(Q_\Lambda\)</span> が論文より 11 % 低い。
+<span class="math notranslate nohighlight">\(\Lambda\)</span> 効果の式・規格化・パラメタは一項目ずつ照合して
+すべて一致している。</p>
+</section>
+<section id="id10">
+<h2><a class="toc-backref" href="#id24" role="doc-backlink">参考文献</a><a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Rempel, M. 2005, ApJ, 622, 1320 — 差動回転と子午面流のモデル</p></li>
+<li><p>Rempel, M. 2006, ApJ, 647, 662 — ローレンツ力を含む磁束輸送ダイナモ</p></li>
+<li><p>Rempel, M. 2014, ApJ, 789, 132 — slope-limited diffusion</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="reading_the_code.html" class="btn btn-neutral float-left" title="コードを読むための Python" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="parameters.html" class="btn btn-neutral float-right" title="パラメタファイルと新しいモデルの足し方" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, S2MFD project.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      Version: 
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+      
+      
+      <dl>
+        <dt>Versions</dt>
+        
+          <dd><a href=""></a></dd>
+        
+      </dl>
+      
+      <br>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

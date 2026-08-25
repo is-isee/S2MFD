@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Setup &mdash; S2MFD 0.2.1.dev106 documentation</title>
+  <title>Setup &mdash; S2MFD 0.2.1.dev211 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
@@ -14,9 +14,10 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=490931b2"></script>
+      <script src="../_static/documentation_options.js?v=7430afd0"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -47,6 +48,11 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reading_the_code.html">コードを読むための Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic.html">動力学モード (非運動学的ダイナモ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parameters.html">パラメタファイルと新しいモデルの足し方</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial_rempel.html">Rempel (2006) を再現する</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../verification.html">検証されていること</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../inference.html">Parameter Inference (GA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api_reference.html">API reference</a><ul class="current">
@@ -133,8 +139,14 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Setup.build_flow" title="S2MFD.Setup.build_flow"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_flow</span></code></a>(cfg, grid)</p></td>
 <td><p>子午面流プロファイル (urr, uth) を構築する。</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Setup.build_rotation" title="S2MFD.Setup.build_rotation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_rotation</span></code></a>(cfg, grid)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Setup.build_lambda" title="S2MFD.Setup.build_lambda"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_lambda</span></code></a>(cfg, grid)</p></td>
+<td><p>Λ効果 (非等方レイノルズ応力) のプロファイルを構築する。</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#S2MFD.Setup.build_rotation" title="S2MFD.Setup.build_rotation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_rotation</span></code></a>(cfg, grid)</p></td>
 <td><p>差動回転プロファイル (om, omrr, omth) を構築する。</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#S2MFD.Setup.build_turbulent_transport" title="S2MFD.Setup.build_turbulent_transport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_turbulent_transport</span></code></a>(cfg, grid)</p></td>
+<td><p>乱流粘性 ν_t(r) と乱流熱伝導 κ_t(r) を構築する (Rempel 2005 式 27-30)。</p></td>
 </tr>
 </tbody>
 </table>
@@ -162,9 +174,64 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Setup.build_lambda">
+<span class="sig-name descname"><span class="pre">build_lambda</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/setup.html#Setup.build_lambda"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Setup.build_lambda" title="Link to this definition"></a></dt>
+<dd><p>Λ効果 (非等方レイノルズ応力) のプロファイルを構築する。</p>
+<p>Rempel (2005) 式 (14)-(16)。角運動量フラックスを回転軸方向から
+角度 <code class="docutils literal notranslate"><span class="pre">cfg.lambda_tilt_deg</span></code> だけ傾けた向きに与える:</p>
+<div class="math notranslate nohighlight">
+\[\Lambda_{r\varphi} = L\cos(\theta+\varepsilon), \quad
+\Lambda_{\theta\varphi} = -L\sin(\theta+\varepsilon)\]</div>
+<p>振幅は <span class="math notranslate nohighlight">\(L \propto \sin^n\theta\cos\theta
+\tanh((r_{\max}-r)/d)\)</span> で、対流層上端で滑らかにゼロになる。</p>
+<section id="id1">
+<h2>全球格子での赤道対称性<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>齋藤 (2024) のコードは北半球 <span class="math notranslate nohighlight">\([0,\pi/2]\)</span> のみを解くので傾き
+<span class="math notranslate nohighlight">\(\varepsilon\)</span> の符号を考える必要がない。S2MFD は全球
+<span class="math notranslate nohighlight">\([0,\pi]\)</span> を解くため、そのまま使うと赤道対称性が壊れる。</p>
+<p><span class="math notranslate nohighlight">\(q_L\)</span> が偶関数であるためには <span class="math notranslate nohighlight">\(F^r\)</span> が偶、
+<span class="math notranslate nohighlight">\(F^\theta\)</span> が奇でなければならず、幾何因子 <span class="math notranslate nohighlight">\(\sin^2\theta\)</span>
+が偶であることから <span class="math notranslate nohighlight">\(\Lambda_{r\varphi}\)</span> は偶、
+<span class="math notranslate nohighlight">\(\Lambda_{\theta\varphi}\)</span> は奇である必要がある。振幅 L は
+<span class="math notranslate nohighlight">\(\cos\theta\)</span> に比例して奇なので、傾き角を
+<span class="math notranslate nohighlight">\(\varepsilon\,\mathrm{sgn}(\cos\theta)\)</span> として南半球で符号を
+反転させるとこの条件を満たす (物理的にも、傾きは両半球で鏡像になる)。</p>
+</section>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="S2MFD.Setup.build_rotation">
 <span class="sig-name descname"><span class="pre">build_rotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/setup.html#Setup.build_rotation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Setup.build_rotation" title="Link to this definition"></a></dt>
 <dd><p>差動回転プロファイル (om, omrr, omth) を構築する。</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="S2MFD.Setup.build_turbulent_transport">
+<span class="sig-name descname"><span class="pre">build_turbulent_transport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/S2MFD/setup.html#Setup.build_turbulent_transport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#S2MFD.Setup.build_turbulent_transport" title="Link to this definition"></a></dt>
+<dd><p>乱流粘性 ν_t(r) と乱流熱伝導 κ_t(r) を構築する (Rempel 2005 式 27-30)。</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\nu_\Lambda &amp;= \frac{\nu_0}{2}
+   \left[1+\tanh\frac{r-r_{\rm tran}+\Delta}{d_{\kappa\nu}}\right]
+   f_c(r) \\
+f_c(r) &amp;= \frac12\left[1+\tanh\frac{r-r_{\rm bc}}{d_{\rm bc}}\right],
+\quad
+\Delta = d_{\kappa\nu}\,{\rm artanh}(2\alpha_{\kappa\nu}-1)\end{split}\]</div>
+<p><span class="math notranslate nohighlight">\(\Delta\)</span> は「<span class="math notranslate nohighlight">\(r=r_{\rm tran}\)</span> で
+<span class="math notranslate nohighlight">\(\nu_\Lambda=\alpha_{\kappa\nu}\nu_0\)</span> になる」ようにずらす量。</p>
+<section id="id2">
+<h2>拡散項用とΛ効果用で粘性が違う<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>Rempel 2005 §2.4 は、<a href="#id3"><span class="problematic" id="id4">**</span></a>Λ効果による角運動量輸送**には上の
+プロファイルをそのまま使い、<a href="#id5"><span class="problematic" id="id6">**</span></a>レイノルズ応力の拡散項**に使う粘性には
+対流層値の 2%(熱伝導は 0.2%)の下限を張る、としている。</p>
+<p>理由は下部境界の <span class="math notranslate nohighlight">\(\Omega_1=0\)</span> 条件との間にせん断層
+(タコクライン)を現実的な時間で形成させるため。放射層で粘性が
+ゼロまで落ちると、そこに角運動量を運べず定常解に到達しない。</p>
+<p>なお「2% にする」は原文では放射層に限定した書き方になっていないが、
+対流層全体で 2% にすると論文表 1 の
+<span class="math notranslate nohighlight">\(Q_\nu^\Omega/Q_\Lambda=0.574\)</span>
+(粘性散逸がΛ効果入力の 57%)と桁が合わなくなるため、下限として
+解釈している。</p>
+</section>
 </dd></dl>
 
 <dl class="py method">

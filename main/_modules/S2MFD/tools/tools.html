@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S2MFD.tools.tools &mdash; S2MFD 0.2.1.dev106 documentation</title>
+  <title>S2MFD.tools.tools &mdash; S2MFD 0.2.1.dev211 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
@@ -13,7 +13,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=490931b2"></script>
+      <script src="../../../_static/documentation_options.js?v=7430afd0"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -44,6 +44,11 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reading_the_code.html">コードを読むための Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dynamic.html">動力学モード (非運動学的ダイナモ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../parameters.html">パラメタファイルと新しいモデルの足し方</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial_rempel.html">Rempel (2006) を再現する</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../verification.html">検証されていること</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../inference.html">Parameter Inference (GA)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial_inference.html">Tutorial: パラメタ推定を実際に回す</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api_reference.html">API reference</a></li>
@@ -80,7 +85,7 @@
 <div class="viewcode-block" id="drr1">
 <a class="viewcode-back" href="../../../api/S2MFD.tools.drr1.html#S2MFD.tools.drr1">[docs]</a>
 <span class="nd">@njit</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">drr1</span><span class="p">(</span><span class="n">qq</span><span class="p">,</span><span class="n">drr</span><span class="p">,</span><span class="nb">dir</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">drr1</span><span class="p">(</span><span class="n">qq</span><span class="p">,</span><span class="n">hh</span><span class="p">,</span><span class="nb">dir</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">'''</span>
 <span class="sd">    To calculate 1st order accuracy derivative in r direction</span>
 
@@ -88,8 +93,11 @@
 <span class="sd">    ----------</span>
 <span class="sd">    qq : numpy.ndarray, float</span>
 <span class="sd">        Quantity to be differentiated (2D)</span>
-<span class="sd">    drr : float</span>
-<span class="sd">        Grid spacing in r direction</span>
+<span class="sd">    hh : numpy.ndarray</span>
+<span class="sd">        除数の 1D 配列。**出力インデックスで引く**。</span>
+<span class="sd">        ``dir='up'`` (面での勾配) では ``grid.drrm``、</span>
+<span class="sd">        ``dir='dw'`` (発散) では ``grid.drr`` を渡すこと。</span>
+<span class="sd">        一様格子ではどちらも同じ値なので従来と一致する。</span>
 <span class="sd">    dir: string</span>
 <span class="sd">        'up' or 'dw'</span>
 
@@ -114,8 +122,9 @@
     <span class="n">jnum</span> <span class="o">=</span> <span class="n">qq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">dqq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">qq</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i1</span><span class="o">-</span><span class="n">i0</span><span class="p">):</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="n">hh</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="n">i0</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">jnum</span><span class="p">):</span>
-            <span class="n">dqq</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="n">i0</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">qq</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">qq</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">])</span><span class="o">/</span><span class="n">drr</span>
+            <span class="n">dqq</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="n">i0</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">qq</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">qq</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">])</span><span class="o">/</span><span class="n">h</span>
 
     <span class="k">return</span> <span class="n">dqq</span></div>
 
@@ -123,7 +132,7 @@
 <div class="viewcode-block" id="drr2">
 <a class="viewcode-back" href="../../../api/S2MFD.tools.drr2.html#S2MFD.tools.drr2">[docs]</a>
 <span class="nd">@njit</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">drr2</span><span class="p">(</span><span class="n">qq</span><span class="p">,</span><span class="n">drr</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">drr2</span><span class="p">(</span><span class="n">qq</span><span class="p">,</span><span class="n">drr2_</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">'''</span>
 <span class="sd">    To calculate 2nd order accuracy derivative in r direction</span>
 <span class="sd">   </span>
@@ -131,8 +140,8 @@
 <span class="sd">    ----------</span>
 <span class="sd">    qq: numpy.ndarray, float</span>
 <span class="sd">        Quantity to be differentiated (2D)</span>
-<span class="sd">    drr: float</span>
-<span class="sd">        Grid spacing in r direction</span>
+<span class="sd">    drr2_: numpy.ndarray</span>
+<span class="sd">        ``rr[i+1]-rr[i-1]`` (``grid.drr2``, 1D)。一様格子なら 2*drr。</span>
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">        dqq: numpy.ndarray, float</span>
@@ -143,8 +152,9 @@
     <span class="n">jnum</span> <span class="o">=</span> <span class="n">qq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">dqq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">qq</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">inum</span><span class="o">-</span><span class="mi">2</span><span class="p">):</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="n">drr2_</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">jnum</span><span class="p">):</span>
-            <span class="n">dqq</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">qq</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">qq</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">])</span><span class="o">/</span><span class="n">drr</span><span class="o">*</span><span class="mf">0.5</span>
+            <span class="n">dqq</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">qq</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">qq</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">])</span><span class="o">/</span><span class="n">h</span>
    
     <span class="k">return</span> <span class="n">dqq</span></div>
 

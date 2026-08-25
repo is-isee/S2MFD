@@ -1,0 +1,6 @@
+build_cfg
+=========
+
+.. currentmodule:: S2MFD
+
+.. autofunction:: build_cfg

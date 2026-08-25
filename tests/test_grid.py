@@ -15,18 +15,21 @@ class TestGridGeometry:
         g = _grid()
         assert g.ixg == 16 + 2
         assert g.jxg == 8 + 2
-        assert np.isclose(g.drr, 0.35 / 16)
+        assert np.allclose(g.drr, 0.35 / 16)
+        # 一様格子では drr/drrm/drr2 が定数
+        assert np.allclose(g.drrm, g.drr)
+        assert np.allclose(g.drr2, 2*g.drr)
         assert np.isclose(g.dth, np.pi / 8)
 
     def test_cell_centered_coordinates(self):
         g = _grid()
         # 最初の物理セル (margin=1 → index 1) はセル中心 rrmin + drr/2
-        assert np.isclose(g.rr[g.margin], 0.65 + g.drr * 0.5)
+        assert np.isclose(g.rr[g.margin], 0.65 + g.drr[0] * 0.5)
         assert np.isclose(g.th[g.margin], g.dth * 0.5)
         # ゴーストセルは領域外に対称に配置
-        assert np.isclose(g.rr[0], 0.65 - g.drr * 0.5)
+        assert np.isclose(g.rr[0], 0.65 - g.drr[0] * 0.5)
         # 等間隔
-        assert np.allclose(np.diff(g.rr), g.drr)
+        assert np.allclose(np.diff(g.rr), g.drr[0])
         assert np.allclose(np.diff(g.th), g.dth)
 
     def test_face_centered_coordinates(self):
@@ -62,5 +65,5 @@ class TestGridSaveLoad:
         loaded = S2MFD.Grid.load(path)
         assert isinstance(loaded.margin, (int, np.integer)) and np.ndim(loaded.margin) == 0
         assert not isinstance(loaded.margin, np.ndarray)
-        assert not isinstance(loaded.drr, np.ndarray)
+        assert not isinstance(loaded.dth, np.ndarray)
         assert not isinstance(loaded.ixg, np.ndarray)

@@ -6,15 +6,19 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ana_common import get_datadir, load_run
+from ana_common import (get_datadir, load_run, radial_index,
+                        colat_index, surface_index)
 
 datadir = get_datadir()
 run = load_run(datadir)
 cfg, grid, timet, tau_diff = run.cfg, run.grid, run.timet, run.tau_diff
 Bpht, Brrt = run.Bpht, run.Brrt
 
-Bpht0 = Bpht[1+np.argmin(abs(grid.rr-0.7*cfg.RSUN)),np.argmin(abs(grid.th-30/180*np.pi)),:]
-Brrt0 = Brrt[-2,np.argmin(abs(grid.th-60/180*np.pi)),:]
+# 添字はゴーストを踏まないヘルパで取る (2026-08-23)。ana_common 参照。
+i07 = radial_index(grid, 0.7*cfg.RSUN)
+isurf = surface_index(grid)
+Bpht0 = Bpht[i07, colat_index(grid, 30.0), :]
+Brrt0 = Brrt[isurf, colat_index(grid, 60.0), :]
 
 Bpht0_sign = np.sign(Bpht0)
 Bpht0_sign_diff = np.diff(Bpht0_sign)

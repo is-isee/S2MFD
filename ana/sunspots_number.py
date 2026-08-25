@@ -6,7 +6,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ana_common import get_datadir, load_run
+from ana_common import get_datadir, load_run, radial_index
 
 datadir = get_datadir()
 run = load_run(datadir, with_poloidal=False)
@@ -18,7 +18,9 @@ n1 = run.n1
 N_num = np.zeros(n1)
 S_num = np.zeros(n1)
 thrsh = 3.5
-base  = 1+np.argmin(abs(grid.rr-0.7*cfg.RSUN))
+# ゴーストを踏まない添字 (2026-08-23)。以前の 1+argmin(...) は
+# 1 セル外側を指していた。
+base  = radial_index(grid, 0.7*cfg.RSUN)
 # グリッドに応じた北半球と南半球の分割
 if grid.jxg % 2==0:
     S_equa = grid.jxg//2 - 1

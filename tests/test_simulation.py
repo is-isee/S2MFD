@@ -20,7 +20,7 @@ class TestCflCondition:
         grid, setup = sim.grid, sim.setup
         m = grid.margin
         rr = grid.rr[m:grid.ixg - m, None]
-        cell = np.minimum(grid.drr, rr * grid.dth)
+        cell = np.minimum(grid.drr[m:grid.ixg - m, None], rr * grid.dth)
         uu = np.sqrt(setup.urr[m:-m, m:-m]**2 + setup.uth[m:-m, m:-m]**2)
         dt_adv = 0.8 * cell / np.sqrt(uu**2 + 1e-20)
         dt_dif = 0.8 * cell**2 / (2 * setup.et[m:-m, m:-m] + 1e-20)

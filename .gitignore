@@ -173,3 +173,13 @@ reference/
 
 # Parameter-inference outputs
 results/
+# シミュレーション出力 (再生成可能・巨大)
+# 2026-08-24: results_full* と results_paris は 2026-08-19 の 065115f で
+# 誤って追跡され、.git を 1.6 GB にしていた (中身の 99.9 パーセント)。
+# 履歴から除去したうえで、ここで二度と入らないようにする。
+results_rempel/
+results_full/
+results_full_paper_dalton/
+results_full_period/
+results_paris/
+results_boston_backup/

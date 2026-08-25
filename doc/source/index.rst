@@ -12,6 +12,11 @@ S2MFD Documentation
 
    installation
    usage
+   reading_the_code
+   dynamic
+   parameters
+   tutorial_rempel
+   verification
    inference
    tutorial_inference
    api_reference

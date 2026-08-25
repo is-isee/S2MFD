@@ -35,7 +35,7 @@ Rempel (2006) を再現する
    :math:`\times` 72 でも 40 年かかる。合わないことを確かめるのが目的。
 
 .. note::
-   ``run_paris/`` と ``examples/`` の各スクリプトは**リポジトリに入って
+   ``runs/`` と ``examples/`` の各スクリプトは**リポジトリに入って
    いるもので、pip でインストールされるパッケージには含まれない**\ 。
    使うにはリポジトリを clone すること。パッケージ本体
    (``import S2MFD``) だけでも同じことはできる —
@@ -50,7 +50,7 @@ Rempel (2006) を再現する
 ::
 
     export S2MFD_PARFILE=parameters/rempel06_paper.py
-    python run_paris/relax_scan.py 108 72 40 uniform_rotation ref108 \
+    python runs/relax_scan.py 108 72 40 uniform_rotation ref108 \
         sld_cs_factor=0.30
 
 引数は ``N_r N_theta 年数 下部境界 タグ``。結果は
@@ -90,7 +90,7 @@ Rempel (2006) を再現する
 並列度は ``S2MFD_PARALLEL`` で決める (``OMP_NUM_THREADS`` ではない)。
 格子が小さいと 2-3 スレッドで頭打ちになる。
 
-**飽和したかは傾きで確かめる。** ``python run_paris/convergence.py`` が
+**飽和したかは傾きで確かめる。** ``python runs/convergence.py`` が
 :math:`dDR/dt` と緩和曲線の外挿を出す。人工拡散が弱いと緩和の時定数が
 数百年になり、100 年走らせても飽和しないことがある。
 
@@ -100,7 +100,7 @@ Rempel (2006) を再現する
 
 ::
 
-    python run_paris/dynamo7.py 108 72 0 60 dyn_a125 full \
+    python runs/dynamo7.py 108 72 0 60 dyn_a125 full \
         alpha0=12.5 magnetic_buoyancy=1 sld_cs_factor=0.30 \
         init=results_rempel/ref108/state.npz
 
@@ -118,7 +118,7 @@ Rempel (2006) を再現する
 
 ::
 
-    python run_paris/table1.py dyn_a125:12.5
+    python runs/table1.py dyn_a125:12.5
 
 ``タグ:alpha0`` の形で複数指定できる。周期・磁場の最大値・
 トーショナル振動・エネルギー交換項を論文値と並べて比を出す。
@@ -139,8 +139,8 @@ Rempel (2006) を再現する
 
 ::
 
-    python run_paris/budget_check.py dyn_a125
-    python run_paris/budget_check.py --relax ref108
+    python runs/budget_check.py dyn_a125
+    python runs/budget_check.py --relax ref108
 
 原論文は表 1 の注で「エネルギー交換項の精度は 0.001 程度」と明記して
 いる。同じ基準で見られる。
@@ -159,17 +159,17 @@ Rempel (2006) を再現する
 
     for cs in 0.30 0.10 0.05; do
       for n in 108 144 216 288; do
-        python run_paris/relax_scan.py $n $((n*2/3)) 40 uniform_rotation \
+        python runs/relax_scan.py $n $((n*2/3)) 40 uniform_rotation \
             s${n}_cs${cs} sld_cs_factor=$cs
       done
     done
-    python run_paris/convergence.py --extrap
+    python runs/convergence.py --extrap
 
 .. figure:: _static/figures/convergence_dr.png
    :width: 100%
 
 粗い格子の状態を種にすると過渡を飛ばせる (``init=`` と
-``run_paris/regrid.py``)。全部そろえると数百 CPU 時間になるので、
+``runs/regrid.py``)。全部そろえると数百 CPU 時間になるので、
 まず :math:`c_s = 0.30` の系列だけで 108 → 288 を通すとよい。
 
 

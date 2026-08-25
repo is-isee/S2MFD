@@ -62,5 +62,5 @@ a125 は 13 項目中 10 項目が近づく。a250 は近づく 4・遠のく 4�
 
 ## 再現方法
 
-    python run_paris/table1.py v2_a125:12.5 res144_a125+res144_a125_b:12.5 \
+    python runs/table1.py v2_a125:12.5 res144_a125+res144_a125_b:12.5 \
                                v2_a250:25.0 res144_a250:25.0 v2_a500:50.0

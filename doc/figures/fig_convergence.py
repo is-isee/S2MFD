@@ -12,7 +12,7 @@ from matplotlib.ticker import FixedLocator, NullLocator, FuncFormatter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-sys.path[:0] = [HERE, ROOT, os.path.join(ROOT, 'run_paris')]
+sys.path[:0] = [HERE, ROOT, os.path.join(ROOT, 'runs')]
 import style                                            # noqa: E402
 import convergence                                      # noqa: E402
 

@@ -1,8 +1,8 @@
 """``results_rempel/*/dynamo.npz`` の履歴列を名前で引けること。
 
-``run_paris/dynamo7.py`` の ``HCOLS`` は 2026-08-23 に E_Omega / E_M /
+``runs/dynamo7.py`` の ``HCOLS`` は 2026-08-23 に E_Omega / E_M /
 放射層の磁束を末尾に足して 16 列から 22 列になった。このとき
-``run_paris/table1.py`` が QKEYS の位置を ``h.shape[1] - len(qkeys)``
+``runs/table1.py`` が QKEYS の位置を ``h.shape[1] - len(qkeys)``
 で当てにしていたため、新しい記録で 14 列目 (= E_B より後ろ) を
 ``Q_Lambda`` として読み、res144_* の Q_Lambda が 100 分の 1、
 Q_nu^M が 1e12 倍という値を出した。**列を差し引きで当てない。**
@@ -23,7 +23,7 @@ HCOLS_NEW = (['t', 'Bph_max', 'Br_surf', 'Bph_735eq', 'DR', 'dOm_pole',
 
 
 def _load_script(name):
-    path = os.path.join(ROOT, 'run_paris', f'{name}.py')
+    path = os.path.join(ROOT, 'runs', f'{name}.py')
     spec = importlib.util.spec_from_file_location(f'_rp_{name}', path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)

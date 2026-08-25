@@ -706,7 +706,7 @@ def poloidal_from_potential(aph, grid):
 
    :func:`poloidal_mag` の第 4 引数は ``grid.drr2`` (2 セル幅) だが、
    ``grid.drr`` (1 セル幅) を渡しても黙って動き、:math:`B_\\theta` が
-   ちょうど 2 倍になる。2026-08-23 に ``run_paris/dynamo7.py`` と
+   ちょうど 2 倍になる。2026-08-23 に ``runs/dynamo7.py`` と
    ``ana/ana_common.py`` の両方で実際に起きており、非運動学的ダイナモの
    ローレンツ力が過大で論文比 0.6 の磁場で飽和していた。誘導方程式の
    カーネルは :math:`B_p` を内部で作るので影響を受けず、運動学的ランだけ

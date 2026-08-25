@@ -707,7 +707,7 @@ class DynamicSolver:
         **``grid.drr2`` (2 セル幅)** である。``grid.drr`` (1 セル幅) を
         渡すと :math:`B_\theta` がちょうど 2 倍になる。
 
-        実際 ``run_paris/dynamo7.py`` と ``ana/ana_common.py`` が
+        実際 ``runs/dynamo7.py`` と ``ana/ana_common.py`` が
         ``grid.drr`` を渡しており、**ローレンツ力に使う** :math:`B_\theta`
         が 2 倍になっていた (2026-08-23 に発見)。誘導方程式はカーネル内部で
         自前に :math:`B_p` を作るので影響を受けず、運動学的ランは正しかった

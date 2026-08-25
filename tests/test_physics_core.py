@@ -148,7 +148,7 @@ class TestPoloidalMagArgument:
     """``poloidal_mag`` の第 4 引数は ``grid.drr2`` (2 セル幅) であること。
 
     ``grid.drr`` (1 セル幅) を渡すと一様格子で :math:`B_\\theta` が
-    ちょうど 2 倍になる。2026-08-23 まで ``run_paris/dynamo7.py`` と
+    ちょうど 2 倍になる。2026-08-23 まで ``runs/dynamo7.py`` と
     ``ana/ana_common.py`` がこれを間違えており、**ローレンツ力に使う**
     :math:`B_\\theta` が 2 倍になっていた。
 
@@ -191,7 +191,7 @@ class TestPoloidalMagArgument:
 
         2026-08-23 のバグは ``grid.drr2`` の代わりに ``grid.drr`` を渡した
         ことによるもので、**同じ間違いが 2 箇所で独立に起きていた**
-        (``run_paris/dynamo7.py`` と ``ana/ana_common.py``)。呼び出しを
+        (``runs/dynamo7.py`` と ``ana/ana_common.py``)。呼び出しを
         :func:`poloidal_from_potential` に寄せて、間違えようがなくする。
 
         テストは間違った引数をわざと渡すので対象外。
@@ -204,7 +204,7 @@ class TestPoloidalMagArgument:
             os.path.join('S2MFD', 'physics', 'physics_core.py'),
         }
         offenders = []
-        for sub in ('S2MFD', 'ana', 'run_paris'):
+        for sub in ('S2MFD', 'ana', 'runs'):
             for dirpath, dirnames, filenames in os.walk(os.path.join(root, sub)):
                 dirnames[:] = [d for d in dirnames if d != '__pycache__']
                 for fn in filenames:

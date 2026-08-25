@@ -81,7 +81,7 @@ S2MFD には 2 つのモードがある。
 
 走らせ方::
 
-    python run_paris/relax_scan.py 108 72 40 uniform_rotation myrun \
+    python runs/relax_scan.py 108 72 40 uniform_rotation myrun \
         sld_cs_factor=0.30
 
 引数は ``解像度_r 解像度_theta 年数 下部境界 タグ``。``名前=値`` で
@@ -105,7 +105,7 @@ S2MFD には 2 つのモードがある。
 
 走らせ方::
 
-    python run_paris/dynamo7.py 108 72 0 60 mydynamo full \
+    python runs/dynamo7.py 108 72 0 60 mydynamo full \
         alpha0=12.5 magnetic_buoyancy=1 sld_cs_factor=0.30 \
         init=results_rempel/myrun/state.npz
 
@@ -140,8 +140,8 @@ Rempel (2006) 式 (20)-(22) の収支をそのまま追える
 
 確認は::
 
-    python run_paris/budget_check.py mydynamo          # ダイナモ
-    python run_paris/budget_check.py --relax myrun     # 磁場なし
+    python runs/budget_check.py mydynamo          # ダイナモ
+    python runs/budget_check.py --relax myrun     # 磁場なし
 
 
 収束性
@@ -200,13 +200,13 @@ Rempel (2006) 式 (20)-(22) の収支をそのまま追える
 .. note::
    **飽和判定に注意する。** 人工拡散が弱く格子が粗いランは緩和の時定数が
    数百年になり、100 年走らせても飽和しない。傾きの閾値だけで判定すると
-   未飽和のランを通してしまう。``run_paris/convergence.py`` は緩和曲線
+   未飽和のランを通してしまう。``runs/convergence.py`` は緩和曲線
    :math:`DR(t) = DR_\infty - A e^{-t/\tau}` を当てはめて「残りどれだけ
    動くか」を出す。
 
 確認は::
 
-    python run_paris/convergence.py --extrap
+    python runs/convergence.py --extrap
 
 
 原論文との比較
@@ -268,7 +268,7 @@ Rempel (2006) 式 (20)-(22) の収支をそのまま追える
 
 確認は::
 
-    python run_paris/table1.py mydynamo:12.5
+    python runs/table1.py mydynamo:12.5
 
 
 論文からの意図的な逸脱

@@ -14,14 +14,24 @@ Solar/Stellar Mean Field Dynamo code
 
 ## 検証されていること
 
-| 項目 | 精度 | 固定しているテスト |
+| 項目 | 精度 | 根拠 |
 |---|---|---|
 | 質量・角運動量の保存 | machine precision (1e-20) | `tests/test_conservation.py` |
-| エネルギー収支 (Rempel 2006 式 20-22) | 原論文が明記する 0.001 (288x192 で) | 同上 |
-| 空間の収束次数 | 2.00 (一様・非一様とも) | 同上 |
-| Rempel (2006) 表 1 の再現 | 周期 18.0-18.1 年 (論文 18)、磁場と交換項は 1 割以内 | `doc/dev_records/2026-08-23_table1_result.md` |
+| 磁場のエネルギー収支 (式 22) | Q_Λ 比で 1e-5 〜 2e-4 | `doc/dev_records/2026-08-23_energy_budget_residual.md` |
+| 流れのエネルギー収支 (式 20-21) | 288x192 で 0.0012 (c_s=0.30) 〜 0.0024 (c_s=0.02) | 同上 |
+| 空間の収束次数 | 2.00 (一様・非一様とも) | `tests/test_conservation.py` |
+| **Rempel (2006) 表 1**: 周期 | 18.0-18.1 年 / 論文 18 (比 1.00-1.01) | `doc/dev_records/2026-08-25_table1_final.md` |
+| **同**: エネルギー交換項 5 つ | 論文比 0.93-1.10 | 同上 |
+| **同**: トーショナル振動 | 論文比 0.95-1.26 | 同上 |
+| **同**: 磁場 (max B_φ, max B_r, Ē_B) | 論文比 0.83-1.12 | 同上 |
+| 差動回転の収束極限 | DR_∞ = 0.266 ± 0.003 / 論文 0.27 | `doc/dev_records/2026-08-25_analysis_audit.md` |
 
-`pytest` で 213 本のテストが走る。詳細は
+差動回転の絶対値は論文比 1.10-1.15 だが、これは**論文の格子 (108x72) が
+未収束**なことの持ち込みで、自分の運動学的参照解で規格化すると 144x96 で
+0.999 / 1.004 になる。**この実装の付加価値は、論文の数値が未収束であることを
+定量化した点にある。**
+
+`pytest` で 222 本のテストが走る。詳細は
 [動力学モードの章](https://is-isee.github.io/S2MFD/main/dynamic.html)。
 
 ---
@@ -66,11 +76,19 @@ $ pytest -m slow      # 長時間ベンチマーク
 ## Development records
 
 開発経緯・レビュー記録・引き継ぎ資料は `doc/dev_records/` にある。
+入口は **`handover_2026-08-25.md`** (最新の引き継ぎ)。
+
+`runs/` は Rempel (2006) 再現ランの投入・解析スクリプト一式。
+**リポジトリのスクリプトで、`pip install` されるパッケージには含まれない。**
 
 ## Documentation
 
 ### URL
 https://is-isee.github.io/S2MFD/main
+
+コードを読むための Python の前提 (`class` から積み上げる) は
+[コードを読むための Python](https://is-isee.github.io/S2MFD/main/reading_the_code.html)
+の章にある。
 
 ### Sphinx
 
